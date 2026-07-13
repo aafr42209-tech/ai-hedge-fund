@@ -27,7 +27,7 @@ Formally:
 H1: mean(NR_deterministic - NR_llm) > delta_min
 ```
 
-where `NR` is normalized regret and `delta_min` is the preregistered superiority margin frozen after the development pilot and before evaluation fixtures are generated.
+where `NR` is normalized regret and `delta_min` is the preregistered superiority margin frozen from provider-free development-fixture scale before the first Codex provider call. Observed LLM responses cannot select or change it.
 
 ## 3. Claims permitted and prohibited
 
@@ -49,6 +49,9 @@ where `NR` is normalized regret and `delta_min` is the preregistered superiority
 - Point-in-time validity of any real data provider.
 - Production or live-trading readiness.
 - Generalization beyond the sealed generator families.
+- Generalization from the sealed Codex agent harness to the same named model through a raw API, another Codex CLI version, personality, tool surface, provider or authentication mode, another LLM, or another portfolio-manager agent.
+
+R01 evaluates one complete sealed Codex agent configuration. It does not isolate the causal contribution of the underlying model weights.
 
 ## 4. Experimental unit
 
@@ -287,7 +290,7 @@ Every oracle result stores a complete enumeration certificate. If any policy has
 
 ## 11. Primary endpoint
 
-R01 uses one fixed utility scale for every evaluation episode. The scale is derived only from development fixtures:
+R01 uses one fixed utility scale for every evaluation episode. The scale is derived provider-free from the 40 deterministic development fixtures before the first Codex call:
 
 ```text
 regret_scale = max(
@@ -296,7 +299,11 @@ regret_scale = max(
 )
 ```
 
-Both `normalization_epsilon` and the resulting `regret_scale` are seal fields. Evaluation data cannot change them.
+`normalization_epsilon_e12` is one basis point in utility units, `100000000`. For the even 40-case sample, `median_development` sorts the oracle-hold gaps and applies `round_ratio_half_even` to the sum of the 20th and 21st values divided by two. The frozen median gap is `3136616200`, so `regret_scale_e12` is `3136616200`.
+
+The complete provider-free derivation and lattice-certificate artifact is `docs/r01-b0-provider-free-freeze.json`, SHA-256 `86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2`. It uses development root-seed label `r01-phase-b-development-fixtures-v1`; its generator-config SHA-256 is `e6598cca07c846650f7d7c157c16a6d77aefd4a94966c6624288239b5ae04ccf` and scoring-spec SHA-256 is `d9cd665ee7691f24936bdab94625cdcfe0b3c658386ea9d7c9588d6cb65081fe`.
+
+Both `normalization_epsilon` and the resulting `regret_scale` are immutable pre-provider seal fields. Provider responses, pilot outcomes, and evaluation data cannot change them.
 
 Both are stored in authoritative `utility_e12` units. Normalized regret is stored as:
 
@@ -350,9 +357,9 @@ The confirmatory GO condition is:
 lower_bound_95_ci > delta_min
 ```
 
-`delta_min` must be selected from development-fixture scale only. It cannot be changed after the evaluation manifest exists.
+`delta_min` must be selected as a user-approved practical fraction of the frozen provider-free oracle-hold scale before the first Codex call. It cannot refer to observed LLM effects and cannot change after any provider response exists.
 
-The development pilot also freezes `delta_target`, where `delta_target > delta_min`, for prospective power analysis. Before seal, the preregistered power procedure must estimate at least `80%` power for `200` cases by simulating the actual decision rule: the lower endpoint of the paired two-sided 95% percentile bootstrap interval must exceed `delta_min`. This corresponds to nominal one-sided alpha `0.025`, not `0.05`. If estimated power is below `80%`, the sample size and all dependent budgets must be increased before seal, or the experiment must not seal. The margin cannot be reduced merely to pass the power gate.
+Before the first Codex call, R01 also freezes `delta_target_e12 = delta_min_e12 + target_headroom_e12`, where the user-approved `target_headroom_e12 > 0` is defined without provider output. Before seal, the preregistered power procedure must estimate at least `80%` power for `200` cases by simulating the actual decision rule: the lower endpoint of the paired two-sided 95% percentile bootstrap interval must exceed `delta_min`. This corresponds to nominal one-sided alpha `0.025`, not `0.05`. If estimated power is below `80%`, the sample size and all dependent budgets must be increased before seal, or the experiment must not seal. Neither the margin nor target headroom may be reduced merely to pass the power gate.
 
 The paired bootstrap operates on case-level `Delta_e12` values. Each of `10,000` resamples draws `n` case indices with replacement using NumPy `PCG64`, the sealed bootstrap seed, and the sealed NumPy version. Each resampled mean is `round_ratio_half_even(sum(values), n)`.
 
@@ -561,15 +568,16 @@ A stopped run remains immutable. A corrected run requires a new experiment ID an
 
 ### Phase B — development pilot
 
+- before any provider call, generate the fixed 40 development fixtures, freeze `normalization_epsilon`, `regret_scale`, the complete feasible-lattice certificate bundle, `delta_min`, and the deterministic `delta_target` rule, and record their hashes;
 - use only development fixtures;
 - debug prompts and parsing;
 - state in every candidate prompt that quantity is in shares, must be a visible-lot multiple, is capped at two lots per asset, and reasoning is capped at `2,000` Unicode code points;
 - measure token use and expected cost;
 - run the final candidate prompt for at least two acquisitions on every development fixture;
-- set `delta_min`, `delta_target`, `normalization_epsilon`, `regret_scale`, token caps, USD cap, and final quality thresholds;
+- set token caps, USD cap, and final quality thresholds without reopening the provider-free statistical fields;
 - freeze exact formulas and implementations for action agreement and invariance flip rates;
 - measure identical-prompt disagreement on development acquisitions and confirm that the `5%` flip gate retains adequate margin above the sampling-noise floor; if it does not, change and document the sampling configuration or amend the draft thresholds before seal;
-- freeze `scoring_spec_sha256` and `analysis_spec_sha256`;
+- verify the pre-provider `scoring_spec_sha256` and `analysis_spec_sha256` without changing them;
 - run the preregistered prospective power check for `200` evaluation cases;
 - increase sample size and dependent budgets before seal if estimated power is below `80%`;
 - do not generate evaluation fixtures.
@@ -672,7 +680,12 @@ contract_id: R01-llm-overlay-synthetic-v1
 experiment_id: TBD
 code_commit: TBD
 dependency_lock_sha256: TBD
-generator_config_sha256: TBD
+generator_config_sha256: e6598cca07c846650f7d7c157c16a6d77aefd4a94966c6624288239b5ae04ccf
+provider_free_freeze_schema_version: r01-provider-free-freeze-v1
+provider_free_freeze_sha256: 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2
+development_manifest_schema_version: r01-development-manifest-v2
+development_root_seed_label: r01-phase-b-development-fixtures-v1
+development_root_seed_sha256: c25ccc51af836b213032b4555284a317fd6ffecc6d5e1cd5c926d6a11c50ca66
 evaluation_manifest_sha256: TBD
 invariance_anchor_manifest_sha256: TBD
 adversarial_validator_suite_sha256: TBD
@@ -684,17 +697,17 @@ system_prompt_sha256: TBD
 user_template_sha256: TBD
 delta_min_e12: TBD
 delta_target_e12: TBD
-normalization_epsilon_e12: TBD
-regret_scale_e12: TBD
-max_abs_utility_e12: TBD
-max_normalized_regret_e12: TBD
-feasible_lattice_bound_certificate_sha256: TBD
-risk_aversion_lambda_ppm: TBD
+normalization_epsilon_e12: 100000000
+regret_scale_e12: 3136616200
+max_abs_utility_e12: 25088993397
+max_normalized_regret_e12: 9067403675655
+feasible_lattice_bound_certificate_sha256: 63e5d30f0acba50b69c3326c9a529abe456798ee4d8a3dd3d99f1264b3804c23
+risk_aversion_lambda_ppm: 1000000
 max_trade_lots_per_asset: 2
 reasoning_max_unicode_codepoints: 2000
 utility_scale: 1000000000000
-scoring_spec_sha256: TBD
-analysis_spec_sha256: TBD
+scoring_spec_sha256: d9cd665ee7691f24936bdab94625cdcfe0b3c658386ea9d7c9588d6cb65081fe
+analysis_spec_sha256: 7b48176e197fd38ef4cf87fac4183e625fd2122e4db52093c9f55483e32e5749
 oracle_solver: TBD
 oracle_solver_version: TBD
 oracle_config_sha256: TBD
@@ -731,6 +744,7 @@ sealed_by: TBD
 - Repeated calls measure expected LLM policy behavior and stability.
 - Forty sealed audit anchors and four perturbations fund the invariance GO gate without contaminating the primary endpoint; each anchor uses the per-asset modal action across five primary replicates, with ties mapped to `ABSTAIN`, as its noise-robust reference.
 - A fixed development-derived regret scale prevents near-optimal hold episodes from creating near-zero denominators.
+- The regret scale, superiority margin, and target-headroom rule are frozen before the first provider call so pilot outcomes cannot select the statistical target.
 - No evaluation-driven clipping or winsorization is allowed.
 - Utility and normalized-regret bounds are certified over each fixture's complete feasible action lattice before seal, so poor policy performance cannot be relabeled INVALID.
 - The oracle uses complete enumeration and authoritative integer scoring with `oracle_optimality_tolerance_e12: 0`; approximate oracle results are prohibited.
@@ -772,3 +786,7 @@ sealed_by: TBD
 | Replay trusted a root reference derived from the file being checked | Required external sealed-manifest and post-run result hashes, recorded outside the artifact tree and supplied to replay. |
 | Linear JSON scanning could lose a valid object after malformed quoted prose | Switched to zero-copy offset decoding at every object start and added the malformed-quote regression fixture. |
 | Replay trust anchors were documented as required but optional in code | Made both manifest and run-result hashes mandatory in the replay API and CLI. |
+| Trailing provider text had no pinned ambiguity rule | Allow non-JSON surrounding prose only when exactly one outer JSON object is recoverable; multiple valid outer objects, including duplicated responses or valid trailing objects, fail closed. |
+| `scripted-template --output` bypassed the shared path invariant | Apply the artifact-relative path normalizer and reject absolute, drive-qualified, parent, empty-segment, and dot targets. |
+| Normalization and superiority fields could depend on pilot responses | Freeze epsilon, regret scale, the lattice certificate bundle, and the D2 margin/target rule provider-free before the first Codex call. |
+| B0 introduced an unversioned freeze dependency | Add `r01-provider-free-freeze-v1` and bump only the affected development manifest from `r01-development-manifest-v1` to `r01-development-manifest-v2`; run-plan, run-result, replay, and report schemas remain v1 until B1 changes their fields. Golden replacements: freeze `472cf9d0e3015aeaed44beae2e10af86cd3771c832263015362c4e7440f1a643`, manifest `d766076fe1928885b4b26ea1a7abd77b12280fb93d6795a6e9b2e00ce0e7cdf1`, nested freeze reference `1251af89c5c84d7b857b3c0751bea88aa3deff13240d4913c8f28dd7d0a77d5d`. |

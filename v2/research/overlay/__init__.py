@@ -1,10 +1,10 @@
 """R01 constrained LLM portfolio-overlay research engine.
 
-Phase A is provider-free and development-only.  Nothing in this package is an
+Phase A and B0 are provider-free and development-only. Nothing in this package is an
 investment backtest or a live-trading path.
 """
 
-from .arithmetic import UTILITY_SCALE, mean_int, round_ratio_half_even
+from .arithmetic import UTILITY_SCALE, mean_int, median_int, round_ratio_half_even
 from .canonical import canonical_json_bytes, sha256_hex
 from .contracts import (
     ASSET_IDS,
@@ -25,6 +25,7 @@ __all__ = [
     "SyntheticEpisode",
     "canonical_json_bytes",
     "mean_int",
+    "median_int",
     "round_ratio_half_even",
     "sha256_hex",
 ]

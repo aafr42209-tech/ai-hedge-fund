@@ -4,7 +4,7 @@ import pytest
 from pydantic import ValidationError
 
 from ._test_helpers import episode
-from .arithmetic import mean_int, round_ratio_half_even
+from .arithmetic import mean_int, median_int, round_ratio_half_even
 from .canonical import (
     CanonicalizationError,
     DecisionParseError,
@@ -20,6 +20,8 @@ def test_round_ratio_half_even_signed_ties() -> None:
     assert [round_ratio_half_even(value, 2) for value in (1, 3, 5, -1, -3, -5)] == [0, 2, 2, 0, -2, -2]
     assert mean_int([1, 2]) == 2
     assert mean_int([-1, -2]) == -2
+    assert median_int([9, 1, 4]) == 4
+    assert median_int([1, 2, 3, 4]) == 2
 
 
 def test_canonical_json_is_sorted_and_integer_only() -> None:
@@ -60,6 +62,22 @@ def test_parser_finds_balanced_object_after_invalid_prose_braces() -> None:
 def test_parser_recovers_after_unterminated_quote_in_earlier_braces() -> None:
     raw = 'Note: {"unterminated string here} {"decisions": {}}'
     assert parse_json_object(raw) == {"decisions": {}}
+
+
+@pytest.mark.parametrize(
+    "raw",
+    (
+        '{"decisions": {}} trailing {"other": true}',
+        '{"decisions": {}} {"decisions": {}}',
+    ),
+)
+def test_parser_rejects_multiple_outer_json_objects(raw: str) -> None:
+    with pytest.raises(DecisionParseError, match="multiple unambiguous"):
+        parse_json_object(raw)
+
+
+def test_parser_accepts_one_object_with_non_json_trailing_prose() -> None:
+    assert parse_json_object('prefix {"decisions": {}} trailing prose') == {"decisions": {}}
 
 
 def test_policy_input_cannot_contain_hidden_state() -> None:

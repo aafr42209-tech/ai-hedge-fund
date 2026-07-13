@@ -71,28 +71,25 @@ def _reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
 
 
 def _candidate_sources(raw: str) -> Iterator[tuple[str, int]]:
-    """Yield source text and object offsets without allocating suffix copies."""
+    """Yield one source and every possible object offset without suffix copies."""
 
     stripped = raw.strip()
-    if stripped.startswith("```") and stripped.endswith("```"):
-        first_newline = stripped.find("\n")
-        if first_newline != -1:
-            yield stripped[first_newline + 1 : -3].strip(), 0
     for index, char in enumerate(stripped):
         if char == "{":
             yield stripped, index
 
 
 def parse_json_object(raw: str) -> dict[str, Any]:
-    """Extract the first strict JSON object without losing duplicate keys."""
+    """Extract exactly one unambiguous outer JSON object from noisy text."""
 
     if not isinstance(raw, str):
         raise DecisionParseError("raw response must be text")
     decoder = json.JSONDecoder(object_pairs_hook=_reject_duplicates)
     last_error: Exception | None = None
+    candidates: list[tuple[int, int, dict[str, Any]]] = []
     for source, offset in _candidate_sources(raw):
         try:
-            value, _end = decoder.raw_decode(source, offset)
+            value, end = decoder.raw_decode(source, offset)
         except DuplicateKeyError:
             raise
         except (json.JSONDecodeError, ValueError) as exc:
@@ -101,7 +98,21 @@ def parse_json_object(raw: str) -> dict[str, Any]:
         if not isinstance(value, dict):
             last_error = DecisionParseError("top-level JSON value must be an object")
             continue
-        return value
+        candidates.append((offset, end, value))
+    outer_candidates = [
+        candidate
+        for candidate in candidates
+        if not any(
+            other_start <= candidate[0]
+            and candidate[1] <= other_end
+            and (other_start, other_end) != candidate[:2]
+            for other_start, other_end, _other_value in candidates
+        )
+    ]
+    if len(outer_candidates) == 1:
+        return outer_candidates[0][2]
+    if len(outer_candidates) > 1:
+        raise DecisionParseError("multiple unambiguous JSON objects found")
     raise DecisionParseError(f"no valid JSON object found: {last_error}")
 
 

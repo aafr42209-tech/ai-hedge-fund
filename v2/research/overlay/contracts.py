@@ -233,6 +233,64 @@ class OracleResult(StrictModel):
     certificate: OracleCertificate
 
 
+class ProviderFreeCaseCertificate(StrictModel):
+    case_id: str
+    regime: Regime
+    fixture_content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    oracle_utility_e12: int
+    hold_utility_e12: int
+    oracle_hold_gap_e12: int = Field(ge=0)
+    minimum_utility_e12: int
+    maximum_abs_utility_e12: int = Field(ge=0)
+    maximum_normalized_regret_e12: int = Field(ge=0)
+    oracle_certificate_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+
+class ProviderFreeFreeze(StrictModel):
+    schema_version: Literal["r01-provider-free-freeze-v1"] = "r01-provider-free-freeze-v1"
+    status: Literal["DEVELOPMENT_ONLY_NOT_SEALED"] = "DEVELOPMENT_ONLY_NOT_SEALED"
+    fixture_namespace: Literal["development"] = "development"
+    generator_config_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    scoring_spec_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    root_seed_label: str = Field(min_length=1)
+    root_seed_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    fixture_count: int = Field(gt=0)
+    normalization_epsilon_rule: Literal["one_basis_point_utility_e12"] = "one_basis_point_utility_e12"
+    normalization_epsilon_e12: int = Field(gt=0)
+    median_rule: Literal["sorted_middle_half_even_v1"] = "sorted_middle_half_even_v1"
+    median_oracle_hold_gap_e12: int = Field(ge=0)
+    regret_scale_e12: int = Field(gt=0)
+    max_abs_utility_e12: int = Field(ge=0)
+    max_normalized_regret_e12: int = Field(ge=0)
+    feasible_lattice_bound_certificate_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    cases: tuple[ProviderFreeCaseCertificate, ...]
+
+    @model_validator(mode="after")
+    def validate_freeze_identity(self) -> "ProviderFreeFreeze":
+        if self.fixture_count != len(self.cases):
+            raise ValueError("fixture_count must match provider-free cases")
+        identities = {
+            (case.case_id, case.fixture_content_sha256)
+            for case in self.cases
+        }
+        if len(identities) != len(self.cases):
+            raise ValueError("provider-free case identities must be unique")
+        if self.regret_scale_e12 != max(
+            self.median_oracle_hold_gap_e12,
+            self.normalization_epsilon_e12,
+        ):
+            raise ValueError("regret scale must equal max(median gap, epsilon)")
+        if self.max_abs_utility_e12 != max(
+            case.maximum_abs_utility_e12 for case in self.cases
+        ):
+            raise ValueError("max_abs_utility_e12 does not match cases")
+        if self.max_normalized_regret_e12 != max(
+            case.maximum_normalized_regret_e12 for case in self.cases
+        ):
+            raise ValueError("max_normalized_regret_e12 does not match cases")
+        return self
+
+
 class BaselineConfig(StrictModel):
     signal_weights_bps: dict[str, int] = Field(default_factory=lambda: {signal_id: 2_000 for signal_id in SIGNAL_IDS})
     forecast_scale_bps: int = Field(default=300, gt=0)
@@ -335,7 +393,7 @@ class FixtureManifestEntry(StrictModel):
 
 
 class DevelopmentManifest(StrictModel):
-    schema_version: Literal["r01-development-manifest-v1"] = "r01-development-manifest-v1"
+    schema_version: Literal["r01-development-manifest-v2"] = "r01-development-manifest-v2"
     contract_id: Literal["R01-llm-overlay-synthetic-v1"] = "R01-llm-overlay-synthetic-v1"
     experiment_id: str
     status: Literal["DEVELOPMENT_ONLY_NOT_SEALED"] = "DEVELOPMENT_ONLY_NOT_SEALED"
@@ -345,6 +403,11 @@ class DevelopmentManifest(StrictModel):
     analysis_spec_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     scoring_spec: ArtifactReference
     analysis_spec: ArtifactReference
+    provider_free_freeze_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    provider_free_freeze: ArtifactReference
+    normalization_epsilon_e12: int = Field(gt=0)
+    regret_scale_e12: int = Field(gt=0)
+    feasible_lattice_bound_certificate_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     root_seed_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     fixtures: tuple[FixtureManifestEntry, ...]
 

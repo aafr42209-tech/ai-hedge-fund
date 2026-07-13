@@ -22,12 +22,15 @@ from .contracts import (
     FixtureManifestEntry,
     GeneratorConfig,
     OracleResult,
+    ProviderFreeFreeze,
     ReplayVerification,
     RunPlanEntry,
     SyntheticEpisode,
     ValidationReport,
+    normalize_artifact_relative_path,
 )
 from .fixtures import generate_development_episodes
+from .freeze import build_provider_free_freeze, generate_provider_free_freeze
 from .llm_policy import (
     SYSTEM_PROMPT_V1,
     AcquisitionClient,
@@ -57,6 +60,15 @@ def generate_development_manifest(
     episodes = generate_development_episodes(config, root_seed, count)
     scoring_reference = store.write_json(f"{experiment_id}/scoring_spec.json", scoring_spec())
     analysis_reference = store.write_json(f"{experiment_id}/analysis_spec.json", analysis_spec())
+    provider_free_freeze = build_provider_free_freeze(
+        episodes,
+        config=config,
+        root_seed_label=root_seed,
+    )
+    provider_free_freeze_reference = store.write_json(
+        f"{experiment_id}/provider_free_freeze.json",
+        provider_free_freeze,
+    )
     entries: list[FixtureManifestEntry] = []
     for episode in episodes:
         reference = store.write_json(
@@ -79,6 +91,13 @@ def generate_development_manifest(
         analysis_spec_sha256=analysis_spec_sha256(),
         scoring_spec=scoring_reference,
         analysis_spec=analysis_reference,
+        provider_free_freeze_sha256=provider_free_freeze_reference.sha256,
+        provider_free_freeze=provider_free_freeze_reference,
+        normalization_epsilon_e12=provider_free_freeze.normalization_epsilon_e12,
+        regret_scale_e12=provider_free_freeze.regret_scale_e12,
+        feasible_lattice_bound_certificate_sha256=(
+            provider_free_freeze.feasible_lattice_bound_certificate_sha256
+        ),
         root_seed_sha256=sha256_hex(root_seed.encode("utf-8")),
         fixtures=tuple(entries),
     )
@@ -101,10 +120,13 @@ def _load_episode(store: AppendOnlyArtifactStore, reference: ArtifactReference) 
 def _verify_manifest_specs(store: AppendOnlyArtifactStore, manifest: DevelopmentManifest) -> None:
     store.verify(manifest.scoring_spec)
     store.verify(manifest.analysis_spec)
+    store.verify(manifest.provider_free_freeze)
     if manifest.scoring_spec.sha256 != manifest.scoring_spec_sha256:
         raise RuntimeError("scoring spec hash mismatch")
     if manifest.analysis_spec.sha256 != manifest.analysis_spec_sha256:
         raise RuntimeError("analysis spec hash mismatch")
+    if manifest.provider_free_freeze.sha256 != manifest.provider_free_freeze_sha256:
+        raise RuntimeError("provider-free freeze hash mismatch")
     if manifest.scoring_spec_sha256 != scoring_spec_sha256():
         raise RuntimeError("runtime scoring spec differs from manifest")
     if manifest.analysis_spec_sha256 != analysis_spec_sha256():
@@ -113,6 +135,32 @@ def _verify_manifest_specs(store: AppendOnlyArtifactStore, manifest: Development
         raise RuntimeError("scoring spec bytes differ from runtime spec")
     if store.read_bytes(manifest.analysis_spec) != canonical_json_bytes(analysis_spec()):
         raise RuntimeError("analysis spec bytes differ from runtime spec")
+    freeze = ProviderFreeFreeze.model_validate_json(store.read_bytes(manifest.provider_free_freeze))
+    if freeze.generator_config_sha256 != manifest.generator_config_sha256:
+        raise RuntimeError("provider-free freeze generator config mismatch")
+    if freeze.scoring_spec_sha256 != manifest.scoring_spec_sha256:
+        raise RuntimeError("provider-free freeze scoring spec mismatch")
+    if freeze.root_seed_sha256 != manifest.root_seed_sha256:
+        raise RuntimeError("provider-free freeze root seed mismatch")
+    if freeze.normalization_epsilon_e12 != manifest.normalization_epsilon_e12:
+        raise RuntimeError("provider-free freeze epsilon mismatch")
+    if freeze.regret_scale_e12 != manifest.regret_scale_e12:
+        raise RuntimeError("provider-free freeze regret scale mismatch")
+    if (
+        freeze.feasible_lattice_bound_certificate_sha256
+        != manifest.feasible_lattice_bound_certificate_sha256
+    ):
+        raise RuntimeError("provider-free freeze lattice certificate mismatch")
+    freeze_cases = {
+        (case.case_id, case.fixture_content_sha256)
+        for case in freeze.cases
+    }
+    manifest_cases = {
+        (case.case_id, case.content_sha256)
+        for case in manifest.fixtures
+    }
+    if freeze.fixture_count != len(manifest.fixtures) or freeze_cases != manifest_cases:
+        raise RuntimeError("provider-free freeze fixture identity mismatch")
 
 
 @dataclass(frozen=True)
@@ -445,6 +493,13 @@ def _print_reference(reference: ArtifactReference) -> None:
     print(canonical_json_bytes(reference).decode("utf-8"))
 
 
+def _write_safe_relative_json(relative_path: str, payload: Any) -> Path:
+    output = Path(normalize_artifact_relative_path(relative_path))
+    with output.open("xb") as handle:
+        handle.write(canonical_json_bytes(payload))
+    return output
+
+
 def main(argv: list[str] | None = None) -> int:
     parser = argparse.ArgumentParser(description="R01 provider-free development runner")
     parser.add_argument("--artifact-root", default=".research_artifacts/r01")
@@ -460,6 +515,11 @@ def main(argv: list[str] | None = None) -> int:
     template.add_argument("--manifest", required=True, help="artifact-root relative path")
     template.add_argument("--replicates", type=int, default=1)
     template.add_argument("--output", required=True, help="new JSON response-map path")
+
+    freeze_parser = subparsers.add_parser("provider-free-freeze")
+    freeze_parser.add_argument("--root-seed", required=True)
+    freeze_parser.add_argument("--count", type=int, default=40)
+    freeze_parser.add_argument("--output", required=True, help="new safe relative JSON path")
 
     dry_run = subparsers.add_parser("dry-run")
     dry_run.add_argument("--manifest", required=True, help="artifact-root relative path")
@@ -494,10 +554,24 @@ def main(argv: list[str] | None = None) -> int:
         manifest = DevelopmentManifest.model_validate_json(store.read_bytes(manifest_reference))
         _verify_manifest_specs(store, manifest)
         payload = scripted_response_template(manifest, args.replicates)
-        output = Path(args.output)
-        with output.open("xb") as handle:
-            handle.write(canonical_json_bytes(payload))
+        output = _write_safe_relative_json(args.output, payload)
         print(canonical_json_bytes({"acquisitions": len(payload), "output": str(output)}).decode("utf-8"))
+        return 0
+    if args.command == "provider-free-freeze":
+        freeze = generate_provider_free_freeze(
+            root_seed_label=args.root_seed,
+            count=args.count,
+        )
+        output = _write_safe_relative_json(args.output, freeze)
+        print(
+            canonical_json_bytes(
+                {
+                    "fixture_count": freeze.fixture_count,
+                    "output": str(output),
+                    "sha256": canonical_sha256(freeze),
+                }
+            ).decode("utf-8")
+        )
         return 0
     if args.command == "dry-run":
         responses_payload = json.loads(Path(args.responses).read_text(encoding="utf-8"))

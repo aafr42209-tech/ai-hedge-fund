@@ -1,4 +1,4 @@
-# R01 LLM overlay research — Phase A
+# R01 LLM overlay research — Phase A / provider-free B0
 
 `v2.research.overlay` is the provider-free, development-only foundation for R01.
 It implements deterministic fixture generation, strict validation, exact integer
@@ -13,6 +13,21 @@ fixtures. Every report is marked:
 ## Commands
 
 Run from the repository root:
+
+```powershell
+python -m v2.research.overlay `
+  provider-free-freeze `
+  --root-seed r01-phase-b-development-fixtures-v1 `
+  --count 40 `
+  --output docs/r01-b0-provider-free-freeze.json
+```
+
+This command uses no provider. It writes a new safe repository-relative path
+exclusively and freezes the development oracle-hold scale plus complete-lattice
+bounds. Absolute, drive-qualified, parent, empty-segment, and dot output paths
+are rejected.
+
+For the provider-free scripted Phase A runner:
 
 ```powershell
 python -m v2.research.overlay `
@@ -67,6 +82,6 @@ they should not be constructed by hand. Replay and verification require the
 manifest hash printed by `generate-development` and the result hash printed by
 `dry-run`; a missing or mismatched external anchor fails closed before scoring.
 
-Phase A accepts scripted raw responses only. Provider integration, prompts,
+Phase A and B0 accept scripted raw responses only. Provider integration, prompts,
 evaluation generation, sealing, and GO/NO-GO verdicts remain unavailable until
 their later contract phases.

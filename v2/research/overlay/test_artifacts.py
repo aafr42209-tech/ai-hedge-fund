@@ -77,6 +77,9 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
     )
     assert manifest.scoring_spec.sha256 == manifest.scoring_spec_sha256
     assert manifest.analysis_spec.sha256 == manifest.analysis_spec_sha256
+    assert manifest.schema_version == "r01-development-manifest-v2"
+    assert manifest_ref.sha256 == "d766076fe1928885b4b26ea1a7abd77b12280fb93d6795a6e9b2e00ce0e7cdf1"
+    assert manifest.provider_free_freeze_sha256 == "1251af89c5c84d7b857b3c0751bea88aa3deff13240d4913c8f28dd7d0a77d5d"
     store.verify(manifest.scoring_spec)
     store.verify(manifest.analysis_spec)
     identity = AcquisitionIdentity(
@@ -128,7 +131,7 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
         )
 
 
-def test_scripted_template_cli_emits_production_acquisition_keys(tmp_path, capsys) -> None:
+def test_scripted_template_cli_emits_production_acquisition_keys(tmp_path, capsys, monkeypatch) -> None:
     store = AppendOnlyArtifactStore(tmp_path)
     manifest_ref, manifest = generate_development_manifest(
         store,
@@ -137,6 +140,7 @@ def test_scripted_template_cli_emits_production_acquisition_keys(tmp_path, capsy
         contract_bytes=b"draft-contract",
         count=1,
     )
+    monkeypatch.chdir(tmp_path)
     output = tmp_path / "scripted-responses.json"
     assert (
         main(
@@ -149,7 +153,7 @@ def test_scripted_template_cli_emits_production_acquisition_keys(tmp_path, capsy
                 "--replicates",
                 "2",
                 "--output",
-                str(output),
+                "scripted-responses.json",
             ]
         )
         == 0
@@ -158,6 +162,41 @@ def test_scripted_template_cli_emits_production_acquisition_keys(tmp_path, capsy
     payload = json.loads(output.read_text(encoding="utf-8"))
     assert payload == scripted_response_template(manifest, 2)
     assert len(payload) == 2
+
+
+@pytest.mark.parametrize(
+    "unsafe",
+    (
+        "../scripted-responses.json",
+        ".",
+        "C:\\scripted-responses.json",
+        "nested//scripted-responses.json",
+    ),
+)
+def test_scripted_template_cli_rejects_unsafe_output_paths(
+    tmp_path,
+    unsafe,
+) -> None:
+    store = AppendOnlyArtifactStore(tmp_path)
+    manifest_ref, _manifest = generate_development_manifest(
+        store,
+        experiment_id="template-path-test",
+        root_seed="template-path-seed",
+        contract_bytes=b"draft-contract",
+        count=1,
+    )
+    with pytest.raises(ValueError, match="safe relative path"):
+        main(
+            [
+                "--artifact-root",
+                str(tmp_path),
+                "scripted-template",
+                "--manifest",
+                manifest_ref.relative_path,
+                "--output",
+                unsafe,
+            ]
+        )
 
 
 def test_oracle_is_cached_once_per_fixture_in_acquisition_and_replay(tmp_path, monkeypatch) -> None:

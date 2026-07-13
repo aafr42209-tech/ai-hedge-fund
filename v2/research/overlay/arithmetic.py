@@ -46,3 +46,15 @@ def mean_int(values: tuple[int, ...] | list[int]) -> int:
     if not values:
         raise ValueError("cannot take the mean of an empty sequence")
     return round_ratio_half_even(sum(values), len(values))
+
+
+def median_int(values: tuple[int, ...] | list[int]) -> int:
+    """Authoritative R01 integer median with half-even midpoint rounding."""
+
+    if not values:
+        raise ValueError("cannot take the median of an empty sequence")
+    ordered = sorted(values)
+    midpoint = len(ordered) // 2
+    if len(ordered) % 2:
+        return ordered[midpoint]
+    return round_ratio_half_even(ordered[midpoint - 1] + ordered[midpoint], 2)
