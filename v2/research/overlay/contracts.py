@@ -284,6 +284,63 @@ class ProviderFreeFreeze(StrictModel):
         return self
 
 
+class ProviderFreeRegimeGapStats(StrictModel):
+    case_count: int = Field(gt=0)
+    zero_gap_count: int = Field(ge=0)
+    positive_lte_epsilon_count: int = Field(ge=0)
+    gt_epsilon_count: int = Field(ge=0)
+    min_gap_e12: int = Field(ge=0)
+    median_gap_e12: int = Field(ge=0)
+    mean_gap_e12: int = Field(ge=0)
+    max_gap_e12: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_gap_stats(self) -> "ProviderFreeRegimeGapStats":
+        if self.zero_gap_count + self.positive_lte_epsilon_count + self.gt_epsilon_count != self.case_count:
+            raise ValueError("gap buckets must sum to case_count")
+        if not (self.min_gap_e12 <= self.median_gap_e12 <= self.max_gap_e12):
+            raise ValueError("gap min, median, and max must be ordered")
+        if not self.min_gap_e12 <= self.mean_gap_e12 <= self.max_gap_e12:
+            raise ValueError("gap mean must lie within min and max")
+        return self
+
+
+class ProviderFreeRegimeGapSummary(StrictModel):
+    schema_version: Literal["r01-provider-free-regime-gap-summary-v1"] = "r01-provider-free-regime-gap-summary-v1"
+    status: Literal["DEVELOPMENT_ONLY_NOT_SEALED"] = "DEVELOPMENT_ONLY_NOT_SEALED"
+    source_freeze_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    normalization_epsilon_e12: int = Field(gt=0)
+    fixture_count: int = Field(gt=0)
+    overall: ProviderFreeRegimeGapStats
+    regimes: dict[Regime, ProviderFreeRegimeGapStats]
+    decision_status: Literal["TBD_D2"] = "TBD_D2"
+
+    @model_validator(mode="after")
+    def validate_regime_summary(self) -> "ProviderFreeRegimeGapSummary":
+        expected_regimes = {
+            "signal_consensus",
+            "signal_conflict",
+            "high_transaction_cost",
+            "concentration_pressure",
+            "existing_position_asymmetry",
+            "noisy_confidence",
+        }
+        if set(self.regimes) != expected_regimes:
+            raise ValueError("regime summary must contain every R01 regime exactly once")
+        if sum(stats.case_count for stats in self.regimes.values()) != self.fixture_count:
+            raise ValueError("regime case counts must sum to fixture_count")
+        for field_name in (
+            "zero_gap_count",
+            "positive_lte_epsilon_count",
+            "gt_epsilon_count",
+        ):
+            if sum(getattr(stats, field_name) for stats in self.regimes.values()) != getattr(self.overall, field_name):
+                raise ValueError(f"regime {field_name} values must match overall")
+        if self.overall.case_count != self.fixture_count:
+            raise ValueError("overall case_count must match fixture_count")
+        return self
+
+
 class BaselineConfig(StrictModel):
     signal_weights_bps: dict[str, int] = Field(default_factory=lambda: {signal_id: 2_000 for signal_id in SIGNAL_IDS})
     forecast_scale_bps: int = Field(default=300, gt=0)

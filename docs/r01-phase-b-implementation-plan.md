@@ -1,14 +1,14 @@
-# R01 Phase B Implementation Plan v4 — Codex Development Pilot
+# R01 Phase B Implementation Plan v5 — Codex Development Pilot
 
 > **DRAFT PLAN — DEVELOPMENT ONLY — NOT SEALED — NO INVESTMENT CLAIM**
 
 ## 1. Plan identity
 
-- Plan ID: `R01-PHASE-B-PLAN-v4`
-- Supersedes plan SHA-256: `0be78db9124a64b0bfac8f49adeaf786e08b76474e2edb7cd70cca0609f2f898`
+- Plan ID: `R01-PHASE-B-PLAN-v5`
+- Supersedes plan SHA-256: `55e394f8dc5e439c8861b6e59aac92a29207fe4374557e46eaebe309d2a9cc21`
 - Research contract: `docs/research-contract-01-llm-overlay.md`
-- Contract SHA-256 at plan start: `e0c42cf471d46d340821a4ca2732c7b21f77b990990f5b3ab5d5d4af3141aa2a`
-- Base commit: `8cc0e420abad1d503609cba54d587797b6fe6114`
+- Contract SHA-256 before v5 hardening: `946527fe1d6af2db3c9b11526c43472a9de9dd59ec84a41050ebafff25767b97`
+- Base commit: `6e8f8cc4a681e9155f16b8cf80524b459d831b04`
 - Base branch: `codex/llm-overlay-research-01`
 - Created: `2026-07-13`; revised: `2026-07-14`
 - Status: `DRAFT`
@@ -193,6 +193,13 @@ before the first provider call:
 - compute `normalization_epsilon_e12` and `regret_scale_e12` in B0 using only
   deterministic development fixtures, the exact oracle, and hold;
 - freeze their values and the complete derivation artifact before B2 completes;
+- require the fixed B0 freeze SHA as a caller-supplied external trust anchor on
+  manifest generation, every acquisition entry point, and replay; bind the
+  development root-seed label to `r01-phase-b-development-fixtures-v1` and the
+  fixture count to `40`;
+- derive and hash a provider-free per-regime oracle-hold gap summary. D2 must
+  explicitly accept the unchanged high-cost stratum and its prospective power
+  cost or stop for a new provider-free contract and freeze;
 - select and freeze `delta_min_e12` at D2 as a practical fraction of the already
   frozen oracle-hold scale, without observing any Codex response;
 - freeze a deterministic `delta_target` rule at D2 before B3. The rule is
@@ -512,6 +519,13 @@ outputs.
   `63e5d30f0acba50b69c3326c9a529abe456798ee4d8a3dd3d99f1264b3804c23`;
 - global certified `max_abs_utility_e12 = 25088993397` and
   `max_normalized_regret_e12 = 9067403675655`;
+- provider-free regime-gap summary:
+  `docs/r01-b0-regime-gap-summary.json`, schema
+  `r01-provider-free-regime-gap-summary-v1`, SHA-256
+  `0e6e8945f93779a77ffc7687d63062c010efd3aee3d6c8062551e54108fbf886`;
+- exact gap facts: `6/40` zero-gap cases, all in `high_transaction_cost`;
+  that regime has seven cases, with one positive gap `600135403 > epsilon`, so
+  it is near-degenerate `6/7`, not fully degenerate;
 - carried parser-ambiguity and safe-output-path fixes closed with regression
   tests;
 - no provider call made; B1, B2, D2, and all evaluation work remain blocked.
@@ -550,6 +564,21 @@ outputs.
 - B2 feature-catalog/preflight work, D2 decisions, and all provider calls remain
   blocked.
 
+#### H7/M12 pre-D2 hardening record — 2026-07-14
+
+- require `--freeze-sha256` on manifest generation and every current
+  acquisition/replay CLI; reject an alternate SHA, development root seed, or
+  fixture count before any provider-capable path;
+- load and verify the committed canonical B0 freeze in code rather than trusting
+  a newly self-consistent manifest;
+- commit the deterministic regime-gap summary above and add its schema/hash to
+  the contract seal record;
+- reserve the high-cost-stratum accept-or-restart choice for D2; no provider
+  response may be observed first;
+- updated contract SHA-256:
+  `31e7948632fe492cd49f5c8b3f4eba1a9b7aa2355af16b2d5d01c04bea2d0570`;
+- no provider call made.
+
 ### B2 — zero-call preflight
 
 Produce a hashed preflight report containing:
@@ -570,7 +599,11 @@ Produce a hashed preflight report containing:
 - command-spec hash, including the ordered argv and strict configuration;
 - isolated working-directory proof;
 - contract, prompt, code, and dependency identities;
-- remaining development attempt and token budgets.
+- remaining development attempt and token budgets;
+- the externally supplied B0 freeze SHA and proof that root seed and count match
+  the committed freeze;
+- the provider-free regime-gap summary and the explicit D2 accept-or-restart
+  choice for the unchanged high-cost stratum.
 
 User decision gate D2 selects the exact model and reasoning effort after this
 report and approves the provisional development token cap and per-attempt
@@ -578,7 +611,11 @@ reserve. D2 also freezes `delta_min_e12`, `target_headroom_e12`, the resulting
 `delta_target` rule, and the no-correction two-replicate variance policy before
 the first provider call. D2 approves the minimal non-tool allowlist and any
 unavoidable request-compression, remote-compaction, or fast-mode limitation. No
-model fallback or unclassified effective-true feature is allowed.
+model fallback or unclassified effective-true feature is allowed. D2 must also
+choose one of two provider-free outcomes: accept the anchored generator with the
+`high_transaction_cost` `6/7` zero-gap stratum and record its power cost, or stop
+and issue a new contract and freeze. It cannot exclude, rebalance, or alter that
+stratum after a Codex response exists.
 
 ### B3 — 12-call micro-pilot
 
@@ -852,7 +889,7 @@ summaries, not credentials or hidden provider data.
 | Gate | User decision | Evidence supplied by Codex |
 | --- | --- | --- |
 | D1 | Acquisition route | **Decided:** Option A, Codex CLI with ChatGPT subscription |
-| D2 | Exact model, reasoning effort, minimal active-feature allowlist, request-compression/remote-compaction/fast-mode limitations, `delta_min`, `delta_target` rule, no-correction variance policy, provisional token cap and reserve | Provider-free scale artifact, complete feature-catalog diff, and zero-call preflight |
+| D2 | Exact model, reasoning effort, minimal active-feature allowlist, request-compression/remote-compaction/fast-mode limitations, `delta_min`, `delta_target` rule, no-correction variance policy, provisional token cap and reserve, and accept-or-provider-free-restart decision for the unchanged high-cost gap stratum | Externally anchored provider-free scale and regime-gap artifacts, complete feature-catalog diff, and zero-call preflight |
 | D3 | Final prompt | Candidate comparison, hashes, failures, token use |
 | D4 | Remaining quality thresholds and final token/resource caps | Development pilot decision package; B0/D2 statistics cannot reopen |
 | D5 | Sample/budget expansion if power <80% | Frozen power simulation result |
@@ -929,7 +966,7 @@ A stopped development pilot may be corrected and rerun only under a new
 development experiment identity with all prior artifacts preserved. It cannot
 be relabeled as a successful pilot.
 
-## 17. Plan v2/v3/v4 review resolution log
+## 17. Plan v2/v3/v4/v5 review resolution log
 
 | Review finding | Resolution |
 | --- | --- |
@@ -951,3 +988,5 @@ be relabeled as a successful pilot.
 | M10: two-replicate power was called unconditionally conservative | Document the mechanical variance increase, opposing agreement-selection effect, and unknown net direction. |
 | M11: Section 6 retained conditional Phase A byte-compatibility language | Require new versions and golden hashes for every affected schema; preserve compatibility only for unaffected versions. |
 | H6: the validation parser silently dropped all 27 `under development` rows | Correct the pinned catalog facts to 92 rows; parse first token/name, final token/enabled, and the complete middle/stage; require an exact pinned row-count match and regression-test both a multiword stage and a missing row. |
+| H7: the committed B0 freeze was reproducible but not an externally enforced code anchor | Require the caller-supplied fixed freeze SHA on generation, acquisition, and replay; load the committed canonical artifact; reject alternate root seed and count before provider-capable execution. |
+| M12: six zero oracle-hold gaps were concentrated in the high-cost stratum | Commit exact per-regime gap statistics, correct the claim to six zero gaps among seven high-cost cases, and require D2 to accept the prospective power cost or restart provider-free. |

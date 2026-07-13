@@ -10,10 +10,12 @@ from .artifacts import (
     ArtifactExistsError,
     ArtifactIntegrityError,
 )
-from .contracts import ASSET_IDS, AcquisitionIdentity
+from .canonical import canonical_sha256
+from .contracts import ASSET_IDS, AcquisitionIdentity, DevelopmentManifest
+from .freeze import generate_provider_free_freeze
 from .llm_policy import ScriptedAcquisitionClient, acquisition_key
 from .runner import (
-    generate_development_manifest,
+    generate_development_manifest as _generate_development_manifest,
     main,
     replay,
     run_scripted_acquisition,
@@ -38,10 +40,36 @@ def _hold_raw() -> str:
     )
 
 
+def generate_development_manifest(
+    store,
+    *,
+    experiment_id,
+    root_seed,
+    contract_bytes,
+    count,
+):
+    external_freeze_sha256 = canonical_sha256(
+        generate_provider_free_freeze(
+            root_seed_label=root_seed,
+            count=count,
+        )
+    )
+    return _generate_development_manifest(
+        store,
+        experiment_id=experiment_id,
+        root_seed=root_seed,
+        contract_bytes=contract_bytes,
+        count=count,
+        expected_freeze_sha256=external_freeze_sha256,
+    )
+
+
 def _anchored_replay(store, result_ref, manifest_ref, *, persist=False):
+    manifest = DevelopmentManifest.model_validate_json(store.read_bytes(manifest_ref))
     return replay(
         store,
         result_reference=result_ref,
+        expected_freeze_sha256=manifest.provider_free_freeze_sha256,
         expected_manifest_sha256=manifest_ref.sha256,
         expected_result_sha256=result_ref.sha256,
         persist_verification=persist,
@@ -94,6 +122,7 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
         store,
         manifest_reference=manifest_ref,
         client=client,
+        expected_freeze_sha256=manifest.provider_free_freeze_sha256,
     )
     assert client.provider_calls == 1
     acquisition = result.acquisitions[0]
@@ -108,6 +137,7 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
             store,
             result_reference=result_ref,
             persist_verification=False,
+            expected_freeze_sha256=manifest.provider_free_freeze_sha256,
             expected_manifest_sha256=manifest_ref.sha256,
             expected_result_sha256="0" * 64,
         )
@@ -116,7 +146,17 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
             store,
             result_reference=result_ref,
             persist_verification=False,
+            expected_freeze_sha256=manifest.provider_free_freeze_sha256,
             expected_manifest_sha256="0" * 64,
+            expected_result_sha256=result_ref.sha256,
+        )
+    with pytest.raises(RuntimeError, match="provider-free freeze hash"):
+        replay(
+            store,
+            result_reference=result_ref,
+            persist_verification=False,
+            expected_freeze_sha256="0" * 64,
+            expected_manifest_sha256=manifest_ref.sha256,
             expected_result_sha256=result_ref.sha256,
         )
     with pytest.raises(SystemExit):
@@ -127,6 +167,10 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
                 "verify",
                 "--result",
                 result_ref.relative_path,
+                "--expected-manifest-sha256",
+                manifest_ref.sha256,
+                "--expected-result-sha256",
+                result_ref.sha256,
             ]
         )
 
@@ -152,6 +196,8 @@ def test_scripted_template_cli_emits_production_acquisition_keys(tmp_path, capsy
                 manifest_ref.relative_path,
                 "--replicates",
                 "2",
+                "--freeze-sha256",
+                manifest.provider_free_freeze_sha256,
                 "--output",
                 "scripted-responses.json",
             ]
@@ -178,7 +224,7 @@ def test_scripted_template_cli_rejects_unsafe_output_paths(
     unsafe,
 ) -> None:
     store = AppendOnlyArtifactStore(tmp_path)
-    manifest_ref, _manifest = generate_development_manifest(
+    manifest_ref, manifest = generate_development_manifest(
         store,
         experiment_id="template-path-test",
         root_seed="template-path-seed",
@@ -193,6 +239,8 @@ def test_scripted_template_cli_rejects_unsafe_output_paths(
                 "scripted-template",
                 "--manifest",
                 manifest_ref.relative_path,
+                "--freeze-sha256",
+                manifest.provider_free_freeze_sha256,
                 "--output",
                 unsafe,
             ]
@@ -232,6 +280,7 @@ def test_oracle_is_cached_once_per_fixture_in_acquisition_and_replay(tmp_path, m
         store,
         manifest_reference=manifest_ref,
         client=client,
+        expected_freeze_sha256=manifest.provider_free_freeze_sha256,
         replicates=2,
     )
     assert calls == 1
@@ -260,6 +309,7 @@ def test_replay_fails_on_tampered_derived_artifact(tmp_path) -> None:
         store,
         manifest_reference=manifest_ref,
         client=ScriptedAcquisitionClient({acquisition_key(identity): _hold_raw()}),
+        expected_freeze_sha256=manifest.provider_free_freeze_sha256,
     )
     score_path = tmp_path / result.acquisitions[0].episode_score.relative_path
     score_path.write_bytes(b"{}")
@@ -287,6 +337,7 @@ def test_replay_fails_on_tampered_machine_spec(tmp_path) -> None:
         store,
         manifest_reference=manifest_ref,
         client=ScriptedAcquisitionClient({acquisition_key(identity): _hold_raw()}),
+        expected_freeze_sha256=manifest.provider_free_freeze_sha256,
     )
     (tmp_path / manifest.scoring_spec.relative_path).write_bytes(b"{}")
     with pytest.raises(ArtifactIntegrityError):

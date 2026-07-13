@@ -303,6 +303,8 @@ regret_scale = max(
 
 The complete provider-free derivation and lattice-certificate artifact is `docs/r01-b0-provider-free-freeze.json`, SHA-256 `86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2`. It uses development root-seed label `r01-phase-b-development-fixtures-v1`; its generator-config SHA-256 is `e6598cca07c846650f7d7c157c16a6d77aefd4a94966c6624288239b5ae04ccf` and scoring-spec SHA-256 is `d9cd665ee7691f24936bdab94625cdcfe0b3c658386ea9d7c9588d6cb65081fe`.
 
+The provider-free regime-gap summary is `docs/r01-b0-regime-gap-summary.json`, schema `r01-provider-free-regime-gap-summary-v1`, SHA-256 `0e6e8945f93779a77ffc7687d63062c010efd3aee3d6c8062551e54108fbf886`. It is derived only from the anchored freeze. Overall, `6/40` cases have zero oracle-hold gap, and all six are in `high_transaction_cost`. That regime contains seven cases, not six: one has gap `600135403`, which is above epsilon. D2 must either accept this unchanged stratum and its prospective power cost, or stop and create a newly amended provider-free contract and freeze before any Codex call. It cannot modify or exclude the stratum after observing a provider response.
+
 Both `normalization_epsilon` and the resulting `regret_scale` are immutable pre-provider seal fields. Provider responses, pilot outcomes, and evaluation data cannot change them.
 
 Both are stored in authoritative `utility_e12` units. Normalized regret is stored as:
@@ -479,6 +481,7 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 
 ### Acquisition mode
 
+- every manifest-generation and acquisition entry point requires a caller-supplied `provider_free_freeze_sha256` external pre-run trust anchor; R01 accepts only `86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2`, root-seed label `r01-phase-b-development-fixtures-v1`, and development count `40` before the first provider call;
 - each primary `(case_id, replicate_id)` and audit `(case_id, perturbation_id)` permits one initial request and at most one retry;
 - replicate ID is part of the artifact identity;
 - perturbation ID is part of invariance-artifact identity;
@@ -494,9 +497,10 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 - makes zero provider calls;
 - loads only artifacts named by the sealed manifest;
 - reproduces parsing, validation, scoring, and reports;
+- requires the caller-supplied sealed `provider_free_freeze_sha256` as an external pre-run trust anchor;
 - requires the caller-supplied sealed `evaluation_manifest_sha256` as an external pre-run trust anchor;
 - requires the caller-supplied `run_result_sha256` copied to an immutable external closeout record immediately after acquisition and before replay;
-- fails if either external anchor or any nested artifact hash differs.
+- fails if any of the three external anchors or any nested artifact hash differs.
 
 An existing prompt cache may support replay, but a cache hit can never count as a new replicate.
 
@@ -520,8 +524,9 @@ Every evaluation replicate preserves these distinct artifacts:
 14. episode score;
 15. exact oracle certificate;
 16. acquisition index entry;
-17. run-result root plus its immutable external closeout receipt;
-18. replay verification result.
+17. provider-free freeze and regime-gap-summary identities plus their external trust-anchor record;
+18. run-result root plus its immutable external closeout receipt;
+19. replay verification result.
 
 Artifact identity includes:
 
@@ -552,7 +557,7 @@ Stop immediately and issue no GO/NO-GO performance verdict if any of these occur
 - model ID or sampling configuration changes;
 - provider returns a different model identity;
 - manifest, fixture, prompt, or artifact hash mismatch;
-- caller-supplied evaluation-manifest or run-result trust anchor mismatch;
+- caller-supplied provider-free-freeze, evaluation-manifest, or run-result trust anchor mismatch;
 - raw response is missing;
 - evaluation fixture is missing or replaced;
 - provider-call, token, or USD budget is exceeded;
@@ -576,7 +581,8 @@ A stopped run remains immutable. A corrected run requires a new experiment ID an
 
 ### Phase B — development pilot
 
-- before any provider call, generate the fixed 40 development fixtures, freeze `normalization_epsilon`, `regret_scale`, the complete feasible-lattice certificate bundle, `delta_min`, and the deterministic `delta_target` rule, and record their hashes;
+- before any provider call, load the externally anchored fixed 40 development fixtures, verify the committed provider-free freeze and regime-gap summary, freeze `normalization_epsilon`, `regret_scale`, the complete feasible-lattice certificate bundle, `delta_min`, and the deterministic `delta_target` rule, and record their hashes;
+- at D2, explicitly accept the unchanged `high_transaction_cost` gap stratum and its power cost or stop for a new provider-free contract and freeze; do not issue a Codex call while this decision is `TBD`;
 - use only development fixtures;
 - debug prompts and parsing;
 - state in every candidate prompt that quantity is in shares, must be a visible-lot multiple, is capped at two lots per asset, and reasoning is capped at `2,000` Unicode code points;
@@ -613,7 +619,7 @@ A stopped run remains immutable. A corrected run requires a new experiment ID an
 
 ### Phase E — replay and verdict
 
-- replay from sealed raw artifacts with zero provider calls while supplying both external trust anchors;
+- replay from sealed raw artifacts with zero provider calls while supplying all three external trust anchors;
 - calculate the preregistered primary endpoint and gates;
 - publish one immutable `GO`, `NO-GO`, or `INVALID` verdict.
 
@@ -691,6 +697,9 @@ dependency_lock_sha256: TBD
 generator_config_sha256: e6598cca07c846650f7d7c157c16a6d77aefd4a94966c6624288239b5ae04ccf
 provider_free_freeze_schema_version: r01-provider-free-freeze-v1
 provider_free_freeze_sha256: 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2
+provider_free_regime_gap_summary_schema_version: r01-provider-free-regime-gap-summary-v1
+provider_free_regime_gap_summary_sha256: 0e6e8945f93779a77ffc7687d63062c010efd3aee3d6c8062551e54108fbf886
+high_transaction_cost_gap_treatment: TBD_D2
 development_manifest_schema_version: r01-development-manifest-v2
 development_root_seed_label: r01-phase-b-development-fixtures-v1
 development_root_seed_sha256: c25ccc51af836b213032b4555284a317fd6ffecc6d5e1cd5c926d6a11c50ca66
@@ -760,6 +769,7 @@ sealed_by: TBD
 - Repeated calls measure expected LLM policy behavior and stability.
 - Forty sealed audit anchors and four perturbations fund the invariance GO gate without contaminating the primary endpoint; each anchor uses the per-asset modal action across five primary replicates, with ties mapped to `ABSTAIN`, as its noise-robust reference.
 - A fixed development-derived regret scale prevents near-optimal hold episodes from creating near-zero denominators.
+- The provider-free regime summary shows six zero-gap cases among seven `high_transaction_cost` cases; this is a one-sided near-degenerate stratum, not a fully degenerate regime, and D2 must accept its power cost or restart the provider-free freeze before any Codex call.
 - The regret scale, superiority margin, and target-headroom rule are frozen before the first provider call so pilot outcomes cannot select the statistical target.
 - No evaluation-driven clipping or winsorization is allowed.
 - Utility and normalized-regret bounds are certified over each fixture's complete feasible action lattice before seal, so poor policy performance cannot be relabeled INVALID.
@@ -769,6 +779,7 @@ sealed_by: TBD
 - A modal-anchor tie becomes `ABSTAIN` and is intentionally eligible to count as a flip independently for each of the four perturbation types; it is never deduplicated or dropped.
 - Adversarial validator fixtures are deterministic, provider-free pre-seal tests rather than evaluation calls.
 - Acquisition and replay are separate so cache hits cannot masquerade as independent samples.
+- The committed B0 freeze SHA, root-seed label, and fixture count are enforced by code and caller-supplied before manifest generation, acquisition, and replay; internal manifest consistency is not accepted as an external trust anchor.
 - Invalid raw order batches fail closed to hold; no silent execution repair is allowed.
 - A negative result is a valid terminal result for R01.
 
@@ -807,3 +818,5 @@ sealed_by: TBD
 | Normalization and superiority fields could depend on pilot responses | Freeze epsilon, regret scale, the lattice certificate bundle, and the D2 margin/target rule provider-free before the first Codex call. |
 | B0 introduced an unversioned freeze dependency | Add `r01-provider-free-freeze-v1` and bump only the affected development manifest from `r01-development-manifest-v1` to `r01-development-manifest-v2`; run-plan, run-result, replay, and report schemas remain v1 until B1 changes their fields. Golden replacements: freeze `472cf9d0e3015aeaed44beae2e10af86cd3771c832263015362c4e7440f1a643`, manifest `d766076fe1928885b4b26ea1a7abd77b12280fb93d6795a6e9b2e00ce0e7cdf1`, nested freeze reference `1251af89c5c84d7b857b3c0751bea88aa3deff13240d4913c8f28dd7d0a77d5d`. |
 | B1 required a strict Codex transport identity without authorizing a provider call | Add injected-runner-only command construction and JSONL parsing; require raw capture persistence before parsing; classify transport retries separately from complete response-quality failures; allocate command-spec v1, process-status v1, provider-response v2, and attempt-transport-artifacts v1 schemas. Golden hashes: JSONL schema `cf7ed097a3a8734485f7d229c57eb95a3fe594f5dcc5795b3793fb17332d1da4`, stable command spec `b13eda86e49ed60a6a80b149db2eaed4f418541a9d68ce9b5ef66890f73faf2e`, provider response `98f00424dcaae95aa452949cba7260e9988d442dd5274a90377d44528a190f57`, process status `df1989e4c60454a542b4806b6fd718ee54144f771b74a12a095aa269ea60cb10`. |
+| The committed B0 freeze was reproducible but an alternate root seed could create a different internally consistent manifest | Require the caller-supplied fixed freeze SHA on manifest generation, acquisition, and replay; bind the root-seed label and count to the committed canonical freeze before any provider call. |
+| Six zero oracle-hold gaps were concentrated in the high-cost stratum | Commit a provider-free per-regime gap summary, record that the high-cost regime is `6/7` zero-gap rather than fully degenerate, and make acceptance or a provider-free restart an explicit D2 decision. |

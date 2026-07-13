@@ -20,13 +20,19 @@ python -m v2.research.overlay `
   provider-free-freeze `
   --root-seed r01-phase-b-development-fixtures-v1 `
   --count 40 `
-  --output docs/r01-b0-provider-free-freeze.json
+  --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
+  --output r01-b0-provider-free-freeze-recheck.json
+
+python -m v2.research.overlay `
+  provider-free-gap-summary `
+  --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
+  --output r01-b0-regime-gap-summary-recheck.json
 ```
 
 This command uses no provider. It writes a new safe repository-relative path
-exclusively and freezes the development oracle-hold scale plus complete-lattice
-bounds. Absolute, drive-qualified, parent, empty-segment, and dot output paths
-are rejected.
+exclusively and verifies the development oracle-hold scale, complete-lattice
+bounds, and per-regime gap statistics against the committed B0 freeze. Absolute,
+drive-qualified, parent, empty-segment, and dot output paths are rejected.
 
 For the provider-free scripted Phase A runner:
 
@@ -35,7 +41,9 @@ python -m v2.research.overlay `
   --artifact-root .research_artifacts `
   generate-development `
   --experiment-id r01-development `
-  --root-seed local-development-seed `
+  --root-seed r01-phase-b-development-fixtures-v1 `
+  --count 40 `
+  --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
   --contract docs/research-contract-01-llm-overlay.md
 ```
 
@@ -48,18 +56,21 @@ python -m v2.research.overlay `
   scripted-template `
   --manifest r01-development/development_manifest.json `
   --replicates 1 `
+  --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
   --output scripted-responses.json
 
 python -m v2.research.overlay `
   --artifact-root .research_artifacts `
   dry-run `
   --manifest r01-development/development_manifest.json `
-  --responses scripted-responses.json
+  --responses scripted-responses.json `
+  --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2
 
 python -m v2.research.overlay `
   --artifact-root .research_artifacts `
   replay `
   --result r01-development/run_result.json `
+  --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
   --expected-manifest-sha256 MANIFEST_SHA256_FROM_GENERATE `
   --expected-result-sha256 RESULT_SHA256_FROM_DRY_RUN
 
@@ -67,6 +78,7 @@ python -m v2.research.overlay `
   --artifact-root .research_artifacts `
   verify `
   --result r01-development/run_result.json `
+  --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
   --expected-manifest-sha256 MANIFEST_SHA256_FROM_GENERATE `
   --expected-result-sha256 RESULT_SHA256_FROM_DRY_RUN
 ```
@@ -80,8 +92,10 @@ sha256(canonical_json(AcquisitionIdentity))
 
 `scripted-template` derives these keys with the production implementation, so
 they should not be constructed by hand. Replay and verification require the
-manifest hash printed by `generate-development` and the result hash printed by
-`dry-run`; a missing or mismatched external anchor fails closed before scoring.
+fixed B0 freeze hash shown above, the manifest hash printed by
+`generate-development`, and the result hash printed by `dry-run`; a missing or
+mismatched external anchor fails closed before scoring. Manifest generation also
+rejects any root seed or fixture count that differs from the committed B0 freeze.
 
 The executable runner remains scripted-only. B1 adds mocked command construction,
 strict transport parsing, and typed response schemas but no live process runner.

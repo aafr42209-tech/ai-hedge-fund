@@ -30,7 +30,13 @@ from .contracts import (
     normalize_artifact_relative_path,
 )
 from .fixtures import generate_development_episodes
-from .freeze import build_provider_free_freeze, generate_provider_free_freeze
+from .freeze import (
+    build_provider_free_freeze,
+    generate_provider_free_freeze,
+    load_committed_provider_free_freeze,
+    load_committed_provider_free_regime_gap_summary,
+    verify_frozen_development_identity,
+)
 from .llm_policy import (
     SYSTEM_PROMPT_V1,
     AcquisitionClient,
@@ -53,18 +59,21 @@ def generate_development_manifest(
     experiment_id: str,
     root_seed: str,
     contract_bytes: bytes,
+    expected_freeze_sha256: str,
     config: GeneratorConfig | None = None,
     count: int = 40,
 ) -> tuple[ArtifactReference, DevelopmentManifest]:
     config = config or GeneratorConfig()
     episodes = generate_development_episodes(config, root_seed, count)
-    scoring_reference = store.write_json(f"{experiment_id}/scoring_spec.json", scoring_spec())
-    analysis_reference = store.write_json(f"{experiment_id}/analysis_spec.json", analysis_spec())
     provider_free_freeze = build_provider_free_freeze(
         episodes,
         config=config,
         root_seed_label=root_seed,
     )
+    if canonical_sha256(provider_free_freeze) != expected_freeze_sha256:
+        raise RuntimeError("generated provider-free freeze differs from the external trust anchor")
+    scoring_reference = store.write_json(f"{experiment_id}/scoring_spec.json", scoring_spec())
+    analysis_reference = store.write_json(f"{experiment_id}/analysis_spec.json", analysis_spec())
     provider_free_freeze_reference = store.write_json(
         f"{experiment_id}/provider_free_freeze.json",
         provider_free_freeze,
@@ -95,9 +104,7 @@ def generate_development_manifest(
         provider_free_freeze=provider_free_freeze_reference,
         normalization_epsilon_e12=provider_free_freeze.normalization_epsilon_e12,
         regret_scale_e12=provider_free_freeze.regret_scale_e12,
-        feasible_lattice_bound_certificate_sha256=(
-            provider_free_freeze.feasible_lattice_bound_certificate_sha256
-        ),
+        feasible_lattice_bound_certificate_sha256=(provider_free_freeze.feasible_lattice_bound_certificate_sha256),
         root_seed_sha256=sha256_hex(root_seed.encode("utf-8")),
         fixtures=tuple(entries),
     )
@@ -117,7 +124,14 @@ def _load_episode(store: AppendOnlyArtifactStore, reference: ArtifactReference) 
     return episode
 
 
-def _verify_manifest_specs(store: AppendOnlyArtifactStore, manifest: DevelopmentManifest) -> None:
+def _verify_manifest_specs(
+    store: AppendOnlyArtifactStore,
+    manifest: DevelopmentManifest,
+    *,
+    expected_freeze_sha256: str,
+) -> None:
+    if manifest.provider_free_freeze_sha256 != expected_freeze_sha256:
+        raise RuntimeError("provider-free freeze hash differs from the external trust anchor")
     store.verify(manifest.scoring_spec)
     store.verify(manifest.analysis_spec)
     store.verify(manifest.provider_free_freeze)
@@ -146,19 +160,10 @@ def _verify_manifest_specs(store: AppendOnlyArtifactStore, manifest: Development
         raise RuntimeError("provider-free freeze epsilon mismatch")
     if freeze.regret_scale_e12 != manifest.regret_scale_e12:
         raise RuntimeError("provider-free freeze regret scale mismatch")
-    if (
-        freeze.feasible_lattice_bound_certificate_sha256
-        != manifest.feasible_lattice_bound_certificate_sha256
-    ):
+    if freeze.feasible_lattice_bound_certificate_sha256 != manifest.feasible_lattice_bound_certificate_sha256:
         raise RuntimeError("provider-free freeze lattice certificate mismatch")
-    freeze_cases = {
-        (case.case_id, case.fixture_content_sha256)
-        for case in freeze.cases
-    }
-    manifest_cases = {
-        (case.case_id, case.content_sha256)
-        for case in manifest.fixtures
-    }
+    freeze_cases = {(case.case_id, case.fixture_content_sha256) for case in freeze.cases}
+    manifest_cases = {(case.case_id, case.content_sha256) for case in manifest.fixtures}
     if freeze.fixture_count != len(manifest.fixtures) or freeze_cases != manifest_cases:
         raise RuntimeError("provider-free freeze fixture identity mismatch")
 
@@ -373,10 +378,15 @@ def run_scripted_acquisition(
     *,
     manifest_reference: ArtifactReference,
     client: AcquisitionClient,
+    expected_freeze_sha256: str,
     replicates: int = 1,
 ) -> tuple[ArtifactReference, DevelopmentRunResult]:
     manifest = DevelopmentManifest.model_validate_json(store.read_bytes(manifest_reference))
-    _verify_manifest_specs(store, manifest)
+    _verify_manifest_specs(
+        store,
+        manifest,
+        expected_freeze_sha256=expected_freeze_sha256,
+    )
     plan = _build_development_plan(
         manifest_reference,
         manifest,
@@ -435,6 +445,7 @@ def replay(
     store: AppendOnlyArtifactStore,
     *,
     result_reference: ArtifactReference,
+    expected_freeze_sha256: str,
     expected_manifest_sha256: str,
     expected_result_sha256: str,
     persist_verification: bool = True,
@@ -448,7 +459,11 @@ def replay(
     manifest = DevelopmentManifest.model_validate_json(store.read_bytes(plan.manifest))
     if manifest.experiment_id != plan.experiment_id or result.experiment_id != plan.experiment_id:
         raise RuntimeError("manifest, plan, and result experiment identities differ")
-    _verify_manifest_specs(store, manifest)
+    _verify_manifest_specs(
+        store,
+        manifest,
+        expected_freeze_sha256=expected_freeze_sha256,
+    )
     planned = {acquisition_key(entry.identity): entry for entry in plan.entries}
     if len(planned) != len(result.acquisitions):
         raise RuntimeError("run plan and acquisition result counts differ")
@@ -509,36 +524,51 @@ def main(argv: list[str] | None = None) -> int:
     generate.add_argument("--experiment-id", required=True)
     generate.add_argument("--root-seed", required=True)
     generate.add_argument("--count", type=int, default=40)
+    generate.add_argument("--freeze-sha256", required=True)
     generate.add_argument("--contract", default="docs/research-contract-01-llm-overlay.md")
 
     template = subparsers.add_parser("scripted-template")
     template.add_argument("--manifest", required=True, help="artifact-root relative path")
     template.add_argument("--replicates", type=int, default=1)
     template.add_argument("--output", required=True, help="new JSON response-map path")
+    template.add_argument("--freeze-sha256", required=True)
 
     freeze_parser = subparsers.add_parser("provider-free-freeze")
     freeze_parser.add_argument("--root-seed", required=True)
     freeze_parser.add_argument("--count", type=int, default=40)
     freeze_parser.add_argument("--output", required=True, help="new safe relative JSON path")
+    freeze_parser.add_argument("--freeze-sha256", required=True)
+
+    gap_summary = subparsers.add_parser("provider-free-gap-summary")
+    gap_summary.add_argument("--output", required=True, help="new safe relative JSON path")
+    gap_summary.add_argument("--freeze-sha256", required=True)
 
     dry_run = subparsers.add_parser("dry-run")
     dry_run.add_argument("--manifest", required=True, help="artifact-root relative path")
     dry_run.add_argument("--responses", required=True, help="JSON acquisition-key to raw-text map")
     dry_run.add_argument("--replicates", type=int, default=1)
+    dry_run.add_argument("--freeze-sha256", required=True)
 
     replay_parser = subparsers.add_parser("replay")
     replay_parser.add_argument("--result", required=True, help="artifact-root relative path")
     replay_parser.add_argument("--expected-manifest-sha256", required=True)
     replay_parser.add_argument("--expected-result-sha256", required=True)
+    replay_parser.add_argument("--freeze-sha256", required=True)
 
     verify = subparsers.add_parser("verify")
     verify.add_argument("--result", required=True, help="artifact-root relative path")
     verify.add_argument("--expected-manifest-sha256", required=True)
     verify.add_argument("--expected-result-sha256", required=True)
+    verify.add_argument("--freeze-sha256", required=True)
 
     args = parser.parse_args(argv)
     store = AppendOnlyArtifactStore(args.artifact_root)
     if args.command == "generate-development":
+        committed_freeze = load_committed_provider_free_freeze(expected_sha256=args.freeze_sha256)
+        if args.root_seed != committed_freeze.root_seed_label:
+            raise RuntimeError("development root seed differs from the committed B0 freeze")
+        if args.count != committed_freeze.fixture_count:
+            raise RuntimeError("development fixture count differs from the committed B0 freeze")
         contract_bytes = Path(args.contract).read_bytes()
         reference, _manifest = generate_development_manifest(
             store,
@@ -546,13 +576,18 @@ def main(argv: list[str] | None = None) -> int:
             root_seed=args.root_seed,
             contract_bytes=contract_bytes,
             count=args.count,
+            expected_freeze_sha256=args.freeze_sha256,
         )
         _print_reference(reference)
         return 0
     if args.command == "scripted-template":
         manifest_reference = store.reference_for_existing(args.manifest)
         manifest = DevelopmentManifest.model_validate_json(store.read_bytes(manifest_reference))
-        _verify_manifest_specs(store, manifest)
+        _verify_manifest_specs(
+            store,
+            manifest,
+            expected_freeze_sha256=args.freeze_sha256,
+        )
         payload = scripted_response_template(manifest, args.replicates)
         output = _write_safe_relative_json(args.output, payload)
         print(canonical_json_bytes({"acquisitions": len(payload), "output": str(output)}).decode("utf-8"))
@@ -562,6 +597,10 @@ def main(argv: list[str] | None = None) -> int:
             root_seed_label=args.root_seed,
             count=args.count,
         )
+        verify_frozen_development_identity(
+            freeze,
+            expected_sha256=args.freeze_sha256,
+        )
         output = _write_safe_relative_json(args.output, freeze)
         print(
             canonical_json_bytes(
@@ -569,6 +608,19 @@ def main(argv: list[str] | None = None) -> int:
                     "fixture_count": freeze.fixture_count,
                     "output": str(output),
                     "sha256": canonical_sha256(freeze),
+                }
+            ).decode("utf-8")
+        )
+        return 0
+    if args.command == "provider-free-gap-summary":
+        summary = load_committed_provider_free_regime_gap_summary(expected_freeze_sha256=args.freeze_sha256)
+        output = _write_safe_relative_json(args.output, summary)
+        print(
+            canonical_json_bytes(
+                {
+                    "fixture_count": summary.fixture_count,
+                    "output": str(output),
+                    "sha256": canonical_sha256(summary),
                 }
             ).decode("utf-8")
         )
@@ -582,6 +634,7 @@ def main(argv: list[str] | None = None) -> int:
             store,
             manifest_reference=manifest_reference,
             client=ScriptedAcquisitionClient(responses_payload),
+            expected_freeze_sha256=args.freeze_sha256,
             replicates=args.replicates,
         )
         _print_reference(result_reference)
@@ -591,6 +644,7 @@ def main(argv: list[str] | None = None) -> int:
         store,
         result_reference=result_reference,
         persist_verification=args.command == "replay",
+        expected_freeze_sha256=args.freeze_sha256,
         expected_manifest_sha256=args.expected_manifest_sha256,
         expected_result_sha256=args.expected_result_sha256,
     )
