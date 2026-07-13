@@ -141,7 +141,7 @@ Rules and coefficients may be developed only on the development fixtures. They a
 ### 7.2 Safety baselines
 
 - **Hold:** submit no orders.
-- **Equal risk:** allocate feasible risk approximately equally subject to the same costs and limits.
+- **Equal risk:** form an inverse-volatility target from the covariance diagonal using deterministic integer square root, then choose the feasible batch with minimum asset-level `L1` distance between target and post-trade `weight_e12`. Exact distance ties are resolved by lower cost, lower turnover, then the lexicographic `A0` through `A5` final-share vector.
 
 Safety baselines are secondary comparisons and cannot replace the primary deterministic baseline after sealing.
 
@@ -172,7 +172,9 @@ Contract rules:
 
 - every asset appears exactly once;
 - no unknown asset is allowed;
-- quantity is a nonnegative integer;
+- quantity is a nonnegative integer number of shares;
+- a nonzero quantity must be an exact multiple of that asset's visible `lot_size`;
+- a buy or sell may contain at most `2` lots per asset;
 - `hold` requires quantity `0`;
 - `buy` and `sell` require a strictly positive quantity;
 - confidence is an integer in `[0, 100]`;
@@ -208,10 +210,23 @@ Executable constraint violations must be exactly zero. Any nonzero executable vi
 The same deterministic cost model applies to every policy:
 
 ```text
-cost(order) = commission + half_spread + slippage
+notional_cents(order) = price_cents * quantity_shares
+half_spread_cents(order) = ceil(notional_cents * half_spread_bps / 10,000)
+slippage_cents(order) = ceil(notional_cents * slippage_bps / 10,000)
+cost_cents(order) = commission_cents + half_spread_cents + slippage_cents
+cost_return(batch) = total_cost_cents(batch) / pretrade_equity_cents
 ```
 
-All cost terms are functions of fixture fields and executed quantity. No policy may supply or override its own cost estimate.
+Commission is charged once for each nonzero order. All cost terms are functions of fixture fields and executed quantity. No policy may supply or override its own cost estimate.
+
+All orders in a batch are applied simultaneously. Post-trade weights use:
+
+```text
+posttrade_equity_cents = pretrade_equity_cents - total_cost_cents
+w_i = posttrade_position_value_cents_i / posttrade_equity_cents
+```
+
+`posttrade_equity_cents` must be strictly positive.
 
 Policy utility is:
 
@@ -224,14 +239,51 @@ where:
 - `mu` is hidden expected return;
 - `w` is the post-trade portfolio weight vector;
 - `Sigma` is the fixture covariance matrix;
-- `lambda` is the frozen risk-aversion parameter;
-- `cost(delta_w)` is total deterministic transaction cost.
+- `lambda` is the frozen dimensionless risk-aversion parameter encoded as `lambda_ppm / 1,000,000`;
+- `cost(delta_w)` is total deterministic transaction cost normalized by pre-trade equity.
+
+### 10.1 Exact arithmetic and scoring identity
+
+All authoritative utility values use signed integer fixed point with scale `UTILITY_SCALE = 10^12`. Floating-point utility, weights, regret, means, or verdict inputs are prohibited.
+
+`round_ratio_half_even(n, d)` is the only permitted division primitive for scoring. `d` must be positive. It divides `abs(n)` into quotient `q` and remainder `r`; it increments `q` when `2r > d`, or when `2r == d` and `q` is odd, then restores the sign of `n`.
+
+The scoring DAG is fixed as follows:
+
+```text
+return_e12 = round_ratio_half_even(
+  sum_i(mu_bp_i * posttrade_position_value_cents_i) * UTILITY_SCALE,
+  10,000 * posttrade_equity_cents
+)
+
+risk_e12 = round_ratio_half_even(
+  lambda_ppm
+    * sum_i_j(
+        posttrade_position_value_cents_i
+        * covariance_bp2_i_j
+        * posttrade_position_value_cents_j
+      )
+    * UTILITY_SCALE,
+  1,000,000 * 100,000,000 * posttrade_equity_cents^2
+)
+
+cost_e12 = round_ratio_half_even(
+  total_cost_cents * UTILITY_SCALE,
+  pretrade_equity_cents
+)
+
+utility_e12 = return_e12 - risk_e12 - cost_e12
+```
+
+Every numerator is formed from raw integer fixture and execution fields. There is exactly one final division for each utility term. Intermediate rounded weights, returns, covariance values, or costs must not feed another utility term. Human-readable decimals are derived displays and are never authoritative or hashed as score inputs.
+
+The units, constants, formulas, operation order, and rounding rule above are part of `scoring_spec_sha256`.
 
 The oracle maximizes the same utility over the same finite action lattice.
 
-The oracle must be exact up to a sealed numerical tolerance. Approximate-oracle mode is prohibited. The generator must cap lot choices so exact enumeration or a globally certified mixed-integer solver is tractable for all six-asset episodes.
+The oracle must be exact. R01 uses complete enumeration of the common finite lattice and fixes `oracle_optimality_tolerance_e12` to `0`. Approximate-oracle mode is prohibited. The generator must cap lot choices so enumeration is tractable for all six-asset episodes.
 
-Every oracle result stores an optimality certificate or complete enumeration certificate. If any policy has utility greater than `U(oracle) + oracle_optimality_tolerance`, the run is INVALID. A difference within tolerance is treated as numerical equality and its regret numerator is clamped to zero.
+Every oracle result stores a complete enumeration certificate. If any policy has `utility_e12` greater than the oracle, the run is INVALID. Exact equality is resolved by lower total cost, lower turnover, then the lexicographic `A0` through `A5` final-share vector. Regret at exact equality is zero.
 
 ## 11. Primary endpoint
 
@@ -245,6 +297,15 @@ regret_scale = max(
 ```
 
 Both `normalization_epsilon` and the resulting `regret_scale` are seal fields. Evaluation data cannot change them.
+
+Both are stored in authoritative `utility_e12` units. Normalized regret is stored as:
+
+```text
+NR_e12(p) = round_ratio_half_even(
+  max(U_e12(oracle) - U_e12(p), 0) * UTILITY_SCALE,
+  regret_scale_e12
+)
+```
 
 Normalized regret for policy `p` is:
 
@@ -269,7 +330,7 @@ The primary endpoint is:
 Delta = mean_over_cases(NR(primary_deterministic) - NR(LLM))
 ```
 
-For the LLM, case-level `NR` is the arithmetic mean across the five independent acquisition replicates. Every evaluation case receives equal weight regardless of replicate variance.
+For the LLM, case-level `NR_e12` is `round_ratio_half_even(sum(replicate_NR_e12), 5)` across the five independent acquisition replicates. Every evaluation case receives equal weight regardless of replicate variance. Every other integer mean in R01, including the case-level primary endpoint, uses `round_ratio_half_even(sum(values), count)`.
 
 A positive `Delta` favors the LLM.
 
@@ -292,6 +353,14 @@ lower_bound_95_ci > delta_min
 `delta_min` must be selected from development-fixture scale only. It cannot be changed after the evaluation manifest exists.
 
 The development pilot also freezes `delta_target`, where `delta_target > delta_min`, for prospective power analysis. Before seal, the preregistered power procedure must estimate at least `80%` power for `200` cases by simulating the actual decision rule: the lower endpoint of the paired two-sided 95% percentile bootstrap interval must exceed `delta_min`. This corresponds to nominal one-sided alpha `0.025`, not `0.05`. If estimated power is below `80%`, the sample size and all dependent budgets must be increased before seal, or the experiment must not seal. The margin cannot be reduced merely to pass the power gate.
+
+The paired bootstrap operates on case-level `Delta_e12` values. Each of `10,000` resamples draws `n` case indices with replacement using NumPy `PCG64`, the sealed bootstrap seed, and the sealed NumPy version. Each resampled mean is `round_ratio_half_even(sum(values), n)`.
+
+The percentile interval uses the nearest-rank rule. For `10,000` sorted bootstrap means, the lower and upper endpoints are the `250`th and `9,750`th values in one-based notation, implemented as zero-based indices `249` and `9,749`.
+
+Prospective power uses the `40` development case effects as an empirical distribution. It shifts every development effect by `delta_target_e12 - mean_development_e12`, then runs `1,000` simulated trials. Each trial draws `200` cases with replacement from those `40` shifted effects and applies the same `10,000`-resample percentile procedure and GO inequality. For zero-based trial index `k`, the trial-data and inner-CI PCG64 seeds are the unsigned big-endian integers represented by the first `128` bits of SHA-256 over `"power-trial|<power_seed>|<k>"` and `"power-ci|<power_seed>|<k>"`, respectively. Estimated power is the integer success count divided by `1,000`.
+
+RNG type, NumPy version, seed derivation, draw order, integer dtype, resample counts, integer-mean rule, and percentile indices are part of `analysis_spec_sha256`.
 
 ## 13. Secondary endpoints
 
@@ -482,7 +551,7 @@ A stopped run remains immutable. A corrected run requires a new experiment ID an
 
 ### Phase A — contract implementation
 
-- implement schemas, generator, oracle, baselines, validator, scorer, and artifact store;
+- implement schemas, generator, oracle, baselines, validator, scorer, paired-bootstrap and power analysis, asset-order/signal-order/JSON-key-order transforms and canonical inverse mappings, the representation-transform interface, and artifact store;
 - add property tests for feasibility, determinism, hashing, and order invariance;
 - make no real provider calls.
 
@@ -490,10 +559,13 @@ A stopped run remains immutable. A corrected run requires a new experiment ID an
 
 - use only development fixtures;
 - debug prompts and parsing;
+- state in every candidate prompt that quantity is in shares, must be a visible-lot multiple, and is capped at two lots per asset;
 - measure token use and expected cost;
 - run the final candidate prompt for at least two acquisitions on every development fixture;
 - set `delta_min`, `delta_target`, `normalization_epsilon`, `regret_scale`, token caps, USD cap, and final quality thresholds;
 - freeze exact formulas and implementations for action agreement and invariance flip rates;
+- measure identical-prompt disagreement on development acquisitions and confirm that the `5%` flip gate retains adequate margin above the sampling-noise floor; if it does not, change and document the sampling configuration or amend the draft thresholds before seal;
+- freeze `scoring_spec_sha256` and `analysis_spec_sha256`;
 - run the preregistered prospective power check for `200` evaluation cases;
 - increase sample size and dependent budgets before seal if estimated power is below `80%`;
 - do not generate evaluation fixtures.
@@ -604,22 +676,29 @@ model_version_metadata: TBD
 sampling_parameters: TBD
 system_prompt_sha256: TBD
 user_template_sha256: TBD
-delta_min: TBD
-delta_target: TBD
-normalization_epsilon: TBD
-regret_scale: TBD
-max_abs_utility: TBD
-max_normalized_regret: TBD
+delta_min_e12: TBD
+delta_target_e12: TBD
+normalization_epsilon_e12: TBD
+regret_scale_e12: TBD
+max_abs_utility_e12: TBD
+max_normalized_regret_e12: TBD
 feasible_lattice_bound_certificate_sha256: TBD
-risk_aversion_lambda: TBD
+risk_aversion_lambda_ppm: TBD
+max_trade_lots_per_asset: 2
+utility_scale: 1000000000000
+scoring_spec_sha256: TBD
+analysis_spec_sha256: TBD
 oracle_solver: TBD
 oracle_solver_version: TBD
 oracle_config_sha256: TBD
-oracle_optimality_tolerance: TBD
+oracle_optimality_tolerance_e12: 0
 gate_metric_spec_sha256: TBD
-power_analysis_spec_sha256: TBD
-estimated_power_at_delta_target: TBD
+estimated_power_successes_at_delta_target: TBD
+numpy_version: TBD
 bootstrap_seed: TBD
+power_seed: TBD
+bootstrap_resamples: 10000
+power_simulations: 1000
 per_acquisition_max_attempts: 2
 max_development_provider_attempts: 200
 max_primary_evaluation_provider_attempts: 1100
@@ -638,6 +717,7 @@ sealed_by: TBD
 - R01 studies the portfolio overlay, not upstream signal generation or investor personas.
 - Long-only scope is intentional; short and margin mechanics require a separate contract.
 - One deterministic primary baseline prevents post-hoc baseline shopping.
+- The primary deterministic baseline is intentionally strong: it uses a fixed signal-derived expected-return estimate and searches the same feasible lattice as the oracle. This makes R01 a conservative test of incremental LLM value.
 - One primary endpoint prevents endpoint relabeling.
 - The 95% confidence-interval lower bound must exceed `delta_min`; R01 uses a true superiority-margin criterion rather than a zero-margin significance test.
 - Prospective power is checked at a separate `delta_target > delta_min` using the actual two-sided 95% bootstrap lower-bound rule, equivalent to nominal one-sided alpha `0.025`; an underpowered experiment cannot seal.
@@ -646,7 +726,10 @@ sealed_by: TBD
 - A fixed development-derived regret scale prevents near-optimal hold episodes from creating near-zero denominators.
 - No evaluation-driven clipping or winsorization is allowed.
 - Utility and normalized-regret bounds are certified over each fixture's complete feasible action lattice before seal, so poor policy performance cannot be relabeled INVALID.
-- The oracle is exact up to a sealed tolerance; approximate oracle results are prohibited.
+- The oracle uses complete enumeration and authoritative integer scoring with `oracle_optimality_tolerance_e12: 0`; approximate oracle results are prohibited.
+- Utility, regret, and their means use authoritative `e12` integer arithmetic; transaction cost is normalized by pre-trade equity.
+- Quantity is measured in shares, must be a visible-lot multiple, and is capped at two lots per asset; these rules must appear in the LLM prompt.
+- A modal-anchor tie becomes `ABSTAIN` and is intentionally eligible to count as a flip independently for each of the four perturbation types; it is never deduplicated or dropped.
 - Adversarial validator fixtures are deterministic, provider-free pre-seal tests rather than evaluation calls.
 - Acquisition and replay are separate so cache hits cannot masquerade as independent samples.
 - Invalid raw order batches fail closed to hold; no silent execution repair is allowed.
@@ -670,3 +753,11 @@ sealed_by: TBD
 | Realized-policy regret could turn poor performance into INVALID | Moved bound validation to a pre-seal certificate over every feasible action in each fixture. |
 | NO-GO retained a subjective practical-meaningfulness clause | Removed it; practical relevance is fully represented by the sealed `delta_min` superiority margin. |
 | Action agreement called a micro formula macro | Corrected the aggregate terminology to `micro`. |
+| Utility arithmetic and rounding points were unspecified | Added the authoritative `utility_e12` scoring DAG, one final division per term, round-half-even, raw-integer inputs, and `scoring_spec_sha256`. |
+| Phase A omitted bootstrap CI and prospective power computation | Added provider-free paired percentile bootstrap and 1,000-trial power simulation plus `analysis_spec_sha256`. |
+| Utility mixed return units with currency transaction cost | Defined cost as total cents divided by pre-trade equity and fixed `lambda_ppm` units. |
+| Quantity lattice rules were not explicit or guaranteed visible | Defined share units, exact lot multiples, a two-lot cap, and mandatory prompt disclosure. |
+| Equal-risk nearest-feasible distance was undefined | Fixed deterministic inverse-volatility targets, asset-weight `L1` distance, and cost-turnover-lexicographic tie-breaking. |
+| Power case generation was unspecified | Defined 200-case sampling with replacement from the shifted 40-case development empirical distribution. |
+| Percentile indices and integer means were ambiguous | Fixed one-based ranks 250 and 9,750, zero-based indices 249 and 9,749, and round-half-even integer means. |
+| Exact enumeration retained a nonzero-tolerance placeholder | Fixed `oracle_optimality_tolerance_e12` to `0` in the method and seal record. |
