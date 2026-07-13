@@ -8,7 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .canonical import canonical_json_bytes, sha256_hex
-from .contracts import ArtifactReference
+from .contracts import ArtifactReference, normalize_artifact_relative_path
 
 DEFAULT_ARTIFACT_ROOT = Path(".research_artifacts/r01")
 
@@ -30,9 +30,7 @@ class AppendOnlyArtifactStore:
         self.root = Path(root).resolve()
 
     def _resolve(self, relative_path: str) -> Path:
-        normalized = relative_path.replace("\\", "/")
-        if not normalized or normalized.startswith("/") or ".." in normalized.split("/"):
-            raise ValueError("artifact path must be a safe relative path")
+        normalized = normalize_artifact_relative_path(relative_path)
         path = (self.root / normalized).resolve()
         if path != self.root and self.root not in path.parents:
             raise ArtifactError("artifact path escapes the configured root")

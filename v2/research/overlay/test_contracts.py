@@ -9,6 +9,7 @@ from .canonical import (
     CanonicalizationError,
     DecisionParseError,
     canonical_json_bytes,
+    parse_json_object,
     parse_decision_batch,
 )
 from .contracts import MAX_REASONING_CODEPOINTS, Decision
@@ -54,6 +55,11 @@ def test_parser_finds_balanced_object_after_invalid_prose_braces() -> None:
     ).decode("utf-8")
     parsed = parse_decision_batch(raw)
     assert set(parsed.decisions) == set(fixture.public.assets_by_id)
+
+
+def test_parser_recovers_after_unterminated_quote_in_earlier_braces() -> None:
+    raw = 'Note: {"unterminated string here} {"decisions": {}}'
+    assert parse_json_object(raw) == {"decisions": {}}
 
 
 def test_policy_input_cannot_contain_hidden_state() -> None:

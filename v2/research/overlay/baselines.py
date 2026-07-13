@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import operator
 from math import isqrt
 
 from .arithmetic import BASIS_POINTS, UTILITY_SCALE, round_ratio_half_even
@@ -16,7 +17,7 @@ from .contracts import (
 )
 from .lattice import hold_batch, iter_candidate_batches
 from .scoring import score_episode, score_with_returns
-from .selection import prefer_maximized_candidate, prefer_minimized_candidate
+from .selection import prefer_candidate
 from .validator import validate_batch
 
 
@@ -46,11 +47,12 @@ def primary_deterministic(episode: SyntheticEpisode, config: BaselineConfig | No
             validation.executable,
             validation.cost_ledger,
         )
-        if prefer_maximized_candidate(
+        if prefer_candidate(
             estimated_score.utility_e12,
             validation,
             None if best_estimated_score is None else best_estimated_score.utility_e12,
             best_validation,
+            operator.gt,
         ):
             best_validation = validation
             best_estimated_score = estimated_score
@@ -70,6 +72,17 @@ def hold_policy(episode: SyntheticEpisode) -> PolicyResult:
     return PolicyResult(name="hold", validation=validation, score=score_episode(episode, validation))
 
 
+def _require_nonnegative_remaining_gross(remaining_gross: int) -> None:
+    if remaining_gross < 0:
+        raise RuntimeError("equal-risk caps exceed the gross target")
+
+
+def _ordered_complete_target(target: dict[str, int]) -> dict[str, int]:
+    if set(target) != set(ASSET_IDS):
+        raise RuntimeError("equal-risk target is incomplete")
+    return {asset_id: target[asset_id] for asset_id in ASSET_IDS}
+
+
 def _equal_risk_target(public: PublicEpisode) -> dict[str, int]:
     inverse_vol = {asset_id: UTILITY_SCALE // max(1, isqrt(public.covariance_bp2[asset_id][asset_id])) for asset_id in ASSET_IDS}
     caps = {asset.asset_id: round_ratio_half_even(asset.max_weight_bps * UTILITY_SCALE, BASIS_POINTS) for asset in public.assets}
@@ -86,12 +99,9 @@ def _equal_risk_target(public: PublicEpisode) -> dict[str, int]:
         for asset_id in capped:
             target[asset_id] = caps[asset_id]
             remaining_gross -= caps[asset_id]
-            if remaining_gross < 0:
-                raise RuntimeError("equal-risk caps exceed the gross target")
+            _require_nonnegative_remaining_gross(remaining_gross)
             remaining.remove(asset_id)
-    if set(target) != set(ASSET_IDS):
-        raise RuntimeError("equal-risk target is incomplete")
-    return {asset_id: target[asset_id] for asset_id in ASSET_IDS}
+    return _ordered_complete_target(target)
 
 
 def equal_risk_policy(episode: SyntheticEpisode) -> PolicyResult:
@@ -103,11 +113,12 @@ def equal_risk_policy(episode: SyntheticEpisode) -> PolicyResult:
         if not validation.raw_valid:
             continue
         distance = sum(abs(validation.executable.weights_e12[asset_id] - target[asset_id]) for asset_id in ASSET_IDS)
-        if prefer_minimized_candidate(
+        if prefer_candidate(
             distance,
             validation,
             best_distance,
             best_validation,
+            operator.lt,
         ):
             best_distance = distance
             best_validation = validation

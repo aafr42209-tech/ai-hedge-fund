@@ -3,12 +3,13 @@
 from __future__ import annotations
 
 import hashlib
+import operator
 
 from .canonical import canonical_json_bytes, canonical_sha256
 from .contracts import OracleCertificate, OracleResult, SyntheticEpisode, ValidationReport
 from .lattice import iter_candidate_batches
 from .scoring import score_episode
-from .selection import prefer_maximized_candidate
+from .selection import prefer_candidate
 from .validator import validate_batch
 
 
@@ -48,11 +49,12 @@ def solve_oracle(episode: SyntheticEpisode) -> OracleResult:
             )
         )
         score_stream.update(b"\n")
-        if prefer_maximized_candidate(
+        if prefer_candidate(
             score.utility_e12,
             validation,
             None if best_score is None else best_score.utility_e12,
             best_validation,
+            operator.gt,
         ):
             best_validation = validation
             best_score = score

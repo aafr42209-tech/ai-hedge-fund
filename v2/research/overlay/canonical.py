@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
-from collections.abc import Mapping, Sequence
+from collections.abc import Iterator, Mapping, Sequence
 from typing import Any
 
 from pydantic import BaseModel, ValidationError
@@ -70,42 +70,17 @@ def _reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _candidate_texts(raw: str):
-    """Yield fenced or balanced top-level object texts in one linear scan."""
+def _candidate_sources(raw: str) -> Iterator[tuple[str, int]]:
+    """Yield source text and object offsets without allocating suffix copies."""
 
     stripped = raw.strip()
     if stripped.startswith("```") and stripped.endswith("```"):
         first_newline = stripped.find("\n")
         if first_newline != -1:
-            yield stripped[first_newline + 1 : -3].strip()
-
-    start: int | None = None
-    depth = 0
-    in_string = False
-    escaped = False
+            yield stripped[first_newline + 1 : -3].strip(), 0
     for index, char in enumerate(stripped):
-        if depth == 0:
-            if char == "{":
-                start = index
-                depth = 1
-            continue
-        if in_string:
-            if escaped:
-                escaped = False
-            elif char == "\\":
-                escaped = True
-            elif char == '"':
-                in_string = False
-            continue
-        if char == '"':
-            in_string = True
-        elif char == "{":
-            depth += 1
-        elif char == "}":
-            depth -= 1
-            if depth == 0 and start is not None:
-                yield stripped[start : index + 1]
-                start = None
+        if char == "{":
+            yield stripped, index
 
 
 def parse_json_object(raw: str) -> dict[str, Any]:
@@ -115,9 +90,9 @@ def parse_json_object(raw: str) -> dict[str, Any]:
         raise DecisionParseError("raw response must be text")
     decoder = json.JSONDecoder(object_pairs_hook=_reject_duplicates)
     last_error: Exception | None = None
-    for candidate in _candidate_texts(raw):
+    for source, offset in _candidate_sources(raw):
         try:
-            value, end = decoder.raw_decode(candidate)
+            value, _end = decoder.raw_decode(source, offset)
         except DuplicateKeyError:
             raise
         except (json.JSONDecodeError, ValueError) as exc:
@@ -125,9 +100,6 @@ def parse_json_object(raw: str) -> dict[str, Any]:
             continue
         if not isinstance(value, dict):
             last_error = DecisionParseError("top-level JSON value must be an object")
-            continue
-        if candidate[end:].strip():
-            last_error = DecisionParseError("trailing text inside JSON candidate")
             continue
         return value
     raise DecisionParseError(f"no valid JSON object found: {last_error}")

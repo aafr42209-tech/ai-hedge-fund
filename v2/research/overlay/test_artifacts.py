@@ -38,6 +38,16 @@ def _hold_raw() -> str:
     )
 
 
+def _anchored_replay(store, result_ref, manifest_ref, *, persist=False):
+    return replay(
+        store,
+        result_reference=result_ref,
+        expected_manifest_sha256=manifest_ref.sha256,
+        expected_result_sha256=result_ref.sha256,
+        persist_verification=persist,
+    )
+
+
 def test_artifact_store_is_append_only_and_hash_verified(tmp_path) -> None:
     store = AppendOnlyArtifactStore(tmp_path)
     reference = store.write_text("x/value.txt", "first")
@@ -51,8 +61,9 @@ def test_artifact_store_is_append_only_and_hash_verified(tmp_path) -> None:
 
 def test_artifact_store_rejects_path_escape(tmp_path) -> None:
     store = AppendOnlyArtifactStore(tmp_path)
-    with pytest.raises(ValueError, match="safe relative path"):
-        store.write_text("../outside.txt", "forbidden")
+    for unsafe in ("../outside.txt", ".", "C:\\outside.txt", "a//b.txt"):
+        with pytest.raises(ValueError, match="safe relative path"):
+            store.write_text(unsafe, "forbidden")
 
 
 def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
@@ -84,22 +95,17 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
     assert client.provider_calls == 1
     acquisition = result.acquisitions[0]
     assert store.read_bytes(acquisition.raw_response) == _hold_raw().encode()
-    verification = replay(store, result_reference=result_ref, persist_verification=False)
+    verification = _anchored_replay(store, result_ref, manifest_ref)
     assert verification.provider_calls == 0
     assert verification.verified_acquisitions == 1
-    anchored = replay(
-        store,
-        result_reference=result_ref,
-        persist_verification=False,
-        expected_manifest_sha256=manifest_ref.sha256,
-        expected_result_sha256=result_ref.sha256,
-    )
+    anchored = _anchored_replay(store, result_ref, manifest_ref)
     assert anchored.all_hashes_match
     with pytest.raises(RuntimeError, match="run-result hash"):
         replay(
             store,
             result_reference=result_ref,
             persist_verification=False,
+            expected_manifest_sha256=manifest_ref.sha256,
             expected_result_sha256="0" * 64,
         )
     with pytest.raises(RuntimeError, match="manifest hash"):
@@ -108,6 +114,17 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
             result_reference=result_ref,
             persist_verification=False,
             expected_manifest_sha256="0" * 64,
+            expected_result_sha256=result_ref.sha256,
+        )
+    with pytest.raises(SystemExit):
+        main(
+            [
+                "--artifact-root",
+                str(tmp_path),
+                "verify",
+                "--result",
+                result_ref.relative_path,
+            ]
         )
 
 
@@ -180,7 +197,7 @@ def test_oracle_is_cached_once_per_fixture_in_acquisition_and_replay(tmp_path, m
     )
     assert calls == 1
     calls = 0
-    replay(store, result_reference=result_ref, persist_verification=False)
+    _anchored_replay(store, result_ref, manifest_ref)
     assert calls == 1
 
 
@@ -208,7 +225,7 @@ def test_replay_fails_on_tampered_derived_artifact(tmp_path) -> None:
     score_path = tmp_path / result.acquisitions[0].episode_score.relative_path
     score_path.write_bytes(b"{}")
     with pytest.raises(ArtifactIntegrityError):
-        replay(store, result_reference=result_ref, persist_verification=False)
+        _anchored_replay(store, result_ref, manifest_ref)
 
 
 def test_replay_fails_on_tampered_machine_spec(tmp_path) -> None:
@@ -234,4 +251,4 @@ def test_replay_fails_on_tampered_machine_spec(tmp_path) -> None:
     )
     (tmp_path / manifest.scoring_spec.relative_path).write_bytes(b"{}")
     with pytest.raises(ArtifactIntegrityError):
-        replay(store, result_reference=result_ref, persist_verification=False)
+        _anchored_replay(store, result_ref, manifest_ref)

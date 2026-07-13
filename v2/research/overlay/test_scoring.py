@@ -2,7 +2,7 @@ from __future__ import annotations
 
 import pytest
 
-from . import runner
+from . import baselines, runner
 from ._test_helpers import episode, hold_batch
 from .arithmetic import UTILITY_SCALE, round_ratio_half_even
 from .baselines import equal_risk_policy, hold_policy, primary_deterministic
@@ -62,6 +62,15 @@ def test_baseline_bundle_enforces_oracle_bound(monkeypatch) -> None:
     monkeypatch.setattr(runner, "primary_deterministic", lambda _episode: bad_policy)
     with pytest.raises(RuntimeError, match="primary_deterministic utility"):
         runner._baseline_utilities(fixture, oracle)
+
+
+def test_equal_risk_internal_invariants_fail_closed() -> None:
+    with pytest.raises(RuntimeError, match="caps exceed"):
+        baselines._require_nonnegative_remaining_gross(-1)
+    with pytest.raises(RuntimeError, match="target is incomplete"):
+        baselines._ordered_complete_target({"A0": 0})
+    complete = {asset_id: index for index, asset_id in enumerate(ASSET_IDS)}
+    assert tuple(baselines._ordered_complete_target(complete)) == ASSET_IDS
 
 
 def test_normalized_regret_is_exact_integer_ratio() -> None:

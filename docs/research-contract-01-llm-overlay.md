@@ -770,3 +770,5 @@ sealed_by: TBD
 | Exact enumeration retained a nonzero-tolerance placeholder | Fixed `oracle_optimality_tolerance_e12` to `0` in the method and seal record. |
 | The implementation imposed an undocumented reasoning limit | Fixed a visible `2,000` Unicode-code-point limit in the schema, prompt checklist, and seal record. |
 | Replay trusted a root reference derived from the file being checked | Required external sealed-manifest and post-run result hashes, recorded outside the artifact tree and supplied to replay. |
+| Linear JSON scanning could lose a valid object after malformed quoted prose | Switched to zero-copy offset decoding at every object start and added the malformed-quote regression fixture. |
+| Replay trust anchors were documented as required but optional in code | Made both manifest and run-result hashes mandatory in the replay API and CLI. |

@@ -387,15 +387,15 @@ def replay(
     store: AppendOnlyArtifactStore,
     *,
     result_reference: ArtifactReference,
+    expected_manifest_sha256: str,
+    expected_result_sha256: str,
     persist_verification: bool = True,
-    expected_manifest_sha256: str | None = None,
-    expected_result_sha256: str | None = None,
 ) -> ReplayVerification:
-    if expected_result_sha256 is not None and result_reference.sha256 != expected_result_sha256:
+    if result_reference.sha256 != expected_result_sha256:
         raise RuntimeError("run-result hash differs from the external trust anchor")
     result = DevelopmentRunResult.model_validate_json(store.read_bytes(result_reference))
     plan = DevelopmentRunPlan.model_validate_json(store.read_bytes(result.run_plan))
-    if expected_manifest_sha256 is not None and plan.manifest.sha256 != expected_manifest_sha256:
+    if plan.manifest.sha256 != expected_manifest_sha256:
         raise RuntimeError("manifest hash differs from the external trust anchor")
     manifest = DevelopmentManifest.model_validate_json(store.read_bytes(plan.manifest))
     if manifest.experiment_id != plan.experiment_id or result.experiment_id != plan.experiment_id:
@@ -468,13 +468,13 @@ def main(argv: list[str] | None = None) -> int:
 
     replay_parser = subparsers.add_parser("replay")
     replay_parser.add_argument("--result", required=True, help="artifact-root relative path")
-    replay_parser.add_argument("--expected-manifest-sha256")
-    replay_parser.add_argument("--expected-result-sha256")
+    replay_parser.add_argument("--expected-manifest-sha256", required=True)
+    replay_parser.add_argument("--expected-result-sha256", required=True)
 
     verify = subparsers.add_parser("verify")
     verify.add_argument("--result", required=True, help="artifact-root relative path")
-    verify.add_argument("--expected-manifest-sha256")
-    verify.add_argument("--expected-result-sha256")
+    verify.add_argument("--expected-manifest-sha256", required=True)
+    verify.add_argument("--expected-result-sha256", required=True)
 
     args = parser.parse_args(argv)
     store = AppendOnlyArtifactStore(args.artifact_root)

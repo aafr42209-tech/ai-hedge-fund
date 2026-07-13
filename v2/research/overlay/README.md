@@ -43,12 +43,16 @@ python -m v2.research.overlay `
 python -m v2.research.overlay `
   --artifact-root .research_artifacts `
   replay `
-  --result r01-development/run_result.json
+  --result r01-development/run_result.json `
+  --expected-manifest-sha256 MANIFEST_SHA256_FROM_GENERATE `
+  --expected-result-sha256 RESULT_SHA256_FROM_DRY_RUN
 
 python -m v2.research.overlay `
   --artifact-root .research_artifacts `
   verify `
-  --result r01-development/run_result.json
+  --result r01-development/run_result.json `
+  --expected-manifest-sha256 MANIFEST_SHA256_FROM_GENERATE `
+  --expected-result-sha256 RESULT_SHA256_FROM_DRY_RUN
 ```
 
 Acquisition keys are not pipe-delimited labels. They are the SHA-256 of the
@@ -59,9 +63,9 @@ sha256(canonical_json(AcquisitionIdentity))
 ```
 
 `scripted-template` derives these keys with the production implementation, so
-they should not be constructed by hand. For externally anchored replay, pass
-`--expected-manifest-sha256` and `--expected-result-sha256`; a mismatch fails
-closed before scoring.
+they should not be constructed by hand. Replay and verification require the
+manifest hash printed by `generate-development` and the result hash printed by
+`dry-run`; a missing or mismatched external anchor fails closed before scoring.
 
 Phase A accepts scripted raw responses only. Provider integration, prompts,
 evaluation generation, sealing, and GO/NO-GO verdicts remain unavailable until

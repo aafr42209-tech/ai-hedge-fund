@@ -22,6 +22,17 @@ Regime = Literal[
 ]
 
 
+def normalize_artifact_relative_path(value: str) -> str:
+    """Return one safe portable artifact path or fail before filesystem access."""
+
+    normalized = value.replace("\\", "/")
+    parts = normalized.split("/")
+    has_windows_drive = len(normalized) >= 2 and normalized[0].isalpha() and normalized[1] == ":"
+    if not normalized or normalized.startswith("/") or has_windows_drive or any(part in {"", ".", ".."} for part in parts):
+        raise ValueError("artifact path must be a safe relative path")
+    return normalized
+
+
 class StrictModel(BaseModel):
     model_config = ConfigDict(extra="forbid", frozen=True, strict=True)
 
@@ -313,10 +324,7 @@ class ArtifactReference(StrictModel):
     @field_validator("relative_path")
     @classmethod
     def validate_relative_path(cls, value: str) -> str:
-        normalized = value.replace("\\", "/")
-        if not normalized or normalized.startswith("/") or ".." in normalized.split("/"):
-            raise ValueError("artifact path must be a safe relative path")
-        return normalized
+        return normalize_artifact_relative_path(value)
 
 
 class FixtureManifestEntry(StrictModel):
