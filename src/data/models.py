@@ -60,6 +60,9 @@ class FinancialMetrics(BaseModel):
     book_value_per_share: float | None
     free_cash_flow_per_share: float | None
 
+    # Some fallback providers expose useful statement values alongside metrics.
+    model_config = {"extra": "allow"}
+
 
 class FinancialMetricsResponse(BaseModel):
     financial_metrics: list[FinancialMetrics]
