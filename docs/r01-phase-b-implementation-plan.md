@@ -648,6 +648,9 @@ Produce a hashed preflight report containing:
 
 Current zero-call observation on pinned local `codex-cli 0.144.1`:
 
+- the complete B2 report is `docs/r01-b2-zero-call-preflight.md`, SHA-256
+  `cf1658ca2804b5afc1fc9afb526dae559808dc404ed91d6f3458c444a9ce27e6`,
+  anchored to hardening commit `c91669642e8801003944503e78d69c46917fc24a`;
 - `codex login status` reports ChatGPT authentication without exposing a
   credential;
 - the strict parser reads all `92` rows and reproduces stage counts
