@@ -1,6 +1,6 @@
 """R01 constrained LLM portfolio-overlay research engine.
 
-Phase A and B0 are provider-free and development-only. Nothing in this package is an
+Phase A through B2 are provider-free and development-only. Nothing in this package is an
 investment backtest or a live-trading path.
 """
 

@@ -1,14 +1,14 @@
-# R01 Phase B Implementation Plan v5 — Codex Development Pilot
+# R01 Phase B Implementation Plan v6 — Codex Development Pilot
 
 > **DRAFT PLAN — DEVELOPMENT ONLY — NOT SEALED — NO INVESTMENT CLAIM**
 
 ## 1. Plan identity
 
-- Plan ID: `R01-PHASE-B-PLAN-v5`
-- Supersedes plan SHA-256: `55e394f8dc5e439c8861b6e59aac92a29207fe4374557e46eaebe309d2a9cc21`
+- Plan ID: `R01-PHASE-B-PLAN-v6`
+- Supersedes plan SHA-256: `e7ab1010695186e634bfa6053d718bbd1fcfc98fc43d5ead14efd6e58fde66ac`
 - Research contract: `docs/research-contract-01-llm-overlay.md`
-- Contract SHA-256 before v5 hardening: `946527fe1d6af2db3c9b11526c43472a9de9dd59ec84a41050ebafff25767b97`
-- Base commit: `6e8f8cc4a681e9155f16b8cf80524b459d831b04`
+- Contract SHA-256 before v6 hardening: `31e7948632fe492cd49f5c8b3f4eba1a9b7aa2355af16b2d5d01c04bea2d0570`
+- Base commit: `99fbe334791aa100d521c96c3ae7c9ce28031fc3`
 - Base branch: `codex/llm-overlay-research-01`
 - Created: `2026-07-13`; revised: `2026-07-14`
 - Status: `DRAFT`
@@ -150,13 +150,19 @@ live acquisition remains blocked.
 
 Clarify `unsuccessful acquisition` and retry behavior:
 
-- retry-eligible: process launch failure, timeout with no complete terminal
+- every failed attempt receives one explicit disposition:
+  `RETRY_TRANSPORT`, `FAIL_CLOSED_SCORE`, or `STOP_PHASE`;
+- `RETRY_TRANSPORT`: process launch failure, timeout with no complete terminal
   response, nonzero CLI exit without a complete response, malformed JSONL
   transport, missing final agent message, or missing required usage record;
-- not retry-eligible: parse failure, schema failure, duplicate asset, quantity
+- `FAIL_CLOSED_SCORE`: parse failure, decision-schema failure, duplicate asset, quantity
   violation, reasoning-length violation, tool-use violation, or poor utility;
+- `STOP_PHASE`: artifact persistence or hash failure, forbidden channel, model
+  mismatch, feature/catalog/sandbox mismatch, and unknown event/item/field shape;
 - a complete but invalid response is scored once as `ABSTAIN`/hold and counts in
   parse, fallback, and agreement metrics;
+- a `STOP_PHASE` failure is never converted to `ABSTAIN` and never enters an LLM
+  quality, fallback, or agreement metric;
 - `successful acquisition` means a complete provider transport with the
   required terminal response and usage evidence; it does not mean a valid or
   profitable policy decision;
@@ -250,11 +256,15 @@ the nested freeze-reference golden is
 and the standalone one-case freeze golden is
 `472cf9d0e3015aeaed44beae2e10af86cd3771c832263015362c4e7440f1a643`.
 Run-plan, run-result, replay, and report schemas remain v1 because B1 does not
-change their fields. B1 allocates `r01-codex-command-spec-v1`,
+change their fields. B1 initially allocated `r01-codex-command-spec-v1`,
 `r01-codex-process-status-v1`,
 `r01-codex-attempt-transport-artifacts-v1`, and the explicitly versioned
-`r01-provider-response-v2` envelope before any live acquisition. Unrelated
-Phase A artifact versions retain byte compatibility.
+`r01-provider-response-v2` envelope. Pre-B2 hardening supersedes the affected
+artifacts with `r01-codex-command-spec-v2` and `r01-provider-response-v3` to bind
+the complete feature catalog, sandbox identity, transport-shape hash, model-echo
+evidence, and observed transport-shape hash. Process-status and attempt-wrapper
+v1 remain byte-compatible. Unrelated Phase A artifact versions retain byte
+compatibility.
 
 ## 6. Carried hardening work — first Phase B commit
 
@@ -579,6 +589,37 @@ outputs.
   `31e7948632fe492cd49f5c8b3f4eba1a9b7aa2355af16b2d5d01c04bea2d0570`;
 - no provider call made.
 
+#### H8/H9 and M13–M16 pre-B2 hardening record — 2026-07-14
+
+- replace the retry boolean with `RETRY_TRANSPORT`, `FAIL_CLOSED_SCORE`, and
+  `STOP_PHASE`; artifact sink and forbidden-channel failures are phase stops and
+  cannot enter LLM fallback metrics;
+- inspect model echoes at pinned event/item locations, verify matching echoes,
+  record absence explicitly, and stop on mismatch;
+- separate known tool items from unknown item types; pin allowed event/item
+  fields and record each acquisition's observed transport-shape hash;
+- add strict 92-row feature-catalog parsing, multiword-stage handling, complete
+  disable/allowlist coverage, external catalog hash, and post-disable subset
+  enforcement;
+- require an externally anchored empty pilot sandbox outside the repository and
+  reject secret-bearing config keys;
+- schema identities: `r01-codex-command-spec-v2`,
+  `r01-provider-response-v3`, JSONL schema
+  `ba8751646f3f01a0806f23fe967cf8d5d4d2370fa89682c8a34d77efc0a698ff`,
+  transport-shape spec
+  `89537de83021a90cdd984b97899895325db3745fdf1e65855439845a747af462`,
+  complete feature-catalog snapshot
+  `14b554bd29e409dd348878c18ad8b0820a1165772039bb839b538dca03956aad`,
+  and feature-catalog definition
+  `aa86f33bf40be81c79fdcbc6254b8162bf9d081b5ff1a7634f669223fea1d530`;
+- golden identities: stable command spec
+  `497739b89a388dec7df584fcc3f3ec26cec4d43c57ff29f69c7ee2ab8d1e2f4c`
+  and provider response
+  `75f2157756cd3f6e7807ab00942c7f4be1c541ca31a313b797368c9221676963`;
+- updated contract SHA-256:
+  `ec27c5dd17542dc837b5501b9e98a467d845277ed6051201e6221f6663de55c5`;
+- all `86` focused overlay tests pass; no provider call made.
+
 ### B2 — zero-call preflight
 
 Produce a hashed preflight report containing:
@@ -604,6 +645,26 @@ Produce a hashed preflight report containing:
   the committed freeze;
 - the provider-free regime-gap summary and the explicit D2 accept-or-restart
   choice for the unchanged high-cost stratum.
+
+Current zero-call observation on pinned local `codex-cli 0.144.1`:
+
+- `codex login status` reports ChatGPT authentication without exposing a
+  credential;
+- the strict parser reads all `92` rows and reproduces stage counts
+  `30/29/27/3/3`, baseline effective-true count `35`, and catalog-definition
+  snapshot/definition SHA-256 values
+  `14b554bd29e409dd348878c18ad8b0820a1165772039bb839b538dca03956aad` and
+  `aa86f33bf40be81c79fdcbc6254b8162bf9d081b5ff1a7634f669223fea1d530`;
+- generated disable coverage spans all `92` names and preserves the catalog
+  definition, but the post-disable result is `88` false and four still true:
+  `resize_all_images`, `terminal_resize_reflow`,
+  `tool_search_always_defer_mcp_tools`, and `tui_app_server`;
+- therefore the desired empty allowlist correctly blocks command-spec creation.
+  B2 remains `BLOCKED_PENDING_D2` until inertness is established or Option A is
+  stopped; no prompt wording can override this gate;
+- model-echo availability cannot be established without a provider transport.
+  The parser is ready to verify or stop, and D2 must accept echo absence as a
+  possible identity limitation before any authorized B3 call.
 
 User decision gate D2 selects the exact model and reasoning effort after this
 report and approves the provisional development token cap and per-attempt
@@ -966,7 +1027,7 @@ A stopped development pilot may be corrected and rerun only under a new
 development experiment identity with all prior artifacts preserved. It cannot
 be relabeled as a successful pilot.
 
-## 17. Plan v2/v3/v4/v5 review resolution log
+## 17. Plan v2/v3/v4/v5/v6 review resolution log
 
 | Review finding | Resolution |
 | --- | --- |
@@ -990,3 +1051,10 @@ be relabeled as a successful pilot.
 | H6: the validation parser silently dropped all 27 `under development` rows | Correct the pinned catalog facts to 92 rows; parse first token/name, final token/enabled, and the complete middle/stage; require an exact pinned row-count match and regression-test both a multiword stage and a missing row. |
 | H7: the committed B0 freeze was reproducible but not an externally enforced code anchor | Require the caller-supplied fixed freeze SHA on generation, acquisition, and replay; load the committed canonical artifact; reject alternate root seed and count before provider-capable execution. |
 | M12: six zero oracle-hold gaps were concentrated in the high-cost stratum | Commit exact per-regime gap statistics, correct the claim to six zero gaps among seven high-cost cases, and require D2 to accept the prospective power cost or restart provider-free. |
+| H8: model identity was never verified from transport | Inspect pinned event/item model fields; matching echoes verify, absence is explicit, and mismatch stops the phase. Zero-call B2 records that echo availability remains empirically unknown. |
+| H9: `retry_eligible` conflated scoring and harness failures | Replace the boolean with three dispositions and prohibit `STOP_PHASE` failures from entering hold/fallback metrics. |
+| M13: unknown item types were charged to LLM fallback | Maintain separate known non-tool/tool item sets; known tools fail closed to score, unknown items stop as schema drift. |
+| M14: known events accepted unknown internal fields | Hash a pinned field-shape spec, enforce it per event/item, and retain an observed-shape hash per acquisition. |
+| M15: pilot sandbox isolation was only documented | Require an empty nonsymlink directory outside the repository and bind its external identity before spec creation. |
+| M16: command specs did not prove full catalog coverage | Bind all catalog entries and the external definition hash into command-spec v2; require exact disable/allowlist coverage and a post-disable subset. |
+| LOW: config overrides could persist secrets | Deny secret-bearing config key markers before argv or artifact construction. |

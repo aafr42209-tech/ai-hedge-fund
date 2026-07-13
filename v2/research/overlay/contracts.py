@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from enum import StrEnum
 from typing import Any, Literal
 
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .arithmetic import BASIS_POINTS
+from .canonical import canonical_sha256
 
 ASSET_IDS = tuple(f"A{i}" for i in range(6))
 SIGNAL_IDS = tuple(f"S{i}" for i in range(5))
@@ -20,6 +22,51 @@ Regime = Literal[
     "existing_position_asymmetry",
     "noisy_confidence",
 ]
+SENSITIVE_CONFIG_KEY_TOKENS = (
+    "api_key",
+    "auth",
+    "bearer",
+    "cookie",
+    "credential",
+    "password",
+    "secret",
+    "token",
+)
+
+
+class AcquisitionDisposition(StrEnum):
+    RETRY_TRANSPORT = "RETRY_TRANSPORT"
+    FAIL_CLOSED_SCORE = "FAIL_CLOSED_SCORE"
+    STOP_PHASE = "STOP_PHASE"
+
+
+def config_key_may_contain_secret(key: str) -> bool:
+    normalized = key.lower().replace("-", "_")
+    return any(token in normalized for token in SENSITIVE_CONFIG_KEY_TOKENS)
+
+
+def codex_feature_catalog_definition_sha256(
+    entries: tuple["CodexFeatureCatalogEntry", ...],
+) -> str:
+    return canonical_sha256(tuple({"name": entry.name, "stage": entry.stage} for entry in entries))
+
+
+def codex_feature_catalog_snapshot_sha256(
+    entries: tuple["CodexFeatureCatalogEntry", ...],
+) -> str:
+    return canonical_sha256(entries)
+
+
+def codex_pilot_sandbox_identity_sha256(resolved_path: str) -> str:
+    return canonical_sha256(
+        {
+            "schema_version": "r01-codex-pilot-sandbox-identity-v1",
+            "resolved_path": resolved_path,
+            "outside_repository": True,
+            "empty": True,
+            "forbidden_entries": [],
+        }
+    )
 
 
 def normalize_artifact_relative_path(value: str) -> str:
@@ -396,8 +443,61 @@ class AcquisitionIdentity(StrictModel):
         return self
 
 
+class CodexFeatureCatalogEntry(StrictModel):
+    name: str = Field(pattern=r"^[a-z0-9_]+$")
+    stage: Literal[
+        "removed",
+        "stable",
+        "under development",
+        "experimental",
+        "deprecated",
+    ]
+    enabled: bool
+
+
+class CodexFeatureGate(StrictModel):
+    schema_version: Literal["r01-codex-feature-gate-v1"] = "r01-codex-feature-gate-v1"
+    feature_catalog: tuple[CodexFeatureCatalogEntry, ...]
+    feature_catalog_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    feature_catalog_definition_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    baseline_effective_true_features: tuple[str, ...]
+    active_feature_allowlist: tuple[str, ...]
+    disabled_features: tuple[str, ...]
+    post_disable_effective_true_features: tuple[str, ...]
+
+    @model_validator(mode="after")
+    def validate_feature_gate(self) -> "CodexFeatureGate":
+        if self.feature_catalog != tuple(sorted(self.feature_catalog, key=lambda entry: entry.name)):
+            raise ValueError("feature catalog must be sorted by name")
+        names = tuple(entry.name for entry in self.feature_catalog)
+        if len(names) != len(set(names)):
+            raise ValueError("feature catalog names must be unique")
+        if self.feature_catalog_sha256 != codex_feature_catalog_snapshot_sha256(self.feature_catalog):
+            raise ValueError("feature catalog hash mismatch")
+        if self.feature_catalog_definition_sha256 != codex_feature_catalog_definition_sha256(self.feature_catalog):
+            raise ValueError("feature catalog definition hash mismatch")
+        expected_baseline = tuple(entry.name for entry in self.feature_catalog if entry.enabled)
+        if self.baseline_effective_true_features != expected_baseline:
+            raise ValueError("baseline effective-true set must match the catalog")
+        for field_name in (
+            "active_feature_allowlist",
+            "disabled_features",
+            "post_disable_effective_true_features",
+        ):
+            value = getattr(self, field_name)
+            if value != tuple(sorted(set(value))):
+                raise ValueError(f"{field_name} must be unique and sorted")
+        if set(self.disabled_features) | set(self.active_feature_allowlist) != set(names):
+            raise ValueError("disable set and allowlist must cover the catalog")
+        if set(self.disabled_features) & set(self.active_feature_allowlist):
+            raise ValueError("disable set and allowlist must be disjoint")
+        if not set(self.post_disable_effective_true_features).issubset(self.active_feature_allowlist):
+            raise ValueError("post-disable effective-true set exceeds the allowlist")
+        return self
+
+
 class CodexCommandSpec(StrictModel):
-    schema_version: Literal["r01-codex-command-spec-v1"] = "r01-codex-command-spec-v1"
+    schema_version: Literal["r01-codex-command-spec-v2"] = "r01-codex-command-spec-v2"
     executable: str = Field(min_length=1)
     argv: tuple[str, ...]
     model_id: str = Field(min_length=1)
@@ -408,24 +508,48 @@ class CodexCommandSpec(StrictModel):
     skip_git_repo_check: Literal[True] = True
     strict_config: Literal[True] = True
     jsonl: Literal[True] = True
+    feature_catalog: tuple[CodexFeatureCatalogEntry, ...]
+    feature_catalog_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    feature_catalog_definition_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     disabled_features: tuple[str, ...]
     active_feature_allowlist: tuple[str, ...]
+    post_disable_effective_true_features: tuple[str, ...]
     config_overrides: tuple[str, ...]
     working_directory: str = Field(min_length=1)
+    pilot_sandbox_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    sandbox_empty_before_launch: Literal[True] = True
     timeout_ms: int = Field(gt=0)
     policy_instruction_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     fixture_prompt_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     stdin_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     jsonl_schema_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    transport_shape_spec_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
     @model_validator(mode="after")
     def validate_command_identity(self) -> "CodexCommandSpec":
+        if self.feature_catalog != tuple(sorted(self.feature_catalog, key=lambda entry: entry.name)):
+            raise ValueError("feature catalog must be sorted by name")
+        catalog_names = tuple(entry.name for entry in self.feature_catalog)
+        if len(catalog_names) != len(set(catalog_names)):
+            raise ValueError("feature catalog names must be unique")
+        if self.feature_catalog_sha256 != codex_feature_catalog_snapshot_sha256(self.feature_catalog):
+            raise ValueError("feature catalog hash must match the complete catalog")
+        if self.feature_catalog_definition_sha256 != codex_feature_catalog_definition_sha256(self.feature_catalog):
+            raise ValueError("feature catalog definition hash mismatch")
+        if self.pilot_sandbox_sha256 != codex_pilot_sandbox_identity_sha256(self.working_directory):
+            raise ValueError("pilot sandbox hash must match the working directory")
         if self.disabled_features != tuple(sorted(set(self.disabled_features))):
             raise ValueError("disabled features must be unique and sorted")
         if self.active_feature_allowlist != tuple(sorted(set(self.active_feature_allowlist))):
             raise ValueError("active feature allowlist must be unique and sorted")
         if set(self.disabled_features) & set(self.active_feature_allowlist):
             raise ValueError("disabled features and active allowlist must be disjoint")
+        if set(self.disabled_features) | set(self.active_feature_allowlist) != set(catalog_names):
+            raise ValueError("disabled features and active allowlist must cover the catalog")
+        if self.post_disable_effective_true_features != tuple(sorted(set(self.post_disable_effective_true_features))):
+            raise ValueError("post-disable effective-true features must be unique and sorted")
+        if not set(self.post_disable_effective_true_features).issubset(self.active_feature_allowlist):
+            raise ValueError("post-disable effective-true features exceed the allowlist")
         if any(not name or name.lower() != name or not name.isascii() or not name.replace("_", "").isalnum() for name in self.disabled_features + self.active_feature_allowlist):
             raise ValueError("feature names must be lowercase alphanumeric identifiers")
         if self.config_overrides != tuple(sorted(set(self.config_overrides))):
@@ -438,6 +562,8 @@ class CodexCommandSpec(StrictModel):
             raise ValueError("config override keys and values must be nonempty")
         if len(config_keys) != len(set(config_keys)):
             raise ValueError("config override keys must be unique")
+        if any(config_key_may_contain_secret(key) for key in config_keys):
+            raise ValueError("secret-bearing config keys are prohibited")
         if "tools.web_search=false" not in self.config_overrides:
             raise ValueError("web search must be disabled")
         if "--output-schema" in self.argv or "--output-last-message" in self.argv:
@@ -488,7 +614,7 @@ class CodexProcessStatus(StrictModel):
 
 
 class ProviderResponse(StrictModel):
-    schema_version: Literal["r01-provider-response-v2"] = "r01-provider-response-v2"
+    schema_version: Literal["r01-provider-response-v3"] = "r01-provider-response-v3"
     raw_text: str
     provider: str
     model_id: str
@@ -498,16 +624,31 @@ class ProviderResponse(StrictModel):
     output_tokens: int = Field(ge=0)
     reasoning_output_tokens: int = Field(ge=0)
     model_identity_verified_by_transport: bool
+    model_identity_evidence: Literal[
+        "matching_transport_echo",
+        "transport_echo_absent",
+    ]
+    transport_model_echoes: tuple[str, ...] = ()
     tool_use_violation: bool
     tool_event_types: tuple[str, ...] = ()
     process_status_violation: bool
     event_types: tuple[str, ...]
     agent_message_count: int = Field(gt=0)
     transport_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    observed_transport_shape_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     process_status: CodexProcessStatus
 
     @model_validator(mode="after")
     def validate_provider_response(self) -> "ProviderResponse":
+        if self.transport_model_echoes != tuple(sorted(set(self.transport_model_echoes))):
+            raise ValueError("transport model echoes must be unique and sorted")
+        if self.model_identity_verified_by_transport != bool(self.transport_model_echoes):
+            raise ValueError("model verification flag must match transport echoes")
+        expected_evidence = "matching_transport_echo" if self.transport_model_echoes else "transport_echo_absent"
+        if self.model_identity_evidence != expected_evidence:
+            raise ValueError("model identity evidence does not match transport echoes")
+        if any(echo != self.model_id for echo in self.transport_model_echoes):
+            raise ValueError("transport model echo must match requested model")
         if self.tool_event_types != tuple(sorted(set(self.tool_event_types))):
             raise ValueError("tool event types must be unique and sorted")
         if self.tool_use_violation != bool(self.tool_event_types):

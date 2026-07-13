@@ -1,11 +1,12 @@
-# R01 LLM overlay research — Phase A / provider-free B0-B1
+# R01 LLM overlay research — Phase A / provider-free B0-B2
 
 `v2.research.overlay` is the provider-free, development-only foundation for R01.
 It implements deterministic fixture generation, strict validation, exact integer
 scoring, complete-enumeration oracle and baselines, append-only artifacts, replay,
-bootstrap analysis, nuisance transforms, and the B1 Codex command/JSONL contract.
+bootstrap analysis, nuisance transforms, the Codex command/JSONL contract, and
+the provider-free B2 feature/catalog/isolation gates.
 
-The B1 adapter requires an injected process runner and raw-capture sink; this
+The Codex adapter requires an injected process runner and raw-capture sink; this
 package intentionally provides no default subprocess implementation and cannot
 make a provider call or generate evaluation fixtures. Every report is marked:
 
@@ -97,7 +98,11 @@ fixed B0 freeze hash shown above, the manifest hash printed by
 mismatched external anchor fails closed before scoring. Manifest generation also
 rejects any root seed or fixture count that differs from the committed B0 freeze.
 
-The executable runner remains scripted-only. B1 adds mocked command construction,
-strict transport parsing, and typed response schemas but no live process runner.
-Provider acquisition, prompt pilot work, evaluation generation, sealing, and
-GO/NO-GO verdicts remain unavailable until their later contract phases.
+The executable runner remains scripted-only. Pre-B2 hardening uses explicit
+`RETRY_TRANSPORT` / `FAIL_CLOSED_SCORE` / `STOP_PHASE` dispositions, verifies any
+transport model echo, stops on unknown JSONL item or field shapes, binds the full
+feature catalog into command-spec v2, and requires an externally anchored empty
+sandbox outside the repository. Local `codex features list` inspection makes no
+provider call. Provider acquisition, prompt pilot work, evaluation generation,
+sealing, and GO/NO-GO verdicts remain unavailable until their later contract
+phases.

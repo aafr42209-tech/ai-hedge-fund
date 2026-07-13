@@ -488,9 +488,16 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 - responses are append-only and never overwritten;
 - the exact command spec, stdout JSONL bytes, stderr bytes, and process status are stored before transport parsing;
 - `successful acquisition` means a complete provider transport with exactly one thread identity, one completed turn, at least one completed agent message, and all four required usage fields; it does not mean a schema-valid or high-utility portfolio decision;
-- retry-eligible failures are process launch failure, timeout without a complete response, nonzero exit without a complete response, malformed or schema-drifted JSONL, missing final message, missing usage, and contradictory or duplicate terminal status;
+- every failed attempt receives exactly one disposition: `RETRY_TRANSPORT`, `FAIL_CLOSED_SCORE`, or `STOP_PHASE`; a harness or identity failure can never be converted into an LLM abstention;
+- `RETRY_TRANSPORT` applies only to process launch failure, timeout without a complete response, nonzero exit without a complete response, malformed JSONL, missing final message, missing usage, and contradictory or duplicate terminal status;
+- `FAIL_CLOSED_SCORE` applies to a complete transport whose response quality fails the decision or known-tool contract; it is scored once as hold and is not retried;
+- `STOP_PHASE` applies to artifact persistence/integrity failure, forbidden channel, model-identity mismatch, feature/catalog/sandbox mismatch, and unknown event, item, or field shape;
 - a complete response with tool use, nonzero exit, timeout status, invalid decision JSON, schema failure, constraint violation, or poor utility is observed once, fails closed to hold where applicable, and is not retried;
 - failure to persist the raw transport before parsing is non-retryable and stops the acquisition path.
+
+The parser searches the documented event- and item-level `model` locations. One or more matching echoes set `model_identity_verified_by_transport = true`; no echo records `transport_echo_absent` and remains an explicit limitation; any different echo is `STOP_PHASE`. The pinned JSONL transport-shape specification enumerates allowed fields for every known event and item type. Each acquisition records its observed shape hash. A field outside the pinned shape or an unknown item type is schema drift and stops Phase B rather than increasing an LLM fallback rate.
+
+Before command-spec creation, the complete pinned feature catalog must be supplied, its definition hash must match the B2 external anchor, and `disabled_features ∪ active_feature_allowlist` must equal the complete catalog with no overlap. The post-disable effective-true set must be a subset of the allowlist. The pilot working directory must match its external identity, be empty, resolve outside the repository, and contain no inherited research files. Secret-bearing config keys are prohibited from command specs and artifacts.
 
 ### Replay mode
 
@@ -556,6 +563,9 @@ Stop immediately and issue no GO/NO-GO performance verdict if any of these occur
 
 - model ID or sampling configuration changes;
 - provider returns a different model identity;
+- an unknown JSONL event, item type, or event/item field appears, or the pinned transport-shape hash changes;
+- the complete feature catalog, generated disable coverage, effective-true subset, or pilot-sandbox identity check fails;
+- append-only raw capture persistence or artifact hashing fails;
 - manifest, fixture, prompt, or artifact hash mismatch;
 - caller-supplied provider-free-freeze, evaluation-manifest, or run-result trust anchor mismatch;
 - raw response is missing;
@@ -727,11 +737,14 @@ reasoning_max_unicode_codepoints: 2000
 utility_scale: 1000000000000
 scoring_spec_sha256: d9cd665ee7691f24936bdab94625cdcfe0b3c658386ea9d7c9588d6cb65081fe
 analysis_spec_sha256: 7b48176e197fd38ef4cf87fac4183e625fd2122e4db52093c9f55483e32e5749
-codex_command_spec_schema_version: r01-codex-command-spec-v1
+codex_command_spec_schema_version: r01-codex-command-spec-v2
 codex_process_status_schema_version: r01-codex-process-status-v1
-provider_response_schema_version: r01-provider-response-v2
+provider_response_schema_version: r01-provider-response-v3
 codex_attempt_transport_artifacts_schema_version: r01-codex-attempt-transport-artifacts-v1
-codex_jsonl_schema_sha256: cf7ed097a3a8734485f7d229c57eb95a3fe594f5dcc5795b3793fb17332d1da4
+codex_jsonl_schema_sha256: ba8751646f3f01a0806f23fe967cf8d5d4d2370fa89682c8a34d77efc0a698ff
+codex_transport_shape_spec_sha256: 89537de83021a90cdd984b97899895325db3745fdf1e65855439845a747af462
+codex_feature_catalog_sha256: 14b554bd29e409dd348878c18ad8b0820a1165772039bb839b538dca03956aad
+codex_feature_catalog_definition_sha256: aa86f33bf40be81c79fdcbc6254b8162bf9d081b5ff1a7634f669223fea1d530
 command_spec_sha256: TBD
 oracle_solver: TBD
 oracle_solver_version: TBD
@@ -779,6 +792,8 @@ sealed_by: TBD
 - A modal-anchor tie becomes `ABSTAIN` and is intentionally eligible to count as a flip independently for each of the four perturbation types; it is never deduplicated or dropped.
 - Adversarial validator fixtures are deterministic, provider-free pre-seal tests rather than evaluation calls.
 - Acquisition and replay are separate so cache hits cannot masquerade as independent samples.
+- Acquisition failures use three explicit dispositions; harness and identity failures stop the phase and cannot contaminate LLM fallback or agreement metrics.
+- Known tool items fail closed to score, while unknown item or field shapes are pinned-transport drift and stop the phase.
 - The committed B0 freeze SHA, root-seed label, and fixture count are enforced by code and caller-supplied before manifest generation, acquisition, and replay; internal manifest consistency is not accepted as an external trust anchor.
 - Invalid raw order batches fail closed to hold; no silent execution repair is allowed.
 - A negative result is a valid terminal result for R01.
@@ -817,6 +832,13 @@ sealed_by: TBD
 | `scripted-template --output` bypassed the shared path invariant | Apply the artifact-relative path normalizer and reject absolute, drive-qualified, parent, empty-segment, and dot targets. |
 | Normalization and superiority fields could depend on pilot responses | Freeze epsilon, regret scale, the lattice certificate bundle, and the D2 margin/target rule provider-free before the first Codex call. |
 | B0 introduced an unversioned freeze dependency | Add `r01-provider-free-freeze-v1` and bump only the affected development manifest from `r01-development-manifest-v1` to `r01-development-manifest-v2`; run-plan, run-result, replay, and report schemas remain v1 until B1 changes their fields. Golden replacements: freeze `472cf9d0e3015aeaed44beae2e10af86cd3771c832263015362c4e7440f1a643`, manifest `d766076fe1928885b4b26ea1a7abd77b12280fb93d6795a6e9b2e00ce0e7cdf1`, nested freeze reference `1251af89c5c84d7b857b3c0751bea88aa3deff13240d4913c8f28dd7d0a77d5d`. |
-| B1 required a strict Codex transport identity without authorizing a provider call | Add injected-runner-only command construction and JSONL parsing; require raw capture persistence before parsing; classify transport retries separately from complete response-quality failures; allocate command-spec v1, process-status v1, provider-response v2, and attempt-transport-artifacts v1 schemas. Golden hashes: JSONL schema `cf7ed097a3a8734485f7d229c57eb95a3fe594f5dcc5795b3793fb17332d1da4`, stable command spec `b13eda86e49ed60a6a80b149db2eaed4f418541a9d68ce9b5ef66890f73faf2e`, provider response `98f00424dcaae95aa452949cba7260e9988d442dd5274a90377d44528a190f57`, process status `df1989e4c60454a542b4806b6fd718ee54144f771b74a12a095aa269ea60cb10`. |
+| B1 required a strict Codex transport identity without authorizing a provider call | Add injected-runner-only command construction and JSONL parsing; require raw capture persistence before parsing; classify transport retries separately from complete response-quality failures; initially allocate command-spec v1, process-status v1, provider-response v2, and attempt-transport-artifacts v1 schemas. The H8–M16 hardening below supersedes command-spec v1 and provider-response v2 before any provider call; process-status v1 remains unchanged. |
 | The committed B0 freeze was reproducible but an alternate root seed could create a different internally consistent manifest | Require the caller-supplied fixed freeze SHA on manifest generation, acquisition, and replay; bind the root-seed label and count to the committed canonical freeze before any provider call. |
 | Six zero oracle-hold gaps were concentrated in the high-cost stratum | Commit a provider-free per-regime gap summary, record that the high-cost regime is `6/7` zero-gap rather than fully degenerate, and make acceptance or a provider-free restart an explicit D2 decision. |
+| H8: the transport never verified a model echo | Inspect event- and item-level model fields; accept matching echoes, record absence explicitly, and stop Phase B on any mismatch. Zero-call B2 cannot prove echo availability, so that limitation remains a D2 input until an authorized micro-pilot response exists. |
+| H9: one retry boolean conflated response quality and harness failure | Replace it with `RETRY_TRANSPORT`, `FAIL_CLOSED_SCORE`, and `STOP_PHASE`; artifact sink and forbidden-channel failures are phase stops and cannot be scored as hold. |
+| M13: unknown item types inflated the LLM fallback rate | Separate documented tool item types from unknown item types; known tools fail closed to score, while unknown items are schema drift and stop the phase. |
+| M14: known events accepted unknown internal fields | Pin an exact event/item field specification, bind its hash into the command spec, record each observed shape hash, and stop on unknown fields. |
+| M15: command construction did not prove isolation | Require an externally anchored, empty, nonsymlink pilot directory outside the repository before every command-spec build. |
+| M16: command specs could omit most feature disables | Bind the full catalog and definition hash into command-spec v2; require disable/allowlist completeness and post-disable effective-true subset validation. |
+| Secret-bearing config keys could enter immutable artifacts | Reject config keys containing credential, auth, token, secret, password, cookie, bearer, or API-key markers. |

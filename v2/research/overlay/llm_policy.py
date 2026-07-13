@@ -76,11 +76,19 @@ class ScriptedAcquisitionClient:
             output_tokens=0,
             reasoning_output_tokens=0,
             model_identity_verified_by_transport=True,
+            model_identity_evidence="matching_transport_echo",
+            transport_model_echoes=("scripted-v1",),
             tool_use_violation=False,
             process_status_violation=False,
             event_types=("scripted.response",),
             agent_message_count=1,
             transport_sha256=sha256_hex(response.encode("utf-8")),
+            observed_transport_shape_sha256=canonical_sha256(
+                {
+                    "schema_version": "r01-scripted-transport-shape-v1",
+                    "event_types": ["scripted.response"],
+                }
+            ),
             process_status=CodexProcessStatus(
                 exit_code=0,
                 timed_out=False,

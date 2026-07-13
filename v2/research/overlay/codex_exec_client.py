@@ -11,11 +11,17 @@ from typing import Any, Protocol
 
 from .canonical import canonical_sha256, sha256_hex
 from .contracts import (
+    AcquisitionDisposition,
     AcquisitionIdentity,
     CodexCommandSpec,
+    CodexFeatureCatalogEntry,
     CodexProcessStatus,
     ProviderResponse,
+    codex_feature_catalog_definition_sha256,
+    codex_feature_catalog_snapshot_sha256,
+    config_key_may_contain_secret,
 )
+from .codex_preflight import pilot_sandbox_identity_sha256
 
 POLICY_FIXTURE_DELIMITER = "\n\n--- R01 FIXTURE PROMPT ---\n\n"
 PROVIDER_ID = "openai-codex-chatgpt-subscription"
@@ -31,21 +37,98 @@ KNOWN_EVENT_TYPES = (
     "turn.started",
 )
 NON_TOOL_ITEM_TYPES = ("agent_message", "plan", "plan_update", "reasoning")
+KNOWN_TOOL_ITEM_TYPES = (
+    "command_execution",
+    "file_change",
+    "mcp_tool_call",
+    "web_search",
+)
+KNOWN_ITEM_TYPES = tuple(sorted(NON_TOOL_ITEM_TYPES + KNOWN_TOOL_ITEM_TYPES))
 USAGE_FIELDS = (
     "cached_input_tokens",
     "input_tokens",
     "output_tokens",
     "reasoning_output_tokens",
 )
+EVENT_FIELD_SPEC = {
+    "error": {"required": ("type",), "optional": ("error", "message", "model")},
+    "item.completed": {"required": ("item", "type"), "optional": ("model",)},
+    "item.started": {"required": ("item", "type"), "optional": ("model",)},
+    "item.updated": {"required": ("item", "type"), "optional": ("model",)},
+    "thread.started": {
+        "required": ("thread_id", "type"),
+        "optional": ("model",),
+    },
+    "turn.completed": {
+        "required": ("type", "usage"),
+        "optional": ("model",),
+    },
+    "turn.failed": {"required": ("type",), "optional": ("error", "model")},
+    "turn.started": {"required": ("type",), "optional": ("model",)},
+}
+ITEM_FIELD_SPEC = {
+    "agent_message": {
+        "required": ("id", "type"),
+        "optional": ("model", "status", "text"),
+    },
+    "command_execution": {
+        "required": ("id", "type"),
+        "optional": (
+            "aggregated_output",
+            "command",
+            "exit_code",
+            "model",
+            "status",
+        ),
+    },
+    "file_change": {
+        "required": ("id", "type"),
+        "optional": ("changes", "model", "status"),
+    },
+    "mcp_tool_call": {
+        "required": ("id", "type"),
+        "optional": (
+            "arguments",
+            "error",
+            "model",
+            "result",
+            "server",
+            "status",
+            "tool",
+        ),
+    },
+    "plan": {
+        "required": ("id", "type"),
+        "optional": ("model", "status", "text"),
+    },
+    "plan_update": {
+        "required": ("id", "type"),
+        "optional": ("model", "plan", "status", "text"),
+    },
+    "reasoning": {
+        "required": ("id", "type"),
+        "optional": ("model", "status", "text"),
+    },
+    "web_search": {
+        "required": ("id", "type"),
+        "optional": ("model", "query", "status"),
+    },
+}
 
 
 class CodexExecError(RuntimeError):
-    """One classified acquisition failure with an explicit retry decision."""
+    """One classified acquisition failure with an explicit phase disposition."""
 
-    def __init__(self, code: str, message: str, *, retry_eligible: bool) -> None:
+    def __init__(
+        self,
+        code: str,
+        message: str,
+        *,
+        disposition: AcquisitionDisposition,
+    ) -> None:
         super().__init__(message)
         self.code = code
-        self.retry_eligible = retry_eligible
+        self.disposition = disposition
 
 
 @dataclass(frozen=True)
@@ -113,7 +196,7 @@ def codex_jsonl_schema_spec() -> dict[str, object]:
     """Return the strict B1 parser identity hashed into every command spec."""
 
     return {
-        "schema_version": "r01-codex-jsonl-parser-v1",
+        "schema_version": "r01-codex-jsonl-parser-v2",
         "known_event_types": list(KNOWN_EVENT_TYPES),
         "required_counts": {
             "thread.started": 1,
@@ -124,8 +207,15 @@ def codex_jsonl_schema_spec() -> dict[str, object]:
         "final_message_event": "item.completed/agent_message",
         "usage_fields": list(USAGE_FIELDS),
         "non_tool_item_types": list(NON_TOOL_ITEM_TYPES),
+        "known_tool_item_types": list(KNOWN_TOOL_ITEM_TYPES),
         "unknown_event_policy": "fail_closed",
-        "unknown_item_policy": "tool_use_violation",
+        "unknown_item_policy": "schema_drift_stop_phase",
+        "model_echo_policy": {
+            "matching": "verified",
+            "absent": "explicit_unverified_limitation",
+            "mismatch": "stop_phase",
+        },
+        "transport_shape_spec_sha256": codex_transport_shape_spec_sha256(),
         "duplicate_json_key_policy": "fail_closed",
         "nonfinite_json_number_policy": "fail_closed",
     }
@@ -133,6 +223,22 @@ def codex_jsonl_schema_spec() -> dict[str, object]:
 
 def codex_jsonl_schema_sha256() -> str:
     return canonical_sha256(codex_jsonl_schema_spec())
+
+
+def codex_transport_shape_spec() -> dict[str, object]:
+    """Return the pinned allowed field surface for every JSONL event and item."""
+
+    return {
+        "schema_version": "r01-codex-transport-shape-spec-v1",
+        "event_fields": EVENT_FIELD_SPEC,
+        "item_fields": ITEM_FIELD_SPEC,
+        "model_echo_locations": ("event.model", "item.model"),
+        "unknown_field_policy": "schema_drift_stop_phase",
+    }
+
+
+def codex_transport_shape_spec_sha256() -> str:
+    return canonical_sha256(codex_transport_shape_spec())
 
 
 def _canonical_unique(values: tuple[str, ...], label: str) -> tuple[str, ...]:
@@ -145,10 +251,15 @@ def build_codex_command_spec(
     *,
     executable: str,
     model_id: str,
+    feature_catalog: tuple[CodexFeatureCatalogEntry, ...],
+    expected_feature_catalog_sha256: str,
     disabled_features: tuple[str, ...],
     active_feature_allowlist: tuple[str, ...],
+    post_disable_effective_true_features: tuple[str, ...],
     config_overrides: tuple[str, ...],
     working_directory: str,
+    expected_pilot_sandbox_sha256: str,
+    expected_transport_shape_spec_sha256: str,
     timeout_ms: int,
     policy_instruction: str,
     fixture_prompt: str,
@@ -157,11 +268,27 @@ def build_codex_command_spec(
 
     disabled = _canonical_unique(disabled_features, "disabled feature list")
     allowlist = _canonical_unique(active_feature_allowlist, "active feature allowlist")
+    post_disable_true = _canonical_unique(
+        post_disable_effective_true_features,
+        "post-disable effective-true feature list",
+    )
     configs = _canonical_unique(config_overrides, "config overrides")
     if any(FEATURE_NAME.fullmatch(name) is None for name in disabled + allowlist):
         raise ValueError("feature names must contain lowercase letters, digits, or underscores")
     if set(disabled) & set(allowlist):
         raise ValueError("disabled features and active allowlist overlap")
+    catalog = tuple(sorted(feature_catalog, key=lambda entry: entry.name))
+    catalog_names = tuple(entry.name for entry in catalog)
+    if len(catalog_names) != len(set(catalog_names)):
+        raise ValueError("feature catalog contains duplicate names")
+    actual_catalog_sha256 = codex_feature_catalog_snapshot_sha256(catalog)
+    catalog_definition_sha256 = codex_feature_catalog_definition_sha256(catalog)
+    if actual_catalog_sha256 != expected_feature_catalog_sha256:
+        raise RuntimeError("feature catalog differs from the external trust anchor")
+    if set(disabled) | set(allowlist) != set(catalog_names):
+        raise ValueError("disabled features and active allowlist must cover the catalog")
+    if not set(post_disable_true).issubset(allowlist):
+        raise RuntimeError("post-disable effective-true features exceed the allowlist")
     if "tools.web_search=false" not in configs:
         raise ValueError("tools.web_search=false is mandatory")
     if any("\n" in value or "\r" in value or "=" not in value for value in configs):
@@ -172,9 +299,15 @@ def build_codex_command_spec(
         raise ValueError("config override keys and values must be nonempty")
     if len(config_keys) != len(set(config_keys)):
         raise ValueError("config override keys must be unique")
+    if any(config_key_may_contain_secret(key) for key in config_keys):
+        raise ValueError("secret-bearing config keys are prohibited")
+    actual_pilot_sandbox_sha256 = pilot_sandbox_identity_sha256(working_directory)
+    if actual_pilot_sandbox_sha256 != expected_pilot_sandbox_sha256:
+        raise RuntimeError("pilot sandbox differs from the external trust anchor")
+    actual_transport_shape_spec_sha256 = codex_transport_shape_spec_sha256()
+    if actual_transport_shape_spec_sha256 != expected_transport_shape_spec_sha256:
+        raise RuntimeError("transport shape spec differs from the external trust anchor")
     directory = Path(working_directory)
-    if not directory.is_absolute() or not directory.is_dir():
-        raise ValueError("working directory must be an existing absolute directory")
     if timeout_ms <= 0:
         raise ValueError("timeout_ms must be positive")
     if not executable or not model_id or any(character in model_id for character in "\r\n\0"):
@@ -205,15 +338,21 @@ def build_codex_command_spec(
         executable=executable,
         argv=tuple(argv),
         model_id=model_id,
+        feature_catalog=catalog,
+        feature_catalog_sha256=actual_catalog_sha256,
+        feature_catalog_definition_sha256=catalog_definition_sha256,
         disabled_features=disabled,
         active_feature_allowlist=allowlist,
+        post_disable_effective_true_features=post_disable_true,
         config_overrides=configs,
         working_directory=str(directory.resolve()),
+        pilot_sandbox_sha256=actual_pilot_sandbox_sha256,
         timeout_ms=timeout_ms,
         policy_instruction_sha256=sha256_hex(policy_instruction.encode("utf-8")),
         fixture_prompt_sha256=sha256_hex(fixture_prompt.encode("utf-8")),
         stdin_sha256=sha256_hex(stdin_bytes),
         jsonl_schema_sha256=codex_jsonl_schema_sha256(),
+        transport_shape_spec_sha256=actual_transport_shape_spec_sha256,
     )
     return spec, stdin_bytes
 
@@ -232,11 +371,88 @@ def _reject_nonfinite_constant(value: str) -> None:
 
 
 def _transport_error(code: str, message: str) -> CodexExecError:
-    return CodexExecError(code, message, retry_eligible=True)
+    return CodexExecError(
+        code,
+        message,
+        disposition=AcquisitionDisposition.RETRY_TRANSPORT,
+    )
+
+
+def _stop_error(code: str, message: str) -> CodexExecError:
+    return CodexExecError(
+        code,
+        message,
+        disposition=AcquisitionDisposition.STOP_PHASE,
+    )
+
+
+def complete_response_disposition(
+    response: ProviderResponse,
+) -> AcquisitionDisposition | None:
+    """Classify complete transport quality without conflating harness failure."""
+
+    if response.tool_use_violation:
+        return AcquisitionDisposition.FAIL_CLOSED_SCORE
+    return None
+
+
+def _validate_fields(
+    value: dict[str, Any],
+    *,
+    required: tuple[str, ...],
+    optional: tuple[str, ...],
+    label: str,
+) -> None:
+    actual = set(value)
+    missing = set(required) - actual
+    unknown = actual - set(required) - set(optional)
+    if missing or unknown:
+        raise _stop_error(
+            "jsonl_schema_drift",
+            f"{label} field shape differs from the pinned transport spec",
+        )
+
+
+def _observed_transport_shape(events: list[dict[str, Any]]) -> dict[str, object]:
+    signatures: set[tuple[str, tuple[str, ...], str | None, tuple[str, ...]]] = set()
+    for event in events:
+        item = event.get("item")
+        item_type = item.get("type") if isinstance(item, dict) else None
+        item_fields = tuple(sorted(item)) if isinstance(item, dict) else ()
+        signatures.add((event["type"], tuple(sorted(event)), item_type, item_fields))
+    return {
+        "schema_version": "r01-observed-codex-transport-shape-v1",
+        "signatures": [
+            {
+                "event_type": event_type,
+                "event_fields": event_fields,
+                "item_type": item_type,
+                "item_fields": item_fields,
+            }
+            for event_type, event_fields, item_type, item_fields in sorted(
+                signatures,
+                key=lambda value: (
+                    value[0],
+                    value[1],
+                    value[2] or "",
+                    value[3],
+                ),
+            )
+        ],
+    }
 
 
 def _strict_usage(value: Any) -> dict[str, int]:
-    if not isinstance(value, dict) or set(value) != set(USAGE_FIELDS):
+    if not isinstance(value, dict):
+        raise _transport_error("missing_usage", "terminal usage fields do not match the B1 schema")
+    missing = set(USAGE_FIELDS) - set(value)
+    unknown = set(value) - set(USAGE_FIELDS)
+    if unknown:
+        raise _stop_error(
+            "jsonl_schema_drift",
+            "terminal usage contains fields outside the pinned transport spec",
+        )
+    if missing:
         raise _transport_error("missing_usage", "terminal usage fields do not match the B1 schema")
     if any(isinstance(value[field], bool) or not isinstance(value[field], int) or value[field] < 0 for field in USAGE_FIELDS):
         raise _transport_error("invalid_usage", "terminal usage values must be nonnegative integers")
@@ -273,7 +489,14 @@ def parse_codex_jsonl(
         if not isinstance(event, dict) or not isinstance(event.get("type"), str):
             raise _transport_error("malformed_jsonl", f"event {line_number} lacks a string type")
         if event["type"] not in KNOWN_EVENT_TYPES:
-            raise _transport_error("jsonl_schema_drift", f"unknown event type: {event['type']}")
+            raise _stop_error("jsonl_schema_drift", f"unknown event type: {event['type']}")
+        field_spec = EVENT_FIELD_SPEC[event["type"]]
+        _validate_fields(
+            event,
+            required=field_spec["required"],
+            optional=field_spec["optional"],
+            label=f"event {event['type']}",
+        )
         events.append(event)
 
     event_types = tuple(event["type"] for event in events)
@@ -293,13 +516,42 @@ def parse_codex_jsonl(
 
     messages: list[str] = []
     item_types: list[str] = []
+    model_echoes: list[str] = []
     for event in events:
+        event_model = event.get("model")
+        if event_model is not None:
+            if not isinstance(event_model, str) or not event_model:
+                raise _stop_error(
+                    "jsonl_schema_drift",
+                    "event model echo must be nonempty text",
+                )
+            model_echoes.append(event_model)
         if not event["type"].startswith("item."):
             continue
         item = event.get("item")
         if not isinstance(item, dict) or not isinstance(item.get("type"), str):
             raise _transport_error("malformed_jsonl", "item event lacks an item type")
         item_type = item["type"]
+        if item_type not in KNOWN_ITEM_TYPES:
+            raise _stop_error(
+                "jsonl_schema_drift",
+                f"unknown item type: {item_type}",
+            )
+        item_field_spec = ITEM_FIELD_SPEC[item_type]
+        _validate_fields(
+            item,
+            required=item_field_spec["required"],
+            optional=item_field_spec["optional"],
+            label=f"item {item_type}",
+        )
+        item_model = item.get("model")
+        if item_model is not None:
+            if not isinstance(item_model, str) or not item_model:
+                raise _stop_error(
+                    "jsonl_schema_drift",
+                    "item model echo must be nonempty text",
+                )
+            model_echoes.append(item_model)
         item_types.append(item_type)
         if event["type"] == "item.completed" and item_type == "agent_message":
             if not isinstance(item.get("text"), str):
@@ -310,7 +562,13 @@ def parse_codex_jsonl(
     if not messages[-1].strip():
         raise _transport_error("empty_response", "final completed agent message is empty")
 
-    tool_types = tuple(sorted(set(item_types) - set(NON_TOOL_ITEM_TYPES)))
+    unique_model_echoes = tuple(sorted(set(model_echoes)))
+    if any(model_echo != requested_model_id for model_echo in unique_model_echoes):
+        raise _stop_error(
+            "model_identity_mismatch",
+            "transport model echo differs from the requested model",
+        )
+    tool_types = tuple(sorted(set(item_types) & set(KNOWN_TOOL_ITEM_TYPES)))
     status = capture.process_status()
     return ProviderResponse(
         raw_text=messages[-1],
@@ -321,13 +579,16 @@ def parse_codex_jsonl(
         cached_input_tokens=usage["cached_input_tokens"],
         output_tokens=usage["output_tokens"],
         reasoning_output_tokens=usage["reasoning_output_tokens"],
-        model_identity_verified_by_transport=False,
+        model_identity_verified_by_transport=bool(unique_model_echoes),
+        model_identity_evidence=("matching_transport_echo" if unique_model_echoes else "transport_echo_absent"),
+        transport_model_echoes=unique_model_echoes,
         tool_use_violation=bool(tool_types),
         tool_event_types=tool_types,
         process_status_violation=(capture.timed_out or capture.launch_error is not None or capture.exit_code != 0),
         event_types=event_types,
         agent_message_count=len(messages),
         transport_sha256=status.stdout_sha256,
+        observed_transport_shape_sha256=canonical_sha256(_observed_transport_shape(events)),
         process_status=status,
     )
 
@@ -340,20 +601,30 @@ class CodexExecClient:
         *,
         executable: str,
         model_id: str,
+        feature_catalog: tuple[CodexFeatureCatalogEntry, ...],
+        expected_feature_catalog_sha256: str,
         disabled_features: tuple[str, ...],
         active_feature_allowlist: tuple[str, ...],
+        post_disable_effective_true_features: tuple[str, ...],
         config_overrides: tuple[str, ...],
         working_directory: str,
+        expected_pilot_sandbox_sha256: str,
+        expected_transport_shape_spec_sha256: str,
         timeout_ms: int,
         process_runner: CodexProcessRunner,
         capture_sink: CaptureSink,
     ) -> None:
         self._executable = executable
         self._model_id = model_id
+        self._feature_catalog = feature_catalog
+        self._expected_feature_catalog_sha256 = expected_feature_catalog_sha256
         self._disabled_features = disabled_features
         self._active_feature_allowlist = active_feature_allowlist
+        self._post_disable_effective_true_features = post_disable_effective_true_features
         self._config_overrides = config_overrides
         self._working_directory = working_directory
+        self._expected_pilot_sandbox_sha256 = expected_pilot_sandbox_sha256
+        self._expected_transport_shape_spec_sha256 = expected_transport_shape_spec_sha256
         self._timeout_ms = timeout_ms
         self._process_runner = process_runner
         self._capture_sink = capture_sink
@@ -370,15 +641,20 @@ class CodexExecClient:
             raise CodexExecError(
                 "forbidden_channel",
                 "B1 Codex adapter accepts development acquisitions only",
-                retry_eligible=False,
+                disposition=AcquisitionDisposition.STOP_PHASE,
             )
         spec, stdin_bytes = build_codex_command_spec(
             executable=self._executable,
             model_id=self._model_id,
+            feature_catalog=self._feature_catalog,
+            expected_feature_catalog_sha256=self._expected_feature_catalog_sha256,
             disabled_features=self._disabled_features,
             active_feature_allowlist=self._active_feature_allowlist,
+            post_disable_effective_true_features=(self._post_disable_effective_true_features),
             config_overrides=self._config_overrides,
             working_directory=self._working_directory,
+            expected_pilot_sandbox_sha256=self._expected_pilot_sandbox_sha256,
+            expected_transport_shape_spec_sha256=(self._expected_transport_shape_spec_sha256),
             timeout_ms=self._timeout_ms,
             policy_instruction=system,
             fixture_prompt=user,
@@ -395,7 +671,7 @@ class CodexExecClient:
             raise CodexExecError(
                 "process_launch_failure",
                 "Codex process runner failed before producing a capture",
-                retry_eligible=True,
+                disposition=AcquisitionDisposition.RETRY_TRANSPORT,
             ) from exc
         try:
             self._capture_sink(spec, capture)
@@ -403,13 +679,13 @@ class CodexExecClient:
             raise CodexExecError(
                 "artifact_sink_failure",
                 "raw capture sink failed before transport parsing",
-                retry_eligible=False,
+                disposition=AcquisitionDisposition.STOP_PHASE,
             ) from exc
         if capture.launch_error is not None:
             raise CodexExecError(
                 "process_launch_failure",
                 capture.launch_error,
-                retry_eligible=True,
+                disposition=AcquisitionDisposition.RETRY_TRANSPORT,
             )
         try:
             return parse_codex_jsonl(capture, requested_model_id=self._model_id)
@@ -418,12 +694,12 @@ class CodexExecClient:
                 raise CodexExecError(
                     "timeout_without_complete_response",
                     "Codex process timed out without a complete response",
-                    retry_eligible=True,
+                    disposition=AcquisitionDisposition.RETRY_TRANSPORT,
                 ) from exc
             if capture.exit_code not in (None, 0):
                 raise CodexExecError(
                     "nonzero_exit_without_complete_response",
                     "Codex process exited nonzero without a complete response",
-                    retry_eligible=True,
+                    disposition=AcquisitionDisposition.RETRY_TRANSPORT,
                 ) from exc
             raise

@@ -12,10 +12,20 @@ from .codex_exec_client import (
     CodexProcessCapture,
     build_codex_command_spec,
     codex_jsonl_schema_sha256,
+    codex_transport_shape_spec_sha256,
+    complete_response_disposition,
     compose_stdin_bytes,
     parse_codex_jsonl,
 )
-from .contracts import AcquisitionIdentity, CodexCommandSpec
+from .codex_preflight import pilot_sandbox_identity_sha256
+from .contracts import (
+    AcquisitionDisposition,
+    AcquisitionIdentity,
+    CodexCommandSpec,
+    CodexFeatureCatalogEntry,
+    codex_feature_catalog_snapshot_sha256,
+    codex_pilot_sandbox_identity_sha256,
+)
 
 
 def _jsonl(events: list[dict[str, object]]) -> bytes:
@@ -85,11 +95,38 @@ class FakeRunner:
         return self.capture
 
 
+def _feature_catalog() -> tuple[CodexFeatureCatalogEntry, ...]:
+    return (
+        CodexFeatureCatalogEntry(
+            name="shell_tool",
+            stage="stable",
+            enabled=True,
+        ),
+        CodexFeatureCatalogEntry(
+            name="web_search",
+            stage="stable",
+            enabled=True,
+        ),
+    )
+
+
+def _command_gate_kwargs(tmp_path) -> dict[str, object]:
+    catalog = _feature_catalog()
+    return {
+        "feature_catalog": catalog,
+        "expected_feature_catalog_sha256": (codex_feature_catalog_snapshot_sha256(catalog)),
+        "post_disable_effective_true_features": (),
+        "expected_pilot_sandbox_sha256": pilot_sandbox_identity_sha256(str(tmp_path)),
+        "expected_transport_shape_spec_sha256": (codex_transport_shape_spec_sha256()),
+    }
+
+
 def _client(tmp_path, capture: CodexProcessCapture, sink_calls: list[object]):
     runner = FakeRunner(capture)
     client = CodexExecClient(
         executable="codex",
         model_id="mock-model-id",
+        **_command_gate_kwargs(tmp_path),
         disabled_features=("web_search", "shell_tool"),
         active_feature_allowlist=(),
         config_overrides=("tools.web_search=false",),
@@ -105,6 +142,7 @@ def test_command_spec_is_shell_free_deterministic_and_hashes_exact_stdin(tmp_pat
     first, stdin_bytes = build_codex_command_spec(
         executable="codex",
         model_id="mock-model-id",
+        **_command_gate_kwargs(tmp_path),
         disabled_features=("web_search", "shell_tool"),
         active_feature_allowlist=(),
         config_overrides=("tools.web_search=false", "zeta=false"),
@@ -116,6 +154,7 @@ def test_command_spec_is_shell_free_deterministic_and_hashes_exact_stdin(tmp_pat
     second, second_stdin = build_codex_command_spec(
         executable="codex",
         model_id="mock-model-id",
+        **_command_gate_kwargs(tmp_path),
         disabled_features=("shell_tool", "web_search"),
         active_feature_allowlist=(),
         config_overrides=("zeta=false", "tools.web_search=false"),
@@ -157,9 +196,10 @@ def test_command_spec_is_shell_free_deterministic_and_hashes_exact_stdin(tmp_pat
     assert canonical_sha256(first) == canonical_sha256(second)
     stable_payload = first.model_dump(mode="python")
     stable_payload["working_directory"] = "C:/r01-pilot-sandbox"
+    stable_payload["pilot_sandbox_sha256"] = codex_pilot_sandbox_identity_sha256("C:/r01-pilot-sandbox")
     stable_spec = CodexCommandSpec.model_validate(stable_payload)
-    assert codex_jsonl_schema_sha256() == "cf7ed097a3a8734485f7d229c57eb95a3fe594f5dcc5795b3793fb17332d1da4"
-    assert canonical_sha256(stable_spec) == "b13eda86e49ed60a6a80b149db2eaed4f418541a9d68ce9b5ef66890f73faf2e"
+    assert codex_jsonl_schema_sha256() == "ba8751646f3f01a0806f23fe967cf8d5d4d2370fa89682c8a34d77efc0a698ff"
+    assert canonical_sha256(stable_spec) == "497739b89a388dec7df584fcc3f3ec26cec4d43c57ff29f69c7ee2ab8d1e2f4c"
 
 
 def test_command_spec_rejects_contradictory_config_keys(tmp_path) -> None:
@@ -167,7 +207,8 @@ def test_command_spec_rejects_contradictory_config_keys(tmp_path) -> None:
         build_codex_command_spec(
             executable="codex",
             model_id="mock-model-id",
-            disabled_features=(),
+            **_command_gate_kwargs(tmp_path),
+            disabled_features=("shell_tool", "web_search"),
             active_feature_allowlist=(),
             config_overrides=("tools.web_search=false", "tools.web_search=true"),
             working_directory=str(tmp_path),
@@ -175,6 +216,60 @@ def test_command_spec_rejects_contradictory_config_keys(tmp_path) -> None:
             policy_instruction="policy",
             fixture_prompt="fixture",
         )
+
+
+def test_command_spec_rejects_incomplete_catalog_and_secret_config(tmp_path) -> None:
+    common = {
+        "executable": "codex",
+        "model_id": "mock-model-id",
+        **_command_gate_kwargs(tmp_path),
+        "active_feature_allowlist": (),
+        "working_directory": str(tmp_path),
+        "timeout_ms": 30_000,
+        "policy_instruction": "policy",
+        "fixture_prompt": "fixture",
+    }
+    with pytest.raises(ValueError, match="must cover the catalog"):
+        build_codex_command_spec(
+            **common,
+            disabled_features=("web_search",),
+            config_overrides=("tools.web_search=false",),
+        )
+    with pytest.raises(ValueError, match="secret-bearing config"):
+        build_codex_command_spec(
+            **common,
+            disabled_features=("shell_tool", "web_search"),
+            config_overrides=(
+                "api_key=must-not-enter-artifact",
+                "tools.web_search=false",
+            ),
+        )
+
+
+def test_command_spec_rejects_wrong_sandbox_and_transport_shape_anchors(
+    tmp_path,
+) -> None:
+    common = {
+        "executable": "codex",
+        "model_id": "mock-model-id",
+        **_command_gate_kwargs(tmp_path),
+        "disabled_features": ("shell_tool", "web_search"),
+        "active_feature_allowlist": (),
+        "config_overrides": ("tools.web_search=false",),
+        "working_directory": str(tmp_path),
+        "timeout_ms": 30_000,
+        "policy_instruction": "policy",
+        "fixture_prompt": "fixture",
+    }
+    wrong_sandbox = {**common, "expected_pilot_sandbox_sha256": "0" * 64}
+    with pytest.raises(RuntimeError, match="sandbox differs"):
+        build_codex_command_spec(**wrong_sandbox)
+    wrong_shape = {
+        **common,
+        "expected_transport_shape_spec_sha256": "0" * 64,
+    }
+    with pytest.raises(RuntimeError, match="transport shape spec differs"):
+        build_codex_command_spec(**wrong_shape)
 
 
 def test_client_success_uses_injected_runner_and_sinks_raw_before_return(tmp_path) -> None:
@@ -198,8 +293,10 @@ def test_client_success_uses_injected_runner_and_sinks_raw_before_return(tmp_pat
     assert not response.tool_use_violation
     assert not response.process_status_violation
     assert not response.model_identity_verified_by_transport
+    assert response.model_identity_evidence == "transport_echo_absent"
+    assert response.transport_model_echoes == ()
     assert canonical_sha256(response.process_status) == "df1989e4c60454a542b4806b6fd718ee54144f771b74a12a095aa269ea60cb10"
-    assert canonical_sha256(response) == "98f00424dcaae95aa452949cba7260e9988d442dd5274a90377d44528a190f57"
+    assert canonical_sha256(response) == "75f2157756cd3f6e7807ab00942c7f4be1c541ca31a313b797368c9221676963"
 
 
 @pytest.mark.parametrize(
@@ -238,7 +335,7 @@ def test_transport_failures_are_retry_eligible(tmp_path, capture, expected_code)
     with pytest.raises(CodexExecError) as raised:
         client.complete(system="policy", user="fixture", identity=_identity())
     assert raised.value.code == expected_code
-    assert raised.value.retry_eligible
+    assert raised.value.disposition is AcquisitionDisposition.RETRY_TRANSPORT
     assert len(sink_calls) == 1
 
 
@@ -247,19 +344,21 @@ def test_missing_final_message_is_retry_eligible() -> None:
     with pytest.raises(CodexExecError) as raised:
         parse_codex_jsonl(_capture(events), requested_model_id="mock-model-id")
     assert raised.value.code == "missing_final_message"
-    assert raised.value.retry_eligible
+    assert raised.value.disposition is AcquisitionDisposition.RETRY_TRANSPORT
 
 
 @pytest.mark.parametrize(
-    ("capture", "expected_code"),
+    ("capture", "expected_code", "expected_disposition"),
     (
         (
             _capture(_events(extra=[{"type": "turn.failed", "error": "failed"}])),
             "contradictory_terminal_status",
+            AcquisitionDisposition.RETRY_TRANSPORT,
         ),
         (
             _capture(_events(extra=[{"type": "new.event"}])),
             "jsonl_schema_drift",
+            AcquisitionDisposition.STOP_PHASE,
         ),
         (
             _capture(
@@ -273,19 +372,25 @@ def test_missing_final_message_is_retry_eligible() -> None:
                     }
                 )
             ),
-            "missing_usage",
+            "jsonl_schema_drift",
+            AcquisitionDisposition.STOP_PHASE,
         ),
         (
             _capture(_events(extra=[{"type": "thread.started", "thread_id": "duplicate"}])),
             "thread_identity_violation",
+            AcquisitionDisposition.RETRY_TRANSPORT,
         ),
     ),
 )
-def test_strict_jsonl_schema_drift_fails_closed(capture, expected_code) -> None:
+def test_strict_jsonl_schema_drift_fails_closed(
+    capture,
+    expected_code,
+    expected_disposition,
+) -> None:
     with pytest.raises(CodexExecError) as raised:
         parse_codex_jsonl(capture, requested_model_id="mock-model-id")
     assert raised.value.code == expected_code
-    assert raised.value.retry_eligible
+    assert raised.value.disposition is expected_disposition
 
 
 def test_duplicate_json_key_fails_closed() -> None:
@@ -315,6 +420,53 @@ def test_complete_tool_use_response_is_observed_not_retried(tmp_path) -> None:
     assert response.tool_use_violation
     assert response.tool_event_types == ("command_execution",)
     assert not response.process_status_violation
+    assert complete_response_disposition(response) is AcquisitionDisposition.FAIL_CLOSED_SCORE
+
+
+def test_matching_model_echo_is_verified_and_mismatch_stops_phase() -> None:
+    matching = _events()
+    matching[0]["model"] = "mock-model-id"
+    response = parse_codex_jsonl(
+        _capture(matching),
+        requested_model_id="mock-model-id",
+    )
+    assert response.model_identity_verified_by_transport
+    assert response.model_identity_evidence == "matching_transport_echo"
+    assert response.transport_model_echoes == ("mock-model-id",)
+
+    mismatched = _events()
+    mismatched[0]["model"] = "different-model"
+    with pytest.raises(CodexExecError) as raised:
+        parse_codex_jsonl(
+            _capture(mismatched),
+            requested_model_id="mock-model-id",
+        )
+    assert raised.value.code == "model_identity_mismatch"
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
+
+
+def test_unknown_item_and_known_event_field_are_schema_drift_stop() -> None:
+    unknown_item = {
+        "type": "item.completed",
+        "item": {"id": "future-1", "type": "future_item"},
+    }
+    with pytest.raises(CodexExecError) as item_error:
+        parse_codex_jsonl(
+            _capture(_events(extra=[unknown_item])),
+            requested_model_id="mock-model-id",
+        )
+    assert item_error.value.code == "jsonl_schema_drift"
+    assert item_error.value.disposition is AcquisitionDisposition.STOP_PHASE
+
+    unknown_field_events = _events()
+    unknown_field_events[1]["future_field"] = True
+    with pytest.raises(CodexExecError) as field_error:
+        parse_codex_jsonl(
+            _capture(unknown_field_events),
+            requested_model_id="mock-model-id",
+        )
+    assert field_error.value.code == "jsonl_schema_drift"
+    assert field_error.value.disposition is AcquisitionDisposition.STOP_PHASE
 
 
 def test_complete_invalid_decision_text_is_not_transport_retry(tmp_path) -> None:
@@ -345,7 +497,7 @@ def test_forbidden_channel_is_nonretryable_and_never_invokes_runner(tmp_path) ->
     with pytest.raises(CodexExecError) as raised:
         client.complete(system="policy", user="fixture", identity=_identity("primary"))
     assert raised.value.code == "forbidden_channel"
-    assert not raised.value.retry_eligible
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
     assert client.provider_calls == 0
     assert not runner.calls
     assert not sink_calls
@@ -358,7 +510,7 @@ def test_launch_failure_is_retryable_after_capture_is_sunk(tmp_path) -> None:
     with pytest.raises(CodexExecError) as raised:
         client.complete(system="policy", user="fixture", identity=_identity())
     assert raised.value.code == "process_launch_failure"
-    assert raised.value.retry_eligible
+    assert raised.value.disposition is AcquisitionDisposition.RETRY_TRANSPORT
     assert len(sink_calls) == 1
 
 
@@ -371,7 +523,8 @@ def test_artifact_sink_failure_is_nonretryable(tmp_path) -> None:
     client = CodexExecClient(
         executable="codex",
         model_id="mock-model-id",
-        disabled_features=("web_search",),
+        **_command_gate_kwargs(tmp_path),
+        disabled_features=("shell_tool", "web_search"),
         active_feature_allowlist=(),
         config_overrides=("tools.web_search=false",),
         working_directory=str(tmp_path),
@@ -382,4 +535,4 @@ def test_artifact_sink_failure_is_nonretryable(tmp_path) -> None:
     with pytest.raises(CodexExecError) as raised:
         client.complete(system="policy", user="fixture", identity=_identity())
     assert raised.value.code == "artifact_sink_failure"
-    assert not raised.value.retry_eligible
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
