@@ -1,12 +1,13 @@
-# R01 LLM overlay research — Phase A / provider-free B0
+# R01 LLM overlay research — Phase A / provider-free B0-B1
 
 `v2.research.overlay` is the provider-free, development-only foundation for R01.
 It implements deterministic fixture generation, strict validation, exact integer
 scoring, complete-enumeration oracle and baselines, append-only artifacts, replay,
-bootstrap analysis, and nuisance transforms.
+bootstrap analysis, nuisance transforms, and the B1 Codex command/JSONL contract.
 
-The package intentionally has no live LLM adapter and cannot generate evaluation
-fixtures. Every report is marked:
+The B1 adapter requires an injected process runner and raw-capture sink; this
+package intentionally provides no default subprocess implementation and cannot
+make a provider call or generate evaluation fixtures. Every report is marked:
 
 > DEVELOPMENT_ONLY — NOT SEALED — NO INVESTMENT CLAIM
 
@@ -82,6 +83,7 @@ they should not be constructed by hand. Replay and verification require the
 manifest hash printed by `generate-development` and the result hash printed by
 `dry-run`; a missing or mismatched external anchor fails closed before scoring.
 
-Phase A and B0 accept scripted raw responses only. Provider integration, prompts,
-evaluation generation, sealing, and GO/NO-GO verdicts remain unavailable until
-their later contract phases.
+The executable runner remains scripted-only. B1 adds mocked command construction,
+strict transport parsing, and typed response schemas but no live process runner.
+Provider acquisition, prompt pilot work, evaluation generation, sealing, and
+GO/NO-GO verdicts remain unavailable until their later contract phases.

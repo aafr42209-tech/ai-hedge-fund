@@ -483,7 +483,11 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 - replicate ID is part of the artifact identity;
 - perturbation ID is part of invariance-artifact identity;
 - responses are append-only and never overwritten;
-- the exact raw response is stored before parsing.
+- the exact command spec, stdout JSONL bytes, stderr bytes, and process status are stored before transport parsing;
+- `successful acquisition` means a complete provider transport with exactly one thread identity, one completed turn, at least one completed agent message, and all four required usage fields; it does not mean a schema-valid or high-utility portfolio decision;
+- retry-eligible failures are process launch failure, timeout without a complete response, nonzero exit without a complete response, malformed or schema-drifted JSONL, missing final message, missing usage, and contradictory or duplicate terminal status;
+- a complete response with tool use, nonzero exit, timeout status, invalid decision JSON, schema failure, constraint violation, or poor utility is observed once, fails closed to hold where applicable, and is not retried;
+- failure to persist the raw transport before parsing is non-retryable and stops the acquisition path.
 
 ### Replay mode
 
@@ -503,17 +507,21 @@ Every evaluation replicate preserves these distinct artifacts:
 1. experiment manifest;
 2. canonical fixture bytes;
 3. canonical policy input;
-4. exact system and user prompts;
-5. provider request metadata;
-6. raw provider response;
-7. parsed raw decision;
-8. validation report;
-9. executable hold-or-order batch;
-10. cost ledger;
-11. episode score;
-12. exact oracle certificate;
-13. run-result root plus its immutable external closeout receipt;
-14. replay verification result.
+4. exact policy-instruction and fixture-prompt bytes;
+5. canonical Codex command spec without credentials;
+6. raw provider stdout JSONL transport;
+7. raw provider stderr bytes;
+8. typed process-status record;
+9. typed provider-response envelope and final raw agent message;
+10. parsed raw decision or parse-error artifact;
+11. validation report;
+12. executable hold-or-order batch;
+13. cost ledger;
+14. episode score;
+15. exact oracle certificate;
+16. acquisition index entry;
+17. run-result root plus its immutable external closeout receipt;
+18. replay verification result.
 
 Artifact identity includes:
 
@@ -693,7 +701,9 @@ provider: TBD
 exact_model_id: TBD
 model_version_metadata: TBD
 sampling_parameters: TBD
+codex_managed_system_layer: provider_managed_not_exposed
 system_prompt_sha256: TBD
+policy_instruction_sha256: TBD
 user_template_sha256: TBD
 delta_min_e12: TBD
 delta_target_e12: TBD
@@ -708,6 +718,12 @@ reasoning_max_unicode_codepoints: 2000
 utility_scale: 1000000000000
 scoring_spec_sha256: d9cd665ee7691f24936bdab94625cdcfe0b3c658386ea9d7c9588d6cb65081fe
 analysis_spec_sha256: 7b48176e197fd38ef4cf87fac4183e625fd2122e4db52093c9f55483e32e5749
+codex_command_spec_schema_version: r01-codex-command-spec-v1
+codex_process_status_schema_version: r01-codex-process-status-v1
+provider_response_schema_version: r01-provider-response-v2
+codex_attempt_transport_artifacts_schema_version: r01-codex-attempt-transport-artifacts-v1
+codex_jsonl_schema_sha256: cf7ed097a3a8734485f7d229c57eb95a3fe594f5dcc5795b3793fb17332d1da4
+command_spec_sha256: TBD
 oracle_solver: TBD
 oracle_solver_version: TBD
 oracle_config_sha256: TBD
@@ -790,3 +806,4 @@ sealed_by: TBD
 | `scripted-template --output` bypassed the shared path invariant | Apply the artifact-relative path normalizer and reject absolute, drive-qualified, parent, empty-segment, and dot targets. |
 | Normalization and superiority fields could depend on pilot responses | Freeze epsilon, regret scale, the lattice certificate bundle, and the D2 margin/target rule provider-free before the first Codex call. |
 | B0 introduced an unversioned freeze dependency | Add `r01-provider-free-freeze-v1` and bump only the affected development manifest from `r01-development-manifest-v1` to `r01-development-manifest-v2`; run-plan, run-result, replay, and report schemas remain v1 until B1 changes their fields. Golden replacements: freeze `472cf9d0e3015aeaed44beae2e10af86cd3771c832263015362c4e7440f1a643`, manifest `d766076fe1928885b4b26ea1a7abd77b12280fb93d6795a6e9b2e00ce0e7cdf1`, nested freeze reference `1251af89c5c84d7b857b3c0751bea88aa3deff13240d4913c8f28dd7d0a77d5d`. |
+| B1 required a strict Codex transport identity without authorizing a provider call | Add injected-runner-only command construction and JSONL parsing; require raw capture persistence before parsing; classify transport retries separately from complete response-quality failures; allocate command-spec v1, process-status v1, provider-response v2, and attempt-transport-artifacts v1 schemas. Golden hashes: JSONL schema `cf7ed097a3a8734485f7d229c57eb95a3fe594f5dcc5795b3793fb17332d1da4`, stable command spec `b13eda86e49ed60a6a80b149db2eaed4f418541a9d68ce9b5ef66890f73faf2e`, provider response `98f00424dcaae95aa452949cba7260e9988d442dd5274a90377d44528a190f57`, process status `df1989e4c60454a542b4806b6fd718ee54144f771b74a12a095aa269ea60cb10`. |

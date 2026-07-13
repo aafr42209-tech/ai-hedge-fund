@@ -242,10 +242,12 @@ the nested freeze-reference golden is
 `1251af89c5c84d7b857b3c0751bea88aa3deff13240d4913c8f28dd7d0a77d5d`,
 and the standalone one-case freeze golden is
 `472cf9d0e3015aeaed44beae2e10af86cd3771c832263015362c4e7440f1a643`.
-Run-plan, run-result, replay, and report schemas remain v1 in B0 because their
-fields have not changed. B1 must allocate new schema versions before adding its
-transport or usage fields and before any live acquisition. Unrelated Phase A
-artifact versions retain byte compatibility.
+Run-plan, run-result, replay, and report schemas remain v1 because B1 does not
+change their fields. B1 allocates `r01-codex-command-spec-v1`,
+`r01-codex-process-status-v1`,
+`r01-codex-attempt-transport-artifacts-v1`, and the explicitly versioned
+`r01-provider-response-v2` envelope before any live acquisition. Unrelated
+Phase A artifact versions retain byte compatibility.
 
 ## 6. Carried hardening work — first Phase B commit
 
@@ -522,6 +524,31 @@ outputs.
   terminal event, empty response, and tool-use violation;
 - test retry eligibility separately from response-quality failure;
 - use mocked subprocesses only.
+
+#### B1 implementation record — 2026-07-14
+
+- amended contract SHA-256:
+  `946527fe1d6af2db3c9b11526c43472a9de9dd59ec84a41050ebafff25767b97`;
+- added `codex_exec_client.py` with deterministic shell-free argv construction,
+  exact stdin bytes, injected process runner, mandatory raw-capture sink, and no
+  default subprocess implementation;
+- strict JSONL parser SHA-256:
+  `cf7ed097a3a8734485f7d229c57eb95a3fe594f5dcc5795b3793fb17332d1da4`;
+- schema/golden identities: stable command spec
+  `b13eda86e49ed60a6a80b149db2eaed4f418541a9d68ce9b5ef66890f73faf2e`,
+  provider response
+  `98f00424dcaae95aa452949cba7260e9988d442dd5274a90377d44528a190f57`,
+  and process status
+  `df1989e4c60454a542b4806b6fd718ee54144f771b74a12a095aa269ea60cb10`;
+- local `codex-cli 0.144.1` help confirms every planned `exec` flag exists; no
+  provider command was executed;
+- mocked tests cover success, timeout, launch/nonzero failure, malformed and
+  drifted JSONL, missing usage/final message, duplicate/contradictory terminal
+  state, empty response, tool-use violation, response-quality no-retry,
+  forbidden channels, and sink failure;
+- all `75` focused overlay tests pass after B1;
+- B2 feature-catalog/preflight work, D2 decisions, and all provider calls remain
+  blocked.
 
 ### B2 — zero-call preflight
 

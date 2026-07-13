@@ -12,7 +12,12 @@ from .canonical import (
     parse_json_object,
     parse_decision_batch,
 )
-from .contracts import MAX_REASONING_CODEPOINTS, Decision
+from .contracts import (
+    MAX_REASONING_CODEPOINTS,
+    ArtifactReference,
+    CodexAttemptTransportArtifacts,
+    Decision,
+)
 from .llm_policy import SYSTEM_PROMPT_V1, build_policy_input
 
 
@@ -109,3 +114,19 @@ def test_reasoning_limit_is_visible_and_schema_enforced() -> None:
             reasoning="x" * (MAX_REASONING_CODEPOINTS + 1),
         )
     assert str(MAX_REASONING_CODEPOINTS) in SYSTEM_PROMPT_V1
+
+
+def test_b1_transport_artifact_schema_is_explicitly_versioned() -> None:
+    reference = ArtifactReference(
+        relative_path="b1/artifact.json",
+        sha256="0" * 64,
+        size_bytes=0,
+    )
+    bundle = CodexAttemptTransportArtifacts(
+        command_spec=reference,
+        stdout_jsonl=reference,
+        stderr=reference,
+        process_status=reference,
+        provider_response=reference,
+    )
+    assert bundle.schema_version == "r01-codex-attempt-transport-artifacts-v1"

@@ -269,10 +269,7 @@ class ProviderFreeFreeze(StrictModel):
     def validate_freeze_identity(self) -> "ProviderFreeFreeze":
         if self.fixture_count != len(self.cases):
             raise ValueError("fixture_count must match provider-free cases")
-        identities = {
-            (case.case_id, case.fixture_content_sha256)
-            for case in self.cases
-        }
+        identities = {(case.case_id, case.fixture_content_sha256) for case in self.cases}
         if len(identities) != len(self.cases):
             raise ValueError("provider-free case identities must be unique")
         if self.regret_scale_e12 != max(
@@ -280,13 +277,9 @@ class ProviderFreeFreeze(StrictModel):
             self.normalization_epsilon_e12,
         ):
             raise ValueError("regret scale must equal max(median gap, epsilon)")
-        if self.max_abs_utility_e12 != max(
-            case.maximum_abs_utility_e12 for case in self.cases
-        ):
+        if self.max_abs_utility_e12 != max(case.maximum_abs_utility_e12 for case in self.cases):
             raise ValueError("max_abs_utility_e12 does not match cases")
-        if self.max_normalized_regret_e12 != max(
-            case.maximum_normalized_regret_e12 for case in self.cases
-        ):
+        if self.max_normalized_regret_e12 != max(case.maximum_normalized_regret_e12 for case in self.cases):
             raise ValueError("max_normalized_regret_e12 does not match cases")
         return self
 
@@ -346,14 +339,128 @@ class AcquisitionIdentity(StrictModel):
         return self
 
 
+class CodexCommandSpec(StrictModel):
+    schema_version: Literal["r01-codex-command-spec-v1"] = "r01-codex-command-spec-v1"
+    executable: str = Field(min_length=1)
+    argv: tuple[str, ...]
+    model_id: str = Field(min_length=1)
+    sandbox: Literal["read-only"] = "read-only"
+    ephemeral: Literal[True] = True
+    ignore_user_config: Literal[True] = True
+    ignore_rules: Literal[True] = True
+    skip_git_repo_check: Literal[True] = True
+    strict_config: Literal[True] = True
+    jsonl: Literal[True] = True
+    disabled_features: tuple[str, ...]
+    active_feature_allowlist: tuple[str, ...]
+    config_overrides: tuple[str, ...]
+    working_directory: str = Field(min_length=1)
+    timeout_ms: int = Field(gt=0)
+    policy_instruction_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    fixture_prompt_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    stdin_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    jsonl_schema_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+
+    @model_validator(mode="after")
+    def validate_command_identity(self) -> "CodexCommandSpec":
+        if self.disabled_features != tuple(sorted(set(self.disabled_features))):
+            raise ValueError("disabled features must be unique and sorted")
+        if self.active_feature_allowlist != tuple(sorted(set(self.active_feature_allowlist))):
+            raise ValueError("active feature allowlist must be unique and sorted")
+        if set(self.disabled_features) & set(self.active_feature_allowlist):
+            raise ValueError("disabled features and active allowlist must be disjoint")
+        if any(not name or name.lower() != name or not name.isascii() or not name.replace("_", "").isalnum() for name in self.disabled_features + self.active_feature_allowlist):
+            raise ValueError("feature names must be lowercase alphanumeric identifiers")
+        if self.config_overrides != tuple(sorted(set(self.config_overrides))):
+            raise ValueError("config overrides must be unique and sorted")
+        if any("=" not in value or "\n" in value or "\r" in value for value in self.config_overrides):
+            raise ValueError("config overrides must be one-line key=value strings")
+        config_pairs = [value.split("=", 1) for value in self.config_overrides]
+        config_keys = [pair[0] for pair in config_pairs]
+        if any(not key or not value for key, value in config_pairs):
+            raise ValueError("config override keys and values must be nonempty")
+        if len(config_keys) != len(set(config_keys)):
+            raise ValueError("config override keys must be unique")
+        if "tools.web_search=false" not in self.config_overrides:
+            raise ValueError("web search must be disabled")
+        if "--output-schema" in self.argv or "--output-last-message" in self.argv:
+            raise ValueError("provider-side output filtering is prohibited")
+        expected_argv: list[str] = [self.executable]
+        for feature in self.disabled_features:
+            expected_argv.extend(("--disable", feature))
+        expected_argv.extend(
+            (
+                "exec",
+                "--model",
+                self.model_id,
+                "--sandbox",
+                "read-only",
+                "--ephemeral",
+                "--ignore-user-config",
+                "--ignore-rules",
+                "--skip-git-repo-check",
+                "--strict-config",
+            )
+        )
+        for config in self.config_overrides:
+            expected_argv.extend(("--config", config))
+        expected_argv.extend(("--json", "-"))
+        if self.argv != tuple(expected_argv):
+            raise ValueError("argv does not match the command-spec fields")
+        return self
+
+
+class CodexProcessStatus(StrictModel):
+    schema_version: Literal["r01-codex-process-status-v1"] = "r01-codex-process-status-v1"
+    exit_code: int | None
+    timed_out: bool
+    launch_error: str | None = None
+    duration_ms: int = Field(ge=0)
+    stdout_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    stdout_size_bytes: int = Field(ge=0)
+    stderr_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    stderr_size_bytes: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_process_status(self) -> "CodexProcessStatus":
+        if self.launch_error is not None and self.exit_code is not None:
+            raise ValueError("launch error cannot also have an exit code")
+        if not self.timed_out and self.launch_error is None and self.exit_code is None:
+            raise ValueError("completed process status requires an exit code")
+        return self
+
+
 class ProviderResponse(StrictModel):
+    schema_version: Literal["r01-provider-response-v2"] = "r01-provider-response-v2"
     raw_text: str
     provider: str
     model_id: str
     request_id: str
     input_tokens: int = Field(ge=0)
+    cached_input_tokens: int = Field(ge=0)
     output_tokens: int = Field(ge=0)
-    metadata: dict[str, Any] = Field(default_factory=dict)
+    reasoning_output_tokens: int = Field(ge=0)
+    model_identity_verified_by_transport: bool
+    tool_use_violation: bool
+    tool_event_types: tuple[str, ...] = ()
+    process_status_violation: bool
+    event_types: tuple[str, ...]
+    agent_message_count: int = Field(gt=0)
+    transport_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    process_status: CodexProcessStatus
+
+    @model_validator(mode="after")
+    def validate_provider_response(self) -> "ProviderResponse":
+        if self.tool_event_types != tuple(sorted(set(self.tool_event_types))):
+            raise ValueError("tool event types must be unique and sorted")
+        if self.tool_use_violation != bool(self.tool_event_types):
+            raise ValueError("tool-use flag must match tool event types")
+        if self.transport_sha256 != self.process_status.stdout_sha256:
+            raise ValueError("transport hash must match process stdout hash")
+        expected_process_violation = self.process_status.timed_out or self.process_status.launch_error is not None or self.process_status.exit_code != 0
+        if self.process_status_violation != expected_process_violation:
+            raise ValueError("process-status flag does not match process status")
+        return self
 
 
 class BootstrapInterval(StrictModel):
@@ -383,6 +490,15 @@ class ArtifactReference(StrictModel):
     @classmethod
     def validate_relative_path(cls, value: str) -> str:
         return normalize_artifact_relative_path(value)
+
+
+class CodexAttemptTransportArtifacts(StrictModel):
+    schema_version: Literal["r01-codex-attempt-transport-artifacts-v1"] = "r01-codex-attempt-transport-artifacts-v1"
+    command_spec: ArtifactReference
+    stdout_jsonl: ArtifactReference
+    stderr: ArtifactReference
+    process_status: ArtifactReference
+    provider_response: ArtifactReference
 
 
 class FixtureManifestEntry(StrictModel):

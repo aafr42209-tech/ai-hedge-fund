@@ -5,12 +5,13 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
-from .canonical import DecisionParseError, canonical_sha256, parse_decision_batch
+from .canonical import DecisionParseError, canonical_sha256, parse_decision_batch, sha256_hex
 from .contracts import (
     AcquisitionIdentity,
     DecisionBatch,
     MAX_REASONING_CODEPOINTS,
     ProviderResponse,
+    CodexProcessStatus,
     PublicEpisode,
     ValidationReport,
 )
@@ -71,7 +72,24 @@ class ScriptedAcquisitionClient:
             model_id="scripted-v1",
             request_id=key,
             input_tokens=0,
+            cached_input_tokens=0,
             output_tokens=0,
+            reasoning_output_tokens=0,
+            model_identity_verified_by_transport=True,
+            tool_use_violation=False,
+            process_status_violation=False,
+            event_types=("scripted.response",),
+            agent_message_count=1,
+            transport_sha256=sha256_hex(response.encode("utf-8")),
+            process_status=CodexProcessStatus(
+                exit_code=0,
+                timed_out=False,
+                duration_ms=0,
+                stdout_sha256=sha256_hex(response.encode("utf-8")),
+                stdout_size_bytes=len(response.encode("utf-8")),
+                stderr_sha256=sha256_hex(b""),
+                stderr_size_bytes=0,
+            ),
         )
 
 
