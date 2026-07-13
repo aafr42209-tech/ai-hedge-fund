@@ -16,15 +16,8 @@ from .contracts import (
 )
 from .lattice import hold_batch, iter_candidate_batches
 from .scoring import score_episode, score_with_returns
+from .selection import prefer_maximized_candidate, prefer_minimized_candidate
 from .validator import validate_batch
-
-
-def _tie_key(validation: ValidationReport) -> tuple[int, int, tuple[int, ...]]:
-    return (
-        validation.cost_ledger.total_cost_cents,
-        validation.cost_ledger.total_notional_cents,
-        tuple(validation.executable.final_shares[asset_id] for asset_id in ASSET_IDS),
-    )
 
 
 def inferred_returns(public: PublicEpisode, config: BaselineConfig) -> dict[str, int]:
@@ -53,7 +46,12 @@ def primary_deterministic(episode: SyntheticEpisode, config: BaselineConfig | No
             validation.executable,
             validation.cost_ledger,
         )
-        if best_estimated_score is None or estimated_score.utility_e12 > best_estimated_score.utility_e12 or (estimated_score.utility_e12 == best_estimated_score.utility_e12 and best_validation is not None and _tie_key(validation) < _tie_key(best_validation)):
+        if prefer_maximized_candidate(
+            estimated_score.utility_e12,
+            validation,
+            None if best_estimated_score is None else best_estimated_score.utility_e12,
+            best_validation,
+        ):
             best_validation = validation
             best_estimated_score = estimated_score
     if best_validation is None:
@@ -88,8 +86,12 @@ def _equal_risk_target(public: PublicEpisode) -> dict[str, int]:
         for asset_id in capped:
             target[asset_id] = caps[asset_id]
             remaining_gross -= caps[asset_id]
+            if remaining_gross < 0:
+                raise RuntimeError("equal-risk caps exceed the gross target")
             remaining.remove(asset_id)
-    return {asset_id: target.get(asset_id, 0) for asset_id in ASSET_IDS}
+    if set(target) != set(ASSET_IDS):
+        raise RuntimeError("equal-risk target is incomplete")
+    return {asset_id: target[asset_id] for asset_id in ASSET_IDS}
 
 
 def equal_risk_policy(episode: SyntheticEpisode) -> PolicyResult:
@@ -101,7 +103,12 @@ def equal_risk_policy(episode: SyntheticEpisode) -> PolicyResult:
         if not validation.raw_valid:
             continue
         distance = sum(abs(validation.executable.weights_e12[asset_id] - target[asset_id]) for asset_id in ASSET_IDS)
-        if best_distance is None or distance < best_distance or (distance == best_distance and best_validation is not None and _tie_key(validation) < _tie_key(best_validation)):
+        if prefer_minimized_candidate(
+            distance,
+            validation,
+            best_distance,
+            best_validation,
+        ):
             best_distance = distance
             best_validation = validation
     if best_validation is None:

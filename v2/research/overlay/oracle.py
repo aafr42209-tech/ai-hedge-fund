@@ -8,15 +8,19 @@ from .canonical import canonical_json_bytes, canonical_sha256
 from .contracts import OracleCertificate, OracleResult, SyntheticEpisode, ValidationReport
 from .lattice import iter_candidate_batches
 from .scoring import score_episode
+from .selection import prefer_maximized_candidate
 from .validator import validate_batch
 
 
-def _tie_key(validation: ValidationReport) -> tuple[int, int, tuple[int, ...]]:
-    return (
-        validation.cost_ledger.total_cost_cents,
-        validation.cost_ledger.total_notional_cents,
-        tuple(validation.executable.final_shares[asset_id] for asset_id in sorted(validation.executable.final_shares)),
-    )
+def assert_oracle_bound(
+    policy_name: str,
+    policy_utility_e12: int,
+    oracle: OracleResult,
+) -> None:
+    """Fail closed if any executable policy exceeds the exact oracle."""
+
+    if policy_utility_e12 > oracle.score.utility_e12:
+        raise RuntimeError(f"{policy_name} utility exceeds exact oracle")
 
 
 def solve_oracle(episode: SyntheticEpisode) -> OracleResult:
@@ -44,7 +48,12 @@ def solve_oracle(episode: SyntheticEpisode) -> OracleResult:
             )
         )
         score_stream.update(b"\n")
-        if best_score is None or score.utility_e12 > best_score.utility_e12 or (score.utility_e12 == best_score.utility_e12 and best_validation is not None and _tie_key(validation) < _tie_key(best_validation)):
+        if prefer_maximized_candidate(
+            score.utility_e12,
+            validation,
+            None if best_score is None else best_score.utility_e12,
+            best_validation,
+        ):
             best_validation = validation
             best_score = score
 

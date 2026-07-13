@@ -15,35 +15,53 @@ fixtures. Every report is marked:
 Run from the repository root:
 
 ```powershell
-python -m v2.research.overlay generate-development `
+python -m v2.research.overlay `
   --artifact-root .research_artifacts `
+  generate-development `
   --experiment-id r01-development `
   --root-seed local-development-seed `
   --contract docs/research-contract-01-llm-overlay.md
 ```
 
-Create a scripted-response JSON object keyed by acquisition key, then run:
+Create an executable all-hold response template, edit its raw-response values if
+needed, then run the provider-free acquisition:
 
 ```powershell
-python -m v2.research.overlay dry-run `
+python -m v2.research.overlay `
   --artifact-root .research_artifacts `
+  scripted-template `
+  --manifest r01-development/development_manifest.json `
+  --replicates 1 `
+  --output scripted-responses.json
+
+python -m v2.research.overlay `
+  --artifact-root .research_artifacts `
+  dry-run `
   --manifest r01-development/development_manifest.json `
   --responses scripted-responses.json
 
-python -m v2.research.overlay replay `
+python -m v2.research.overlay `
   --artifact-root .research_artifacts `
-  --result r01-development/development_run_result.json
+  replay `
+  --result r01-development/run_result.json
 
-python -m v2.research.overlay verify `
+python -m v2.research.overlay `
   --artifact-root .research_artifacts `
-  --reference r01-development/development_run_result.json
+  verify `
+  --result r01-development/run_result.json
 ```
 
-Acquisition keys use this exact form:
+Acquisition keys are not pipe-delimited labels. They are the SHA-256 of the
+canonical JSON acquisition identity:
 
 ```text
-<experiment_id>|<case_id>|development|<replicate_id>|<attempt>
+sha256(canonical_json(AcquisitionIdentity))
 ```
+
+`scripted-template` derives these keys with the production implementation, so
+they should not be constructed by hand. For externally anchored replay, pass
+`--expected-manifest-sha256` and `--expected-result-sha256`; a mismatch fails
+closed before scoring.
 
 Phase A accepts scripted raw responses only. Provider integration, prompts,
 evaluation generation, sealing, and GO/NO-GO verdicts remain unavailable until

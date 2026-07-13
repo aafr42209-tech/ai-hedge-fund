@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import json
 import os
 from pathlib import Path
 from typing import Any
@@ -29,8 +30,10 @@ class AppendOnlyArtifactStore:
         self.root = Path(root).resolve()
 
     def _resolve(self, relative_path: str) -> Path:
-        reference = ArtifactReference(relative_path=relative_path, sha256="0" * 64, size_bytes=0)
-        path = (self.root / reference.relative_path).resolve()
+        normalized = relative_path.replace("\\", "/")
+        if not normalized or normalized.startswith("/") or ".." in normalized.split("/"):
+            raise ValueError("artifact path must be a safe relative path")
+        path = (self.root / normalized).resolve()
         if path != self.root and self.root not in path.parents:
             raise ArtifactError("artifact path escapes the configured root")
         return path
@@ -80,8 +83,6 @@ class AppendOnlyArtifactStore:
         )
 
     def read_json(self, reference: ArtifactReference) -> Any:
-        import json
-
         try:
             return json.loads(self.read_bytes(reference))
         except (UnicodeDecodeError, json.JSONDecodeError) as exc:

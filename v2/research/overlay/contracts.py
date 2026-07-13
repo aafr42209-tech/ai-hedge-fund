@@ -7,10 +7,11 @@ from typing import Any, Literal
 import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
-from .arithmetic import BASIS_POINTS, UTILITY_SCALE
+from .arithmetic import BASIS_POINTS
 
 ASSET_IDS = tuple(f"A{i}" for i in range(6))
 SIGNAL_IDS = tuple(f"S{i}" for i in range(5))
+MAX_REASONING_CODEPOINTS = 2_000
 Regime = Literal[
     "signal_consensus",
     "signal_conflict",
@@ -86,6 +87,7 @@ class PublicEpisode(StrictModel):
             for j in range(len(ASSET_IDS)):
                 if matrix[i][j] != matrix[j][i]:
                     raise ValueError("covariance matrix must be symmetric")
+        # Validation only: this float result never enters the authoritative scoring DAG.
         minimum_eigenvalue = float(np.linalg.eigvalsh(np.asarray(matrix, dtype=np.float64)).min())
         if minimum_eigenvalue < -1e-6:
             raise ValueError("covariance matrix must be positive semidefinite")
@@ -124,7 +126,7 @@ class Decision(StrictModel):
     action: Literal["buy", "sell", "hold"]
     quantity: int = Field(ge=0)
     confidence: int = Field(ge=0, le=100)
-    reasoning: str = Field(max_length=2_000)
+    reasoning: str = Field(max_length=MAX_REASONING_CODEPOINTS)
 
     @model_validator(mode="after")
     def validate_quantity_for_action(self) -> "Decision":
@@ -232,12 +234,6 @@ class BaselineConfig(StrictModel):
         if any(weight < 0 for weight in value.values()):
             raise ValueError("signal weights must be nonnegative")
         return value
-
-
-class ScoringConfig(StrictModel):
-    utility_scale: Literal[UTILITY_SCALE] = UTILITY_SCALE
-    regret_scale_e12: int = Field(gt=0)
-    normalization_epsilon_e12: int = Field(gt=0)
 
 
 class GeneratorConfig(StrictModel):

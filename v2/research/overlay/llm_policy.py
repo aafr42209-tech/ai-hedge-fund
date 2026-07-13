@@ -9,6 +9,7 @@ from .canonical import DecisionParseError, canonical_sha256, parse_decision_batc
 from .contracts import (
     AcquisitionIdentity,
     DecisionBatch,
+    MAX_REASONING_CODEPOINTS,
     ProviderResponse,
     PublicEpisode,
     ValidationReport,
@@ -16,11 +17,12 @@ from .contracts import (
 from .perturbations import identity_permutation, present_episode, render_presented_json
 from .validator import validate_batch
 
-SYSTEM_PROMPT_V1 = """You are the portfolio decision policy in a synthetic research fixture.
+SYSTEM_PROMPT_V1 = f"""You are the portfolio decision policy in a synthetic research fixture.
 Return one JSON object matching the required schema. Do not omit or add assets.
 Optimize only from the supplied anonymous numeric inputs and constraints.
 Quantity is an integer number of shares, must be an exact visible-lot multiple,
-and may not exceed two lots per asset. Never use external facts or real markets."""
+and may not exceed two lots per asset. Reasoning for each asset must not exceed
+{MAX_REASONING_CODEPOINTS} Unicode code points. Never use external facts or real markets."""
 
 
 @runtime_checkable

@@ -11,8 +11,8 @@ from .canonical import (
     canonical_json_bytes,
     parse_decision_batch,
 )
-from .contracts import Decision
-from .llm_policy import build_policy_input
+from .contracts import MAX_REASONING_CODEPOINTS, Decision
+from .llm_policy import SYSTEM_PROMPT_V1, build_policy_input
 
 
 def test_round_ratio_half_even_signed_ties() -> None:
@@ -37,6 +37,25 @@ def test_duplicate_json_keys_are_rejected_before_validation() -> None:
         parse_decision_batch('{"decisions":{},"decisions":{}}')
 
 
+def test_parser_finds_balanced_object_after_invalid_prose_braces() -> None:
+    fixture = episode()
+    raw = "prefix {not json} then " + canonical_json_bytes(
+        {
+            "decisions": {
+                asset_id: {
+                    "action": "hold",
+                    "quantity": 0,
+                    "confidence": 50,
+                    "reasoning": "literal { brace } text",
+                }
+                for asset_id in fixture.public.assets_by_id
+            }
+        }
+    ).decode("utf-8")
+    parsed = parse_decision_batch(raw)
+    assert set(parsed.decisions) == set(fixture.public.assets_by_id)
+
+
 def test_policy_input_cannot_contain_hidden_state() -> None:
     fixture = episode()
     payload = build_policy_input(fixture.public)
@@ -49,3 +68,20 @@ def test_policy_input_cannot_contain_hidden_state() -> None:
 def test_decision_extra_field_is_rejected() -> None:
     with pytest.raises(ValidationError):
         Decision(action="hold", quantity=0, confidence=0, reasoning="x", extra="no")
+
+
+def test_reasoning_limit_is_visible_and_schema_enforced() -> None:
+    Decision(
+        action="hold",
+        quantity=0,
+        confidence=0,
+        reasoning="x" * MAX_REASONING_CODEPOINTS,
+    )
+    with pytest.raises(ValidationError):
+        Decision(
+            action="hold",
+            quantity=0,
+            confidence=0,
+            reasoning="x" * (MAX_REASONING_CODEPOINTS + 1),
+        )
+    assert str(MAX_REASONING_CODEPOINTS) in SYSTEM_PROMPT_V1

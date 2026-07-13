@@ -24,11 +24,12 @@ class ExecutableContractError(RuntimeError):
     """The fallback hold portfolio violated the fixture contract."""
 
 
-def _execute(public: PublicEpisode, batch: DecisionBatch) -> tuple[ExecutableBatch | None, CostLedger | None, list[Violation]]:
+def _trade_lattice_violations(
+    public: PublicEpisode,
+    batch: DecisionBatch,
+) -> list[Violation]:
     violations: list[Violation] = []
     assets = public.assets_by_id
-    final_shares = {asset_id: assets[asset_id].holdings_shares for asset_id in ASSET_IDS}
-
     for asset_id in ASSET_IDS:
         asset = assets[asset_id]
         decision = batch.decisions[asset_id]
@@ -42,10 +43,15 @@ def _execute(public: PublicEpisode, batch: DecisionBatch) -> tuple[ExecutableBat
             violations.append(Violation(code="max_trade_lots", asset_id=asset_id, detail="quantity exceeds two lots"))
         if decision.action == "sell" and decision.quantity > asset.holdings_shares:
             violations.append(Violation(code="oversell", asset_id=asset_id, detail="sell exceeds current holdings"))
+    return violations
 
-    if violations:
-        return None, None, violations
 
+def _apply_trades(
+    public: PublicEpisode,
+    batch: DecisionBatch,
+) -> tuple[dict[str, int], int, CostLedger]:
+    assets = public.assets_by_id
+    final_shares = {asset_id: assets[asset_id].holdings_shares for asset_id in ASSET_IDS}
     cash_after = public.cash_cents
     lines: list[CostLine] = []
     for asset_id in ASSET_IDS:
@@ -82,13 +88,25 @@ def _execute(public: PublicEpisode, batch: DecisionBatch) -> tuple[ExecutableBat
         total_cost_cents=sum(line.total_cost_cents for line in lines),
         total_notional_cents=sum(line.notional_cents for line in lines),
     )
+    return final_shares, cash_after, ledger
+
+
+def _validate_portfolio_limits(
+    public: PublicEpisode,
+    batch: DecisionBatch,
+    final_shares: dict[str, int],
+    cash_after: int,
+    ledger: CostLedger,
+) -> tuple[ExecutableBatch | None, list[Violation]]:
+    violations: list[Violation] = []
+    assets = public.assets_by_id
     if cash_after < 0:
         violations.append(Violation(code="negative_cash", detail="post-trade cash is negative"))
 
     posttrade_equity = public.pretrade_equity_cents - ledger.total_cost_cents
     if posttrade_equity <= 0:
         violations.append(Violation(code="nonpositive_equity", detail="post-trade equity is not positive"))
-        return None, ledger, violations
+        return None, violations
 
     weights_e12: dict[str, int] = {}
     gross_position_value = 0
@@ -103,7 +121,7 @@ def _execute(public: PublicEpisode, batch: DecisionBatch) -> tuple[ExecutableBat
         violations.append(Violation(code="gross_exposure", detail="post-trade gross limit exceeded"))
 
     if violations:
-        return None, ledger, violations
+        return None, violations
     return (
         ExecutableBatch(
             decisions=batch.decisions,
@@ -112,9 +130,26 @@ def _execute(public: PublicEpisode, batch: DecisionBatch) -> tuple[ExecutableBat
             posttrade_equity_cents=posttrade_equity,
             weights_e12=weights_e12,
         ),
-        ledger,
         [],
     )
+
+
+def _execute(
+    public: PublicEpisode,
+    batch: DecisionBatch,
+) -> tuple[ExecutableBatch | None, CostLedger | None, list[Violation]]:
+    violations = _trade_lattice_violations(public, batch)
+    if violations:
+        return None, None, violations
+    final_shares, cash_after, ledger = _apply_trades(public, batch)
+    executable, violations = _validate_portfolio_limits(
+        public,
+        batch,
+        final_shares,
+        cash_after,
+        ledger,
+    )
+    return executable, ledger, violations
 
 
 def _fallback(public: PublicEpisode, violations: list[Violation]) -> ValidationReport:

@@ -178,7 +178,7 @@ Contract rules:
 - `hold` requires quantity `0`;
 - `buy` and `sell` require a strictly positive quantity;
 - confidence is an integer in `[0, 100]`;
-- reasoning is retained but never used by the primary scorer;
+- reasoning is a UTF-8 string of at most `2,000` Unicode code points, is retained, and is never used by the primary scorer;
 - omitted, duplicated, malformed, or extra decisions invalidate the raw batch.
 
 ## 9. Portfolio-joint validator
@@ -483,7 +483,9 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 - makes zero provider calls;
 - loads only artifacts named by the sealed manifest;
 - reproduces parsing, validation, scoring, and reports;
-- fails if any hash differs.
+- requires the caller-supplied sealed `evaluation_manifest_sha256` as an external pre-run trust anchor;
+- requires the caller-supplied `run_result_sha256` copied to an immutable external closeout record immediately after acquisition and before replay;
+- fails if either external anchor or any nested artifact hash differs.
 
 An existing prompt cache may support replay, but a cache hit can never count as a new replicate.
 
@@ -503,7 +505,8 @@ Every evaluation replicate preserves these distinct artifacts:
 10. cost ledger;
 11. episode score;
 12. exact oracle certificate;
-13. replay verification result.
+13. run-result root plus its immutable external closeout receipt;
+14. replay verification result.
 
 Artifact identity includes:
 
@@ -534,6 +537,7 @@ Stop immediately and issue no GO/NO-GO performance verdict if any of these occur
 - model ID or sampling configuration changes;
 - provider returns a different model identity;
 - manifest, fixture, prompt, or artifact hash mismatch;
+- caller-supplied evaluation-manifest or run-result trust anchor mismatch;
 - raw response is missing;
 - evaluation fixture is missing or replaced;
 - provider-call, token, or USD budget is exceeded;
@@ -559,7 +563,7 @@ A stopped run remains immutable. A corrected run requires a new experiment ID an
 
 - use only development fixtures;
 - debug prompts and parsing;
-- state in every candidate prompt that quantity is in shares, must be a visible-lot multiple, and is capped at two lots per asset;
+- state in every candidate prompt that quantity is in shares, must be a visible-lot multiple, is capped at two lots per asset, and reasoning is capped at `2,000` Unicode code points;
 - measure token use and expected cost;
 - run the final candidate prompt for at least two acquisitions on every development fixture;
 - set `delta_min`, `delta_target`, `normalization_epsilon`, `regret_scale`, token caps, USD cap, and final quality thresholds;
@@ -579,6 +583,7 @@ A stopped run remains immutable. A corrected run requires a new experiment ID an
 - freeze the `40` invariance audit anchors and four perturbation transforms;
 - freeze gate-metric and power-analysis specification hashes;
 - generate the evaluation manifest;
+- copy `evaluation_manifest_sha256` to the sealed record outside the evaluation artifact tree;
 - record all hashes and sign-off fields;
 - change contract status to `SEALED`.
 
@@ -586,12 +591,13 @@ A stopped run remains immutable. A corrected run requires a new experiment ID an
 
 - execute the manifest once;
 - acquire both the `1,000` primary responses and `160` invariance responses within their separate attempt budgets;
+- copy `run_result_sha256` to an immutable external closeout record before any replay or verdict calculation;
 - do not tune, replace, relabel, or extend cases;
 - stop on any fail-closed condition.
 
 ### Phase E — replay and verdict
 
-- replay from sealed raw artifacts with zero provider calls;
+- replay from sealed raw artifacts with zero provider calls while supplying both external trust anchors;
 - calculate the preregistered primary endpoint and gates;
 - publish one immutable `GO`, `NO-GO`, or `INVALID` verdict.
 
@@ -685,6 +691,7 @@ max_normalized_regret_e12: TBD
 feasible_lattice_bound_certificate_sha256: TBD
 risk_aversion_lambda_ppm: TBD
 max_trade_lots_per_asset: 2
+reasoning_max_unicode_codepoints: 2000
 utility_scale: 1000000000000
 scoring_spec_sha256: TBD
 analysis_spec_sha256: TBD
@@ -761,3 +768,5 @@ sealed_by: TBD
 | Power case generation was unspecified | Defined 200-case sampling with replacement from the shifted 40-case development empirical distribution. |
 | Percentile indices and integer means were ambiguous | Fixed one-based ranks 250 and 9,750, zero-based indices 249 and 9,749, and round-half-even integer means. |
 | Exact enumeration retained a nonzero-tolerance placeholder | Fixed `oracle_optimality_tolerance_e12` to `0` in the method and seal record. |
+| The implementation imposed an undocumented reasoning limit | Fixed a visible `2,000` Unicode-code-point limit in the schema, prompt checklist, and seal record. |
+| Replay trusted a root reference derived from the file being checked | Required external sealed-manifest and post-run result hashes, recorded outside the artifact tree and supplied to replay. |

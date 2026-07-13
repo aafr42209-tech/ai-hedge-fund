@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from . import runner
 from .artifacts import (
     AppendOnlyArtifactStore,
     ArtifactExistsError,
@@ -11,7 +12,13 @@ from .artifacts import (
 )
 from .contracts import ASSET_IDS, AcquisitionIdentity
 from .llm_policy import ScriptedAcquisitionClient, acquisition_key
-from .runner import generate_development_manifest, replay, run_scripted_acquisition
+from .runner import (
+    generate_development_manifest,
+    main,
+    replay,
+    run_scripted_acquisition,
+    scripted_response_template,
+)
 
 
 def _hold_raw() -> str:
@@ -80,6 +87,101 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
     verification = replay(store, result_reference=result_ref, persist_verification=False)
     assert verification.provider_calls == 0
     assert verification.verified_acquisitions == 1
+    anchored = replay(
+        store,
+        result_reference=result_ref,
+        persist_verification=False,
+        expected_manifest_sha256=manifest_ref.sha256,
+        expected_result_sha256=result_ref.sha256,
+    )
+    assert anchored.all_hashes_match
+    with pytest.raises(RuntimeError, match="run-result hash"):
+        replay(
+            store,
+            result_reference=result_ref,
+            persist_verification=False,
+            expected_result_sha256="0" * 64,
+        )
+    with pytest.raises(RuntimeError, match="manifest hash"):
+        replay(
+            store,
+            result_reference=result_ref,
+            persist_verification=False,
+            expected_manifest_sha256="0" * 64,
+        )
+
+
+def test_scripted_template_cli_emits_production_acquisition_keys(tmp_path, capsys) -> None:
+    store = AppendOnlyArtifactStore(tmp_path)
+    manifest_ref, manifest = generate_development_manifest(
+        store,
+        experiment_id="template-test",
+        root_seed="template-seed",
+        contract_bytes=b"draft-contract",
+        count=1,
+    )
+    output = tmp_path / "scripted-responses.json"
+    assert (
+        main(
+            [
+                "--artifact-root",
+                str(tmp_path),
+                "scripted-template",
+                "--manifest",
+                manifest_ref.relative_path,
+                "--replicates",
+                "2",
+                "--output",
+                str(output),
+            ]
+        )
+        == 0
+    )
+    capsys.readouterr()
+    payload = json.loads(output.read_text(encoding="utf-8"))
+    assert payload == scripted_response_template(manifest, 2)
+    assert len(payload) == 2
+
+
+def test_oracle_is_cached_once_per_fixture_in_acquisition_and_replay(tmp_path, monkeypatch) -> None:
+    store = AppendOnlyArtifactStore(tmp_path)
+    manifest_ref, manifest = generate_development_manifest(
+        store,
+        experiment_id="oracle-cache-test",
+        root_seed="oracle-cache-seed",
+        contract_bytes=b"draft-contract",
+        count=1,
+    )
+    identities = [
+        AcquisitionIdentity(
+            experiment_id="oracle-cache-test",
+            case_id=manifest.fixtures[0].case_id,
+            channel="development",
+            replicate_id=replicate,
+            attempt=1,
+        )
+        for replicate in range(2)
+    ]
+    client = ScriptedAcquisitionClient({acquisition_key(identity): _hold_raw() for identity in identities})
+    real_solve_oracle = runner.solve_oracle
+    calls = 0
+
+    def counted_solve_oracle(episode):
+        nonlocal calls
+        calls += 1
+        return real_solve_oracle(episode)
+
+    monkeypatch.setattr(runner, "solve_oracle", counted_solve_oracle)
+    result_ref, _result = run_scripted_acquisition(
+        store,
+        manifest_reference=manifest_ref,
+        client=client,
+        replicates=2,
+    )
+    assert calls == 1
+    calls = 0
+    replay(store, result_reference=result_ref, persist_verification=False)
+    assert calls == 1
 
 
 def test_replay_fails_on_tampered_derived_artifact(tmp_path) -> None:

@@ -1,10 +1,13 @@
 from __future__ import annotations
 
+import pytest
+
+from . import runner
 from ._test_helpers import episode, hold_batch
 from .arithmetic import UTILITY_SCALE, round_ratio_half_even
 from .baselines import equal_risk_policy, hold_policy, primary_deterministic
 from .contracts import ASSET_IDS, Decision, DecisionBatch
-from .oracle import solve_oracle
+from .oracle import assert_oracle_bound, solve_oracle
 from .scoring import (
     invariance_flip_counts,
     modal_actions,
@@ -12,6 +15,7 @@ from .scoring import (
     pairwise_action_agreement_counts,
     score_episode,
 )
+from .selection import candidate_tie_key
 from .validator import validate_batch
 
 
@@ -37,6 +41,27 @@ def test_exact_oracle_bounds_all_preregistered_baselines() -> None:
     assert first.certificate.oracle_optimality_tolerance_e12 == 0
     for policy in (primary_deterministic(fixture), hold_policy(fixture), equal_risk_policy(fixture)):
         assert policy.score.utility_e12 <= first.score.utility_e12
+
+
+def test_oracle_bound_fails_closed_and_tie_key_uses_canonical_asset_order() -> None:
+    fixture = episode(1)
+    oracle = solve_oracle(fixture)
+    with pytest.raises(RuntimeError, match="exceeds exact oracle"):
+        assert_oracle_bound("bad policy", oracle.score.utility_e12 + 1, oracle)
+    validation = validate_batch(fixture.public, hold_batch())
+    reversed_executable = validation.executable.model_copy(update={"final_shares": dict(reversed(tuple(validation.executable.final_shares.items())))})
+    reversed_validation = validation.model_copy(update={"executable": reversed_executable})
+    assert candidate_tie_key(validation) == candidate_tie_key(reversed_validation)
+
+
+def test_baseline_bundle_enforces_oracle_bound(monkeypatch) -> None:
+    fixture = episode(2)
+    oracle = solve_oracle(fixture)
+    policy = primary_deterministic(fixture)
+    bad_policy = policy.model_copy(update={"score": policy.score.model_copy(update={"utility_e12": oracle.score.utility_e12 + 1})})
+    monkeypatch.setattr(runner, "primary_deterministic", lambda _episode: bad_policy)
+    with pytest.raises(RuntimeError, match="primary_deterministic utility"):
+        runner._baseline_utilities(fixture, oracle)
 
 
 def test_normalized_regret_is_exact_integer_ratio() -> None:

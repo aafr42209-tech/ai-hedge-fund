@@ -70,16 +70,42 @@ def _reject_duplicates(pairs: list[tuple[str, Any]]) -> dict[str, Any]:
     return result
 
 
-def _candidate_texts(raw: str) -> list[str]:
-    candidates: list[str] = []
+def _candidate_texts(raw: str):
+    """Yield fenced or balanced top-level object texts in one linear scan."""
+
     stripped = raw.strip()
     if stripped.startswith("```") and stripped.endswith("```"):
         first_newline = stripped.find("\n")
         if first_newline != -1:
-            candidates.append(stripped[first_newline + 1 : -3].strip())
-    candidates.append(stripped)
-    candidates.extend(stripped[index:] for index, char in enumerate(stripped) if char == "{")
-    return candidates
+            yield stripped[first_newline + 1 : -3].strip()
+
+    start: int | None = None
+    depth = 0
+    in_string = False
+    escaped = False
+    for index, char in enumerate(stripped):
+        if depth == 0:
+            if char == "{":
+                start = index
+                depth = 1
+            continue
+        if in_string:
+            if escaped:
+                escaped = False
+            elif char == "\\":
+                escaped = True
+            elif char == '"':
+                in_string = False
+            continue
+        if char == '"':
+            in_string = True
+        elif char == "{":
+            depth += 1
+        elif char == "}":
+            depth -= 1
+            if depth == 0 and start is not None:
+                yield stripped[start : index + 1]
+                start = None
 
 
 def parse_json_object(raw: str) -> dict[str, Any]:
@@ -91,7 +117,7 @@ def parse_json_object(raw: str) -> dict[str, Any]:
     last_error: Exception | None = None
     for candidate in _candidate_texts(raw):
         try:
-            value, _end = decoder.raw_decode(candidate)
+            value, end = decoder.raw_decode(candidate)
         except DuplicateKeyError:
             raise
         except (json.JSONDecodeError, ValueError) as exc:
@@ -99,6 +125,9 @@ def parse_json_object(raw: str) -> dict[str, Any]:
             continue
         if not isinstance(value, dict):
             last_error = DecisionParseError("top-level JSON value must be an object")
+            continue
+        if candidate[end:].strip():
+            last_error = DecisionParseError("trailing text inside JSON candidate")
             continue
         return value
     raise DecisionParseError(f"no valid JSON object found: {last_error}")

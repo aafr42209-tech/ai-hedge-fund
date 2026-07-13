@@ -147,24 +147,20 @@ def _has_nonhold_action(public: PublicEpisode) -> bool:
     return False
 
 
-def _attempt_episode(
+def _generate_assets(
     config: GeneratorConfig,
-    root_seed: str | bytes,
-    index: int,
+    rng: random.Random,
     regime: Regime,
-    attempt: int,
-) -> SyntheticEpisode | None:
-    base_seed = derive_seed(root_seed, "development", index)
-    attempt_seed = hmac.new(base_seed, f"attempt:{attempt}".encode(), hashlib.sha256).digest()
-    rng = random.Random(int.from_bytes(attempt_seed, "big"))
-    signals, confidences, expected_returns = _signal_state(rng, regime, config)
-    covariance = _covariance(rng, regime)
-    gross_limit = rng.randint(config.min_gross_limit_bps, config.max_gross_limit_bps)
-
+    signals: dict[str, dict[str, int]],
+    confidences: dict[str, dict[str, int]],
+) -> tuple[AssetState, ...]:
     assets: list[AssetState] = []
     for asset_id in ASSET_IDS:
         price = rng.randint(config.min_price_cents, config.max_price_cents)
-        lot_notional_bps = rng.randint(config.min_lot_notional_bps, config.max_lot_notional_bps)
+        lot_notional_bps = rng.randint(
+            config.min_lot_notional_bps,
+            config.max_lot_notional_bps,
+        )
         lot_target = config.pretrade_equity_cents * lot_notional_bps // BASIS_POINTS
         lot_size = max(1, lot_target // price)
         holding_lots = rng.randint(0, config.max_trade_lots)
@@ -185,6 +181,24 @@ def _attempt_episode(
                 costs=_cost_schedule(rng, regime, config),
             )
         )
+    return tuple(assets)
+
+
+def _attempt_episode(
+    config: GeneratorConfig,
+    root_seed: str | bytes,
+    index: int,
+    regime: Regime,
+    attempt: int,
+) -> SyntheticEpisode | None:
+    base_seed = derive_seed(root_seed, "development", index)
+    attempt_seed = hmac.new(base_seed, f"attempt:{attempt}".encode(), hashlib.sha256).digest()
+    rng = random.Random(int.from_bytes(attempt_seed, "big"))
+    signals, confidences, expected_returns = _signal_state(rng, regime, config)
+    covariance = _covariance(rng, regime)
+    gross_limit = rng.randint(config.min_gross_limit_bps, config.max_gross_limit_bps)
+
+    assets = _generate_assets(config, rng, regime, signals, confidences)
 
     holdings_value = sum(asset.price_cents * asset.holdings_shares for asset in assets)
     if holdings_value > config.pretrade_equity_cents:
@@ -194,7 +208,7 @@ def _attempt_episode(
         public = PublicEpisode(
             case_id=f"development-{index:04d}",
             seed_hex=base_seed.hex(),
-            assets=tuple(assets),
+            assets=assets,
             cash_cents=cash,
             covariance_bp2=covariance,
             gross_limit_bps=gross_limit,

@@ -36,7 +36,13 @@ def test_generator_properties_over_fixed_seed_matrix() -> None:
         )
         assert float(np.linalg.eigvalsh(matrix).min()) >= -1e-6
         assert validate_batch(public, hold_batch()).raw_valid
-        assert any(validation.raw_valid and any(decision.action != "hold" for decision in batch.decisions.values()) for batch in iter_candidate_batches(public) if (validation := validate_batch(public, batch)))
+        has_feasible_nonhold = False
+        for batch in iter_candidate_batches(public):
+            validation = validate_batch(public, batch)
+            if validation.raw_valid and any(decision.action != "hold" for decision in batch.decisions.values()):
+                has_feasible_nonhold = True
+                break
+        assert has_feasible_nonhold
 
 
 def test_phase_a_refuses_evaluation_generation() -> None:
