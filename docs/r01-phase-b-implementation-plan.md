@@ -630,7 +630,11 @@ outputs.
   `STOP_PHASE`, not retry or hold, and the client consumes that classification
   before returning a response;
 - generic key/session/private config markers and CR/LF/NUL separators are
-  rejected; the feature parser applies the pinned name regex directly;
+  rejected, and recognizable secret-bearing config values are rejected; the
+  feature parser applies the pinned name regex directly;
+- every provider-free subprocess command has a fixed 30-second timeout;
+- runner-raised `CodexExecError` and unexpected programming errors are not
+  reclassified as retryable transport failures;
 - `scripts/r01_b2_preflight.py` reproduces the zero-call facts and writes
   exclusive reversible raw captures plus canonical summary
   `docs/r01-b2-zero-call-capture.json`, SHA-256
@@ -640,8 +644,13 @@ outputs.
 - the global-flag probe `codex --disable shell_tool exec --help` succeeds on
   pinned `codex-cli 0.144.1`; its exact stdout preimage is committed;
 - updated contract SHA-256:
-  `d75229cc63a767f41b13d05ee7d686efdbc309a0a7b78b82a3f4113feccb8b8a`;
-- all `92` overlay tests pass; no provider call made.
+  `33deed096d138b74e21a4761dca25cadc9a200bcfd17136d391c4b84f7377446`;
+- all `96` overlay tests pass; no provider call made.
+
+Validation scope: the `96`-test count is the provider-free overlay suite only.
+The full v2 suite retains pre-existing live-data failures in `v2/data` and
+`v2/event_study` when provider/network credentials are unavailable; those tests
+are outside this Phase B gate and were not changed by this hardening.
 
 ### B2 — zero-call preflight
 
@@ -672,7 +681,7 @@ Produce a hashed preflight report containing:
 Current zero-call observation on pinned local `codex-cli 0.144.1`:
 
 - the complete B2 report is `docs/r01-b2-zero-call-preflight.md`, SHA-256
-  `5bd2fb782056cd3c6e215c4e1a4513199f796fb0e3e90920c448b1103ff1dd74`,
+  `8cf6ed8f02681da68496d8762697769f34d2975fdf49b8d4e656a903b5c0a7f3`,
   anchored to provider-free hardening commit
   `fe521fefcaf25475a7bd92c8626f6eccd6ca3033`;
 - the committed capture summary and reversible raw preimages reproduce both
@@ -730,6 +739,11 @@ tool event, stop the micro-pilot and reopen the user decision on Option A. Do no
 use the remaining prompt budget to tune wording until tool use disappears. Other
 structural transport failures may be corrected under a new development
 experiment identity. Every prior call and prompt version remains recorded.
+
+Before the first B3 call, the runner must consume
+`complete_response_disposition` for every complete response. A
+`FAIL_CLOSED_SCORE` result must enter the hold scorer exactly once; if no
+consumer is wired, B3 is blocked and no call is authorized.
 
 ### B4 — bounded prompt iteration
 
@@ -1097,3 +1111,7 @@ be relabeled as a successful pilot.
 | LOW: generic secret config names and control separators passed validation | Deny key/session/private markers and CR/LF/NUL in executable, model, and config inputs. |
 | LOW: feature-name syntax was enforced only by downstream schema validation | Apply the same pinned regex during catalog parsing and retain the schema validator as a second check. |
 | INFO: global `--disable` placement and catalog preimages were undocumented | Commit a zero-call reproducer, reversible raw captures, canonical summary, and exact global-flag help evidence. |
+| MEDIUM: B2 subprocess commands could hang indefinitely | Bound every provider-free command to 30 seconds and fail the preflight closed on expiry. |
+| MEDIUM: config values could contain recognizable provider secrets | Scan values for API-key, bearer, token, password, and provider-token patterns as well as scanning keys. |
+| LOW-MEDIUM: runner exceptions were all reclassified as retryable | Preserve `CodexExecError`, retry only OS/subprocess launch errors, and propagate unexpected programming errors. |
+| LOW-MEDIUM: `FAIL_CLOSED_SCORE` had no downstream consumer | Make disposition consumption and one-hold scoring a hard B3 precondition. |

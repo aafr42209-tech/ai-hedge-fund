@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from enum import StrEnum
+import re
 from typing import Any, Literal
 
 import numpy as np
@@ -35,6 +36,12 @@ SENSITIVE_CONFIG_KEY_TOKENS = (
     "session",
     "token",
 )
+SENSITIVE_CONFIG_VALUE_PATTERNS = (
+    re.compile(r"(?i)(?:^|[^a-z0-9])sk[-_](?:live|test|proj)[-_][a-z0-9_-]+"),
+    re.compile(r"(?i)(?:^|[^a-z0-9])(?:bearer|token|secret|password|api[_-]?key)\s*[:=]\s*\S+"),
+    re.compile(r"(?i)^\s*bearer\s+\S+"),
+    re.compile(r"(?i)(?:^|[^a-z0-9])(?:ghp_|github_pat_|xox[baprs]-)[a-z0-9_-]+"),
+)
 
 
 class AcquisitionDisposition(StrEnum):
@@ -46,6 +53,10 @@ class AcquisitionDisposition(StrEnum):
 def config_key_may_contain_secret(key: str) -> bool:
     normalized = key.lower().replace("-", "_")
     return any(token in normalized for token in SENSITIVE_CONFIG_KEY_TOKENS)
+
+
+def config_value_may_contain_secret(value: str) -> bool:
+    return any(pattern.search(value) is not None for pattern in SENSITIVE_CONFIG_VALUE_PATTERNS)
 
 
 def codex_feature_catalog_definition_sha256(
@@ -569,6 +580,8 @@ class CodexCommandSpec(StrictModel):
             raise ValueError("config override keys must be unique")
         if any(config_key_may_contain_secret(key) for key in config_keys):
             raise ValueError("secret-bearing config keys are prohibited")
+        if any(config_value_may_contain_secret(value) for _, value in config_pairs):
+            raise ValueError("secret-bearing config values are prohibited")
         if "tools.web_search=false" not in self.config_overrides:
             raise ValueError("web search must be disabled")
         if "--output-schema" in self.argv or "--output-last-message" in self.argv:

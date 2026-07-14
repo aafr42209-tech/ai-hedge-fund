@@ -493,11 +493,13 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 - `FAIL_CLOSED_SCORE` applies to a complete transport whose response quality fails the decision or known-tool contract; it is scored once as hold and is not retried;
 - `STOP_PHASE` applies to artifact persistence/integrity failure, forbidden channel, model-identity mismatch, feature/catalog/sandbox mismatch, unknown event, item, or field shape, and any complete transport with a timeout or nonzero process status;
 - a parser-originated `STOP_PHASE` disposition is never downgraded by timeout or nonzero exit. A complete response with known tool use, invalid decision JSON, schema failure, constraint violation, or poor utility is observed once, fails closed to hold where applicable, and is not retried; a complete response with a process-status violation stops the phase and is never scored as hold;
+- a runner-raised `CodexExecError` preserves its original disposition; operating-system or subprocess launch errors are retryable; unexpected programming exceptions are not reclassified as transport failures and abort the phase as harness errors;
+- every complete response must be passed through the disposition classifier. The B3 runner must consume `FAIL_CLOSED_SCORE` by scoring exactly one hold and must stop if no disposition consumer is present; this is an implementation gate, not an informal convention;
 - failure to persist the raw transport before parsing is non-retryable and stops the acquisition path.
 
 The parser searches the documented event- and item-level `model` locations. One or more matching echoes set `model_identity_verified_by_transport = true`; no echo records `transport_echo_absent` and remains an explicit limitation; any different echo is `STOP_PHASE`, even when the process also times out or exits nonzero. The pinned JSONL transport-shape specification enumerates allowed fields for every known event and item type. Each acquisition records its observed shape hash. A field outside the pinned shape or an unknown item type is schema drift and stops Phase B rather than increasing an LLM fallback rate.
 
-Before command-spec creation, the complete pinned feature catalog must be supplied, every feature name must match `^[a-z0-9_]+$`, its definition hash must match the B2 external anchor, and `disabled_features ∪ active_feature_allowlist` must equal the complete catalog with no overlap. The post-disable effective-true set must be a subset of the allowlist. The pilot working directory must match its external identity, be empty, resolve outside the repository, and contain no inherited research files. Secret-bearing config keys, including generic key/session/private markers, are prohibited from command specs and artifacts. Executable, model, and config values reject CR, LF, and NUL separators.
+Before command-spec creation, the complete pinned feature catalog must be supplied, every feature name must match `^[a-z0-9_]+$`, its definition hash must match the B2 external anchor, and `disabled_features ∪ active_feature_allowlist` must equal the complete catalog with no overlap. The post-disable effective-true set must be a subset of the allowlist. The pilot working directory must match its external identity, be empty, resolve outside the repository, and contain no inherited research files. Secret-bearing config keys, including generic key/session/private markers, and recognizable secret-bearing config values are prohibited from command specs and artifacts. Executable, model, and config values reject CR, LF, and NUL separators.
 
 ### Replay mode
 
@@ -573,6 +575,7 @@ Stop immediately and issue no GO/NO-GO performance verdict if any of these occur
 - evaluation fixture is missing or replaced;
 - provider-call, token, or USD budget is exceeded;
 - a required acquisition exhausts its per-acquisition retry;
+- the B2 local preflight command timeout is exceeded or a required preflight command hangs;
 - executable constraint violation is detected;
 - an oracle certificate is missing or a policy beats the oracle beyond tolerance;
 - a fixture lacks or fails its pre-seal full-feasible-lattice utility and normalized-regret certificate;
@@ -846,5 +849,9 @@ sealed_by: TBD
 | Timeout/nonzero wrapping could hide a parser `STOP_PHASE` cause | Let `STOP_PHASE` dominate process-status wrapping; only retry-eligible parser failures may be wrapped, and the wrapper records the original code and disposition. |
 | Complete transports with process-status violations had no disposition | Map every complete timeout/nonzero response to `STOP_PHASE`; it is never retried or scored as hold. |
 | Generic secret-bearing config names and NUL separators could pass validation | Reject key, session, and private markers plus CR/LF/NUL in executable, model, and config inputs. |
+| Secret-bearing config values could enter immutable artifacts | Reject recognizable API-key, bearer, token, password, and provider-token patterns in config values as well as keys. |
+| B2 subprocess commands could hang indefinitely | Bound every provider-free local command with a fixed 30-second timeout and fail the preflight closed on expiry. |
+| Runner exceptions could be mislabeled as retryable transport failures | Re-raise `CodexExecError`, retry only OS/subprocess launch errors, and propagate unexpected programming exceptions as harness failures. |
+| `FAIL_CLOSED_SCORE` had no end-to-end consumer before B3 | Make the B3 runner consume every complete-response disposition; score exactly one hold for `FAIL_CLOSED_SCORE` or stop for a missing consumer. |
 | The feature parser relied on downstream model validation for name syntax | Apply the pinned feature-name regex directly while parsing and retain the downstream schema check. |
 | B2 recorded hashes without committed raw preimages or a reproducer | Commit reversible base64 captures of both 92-row catalogs and global-flag help output plus a zero-provider-call capture script and canonical summary. |

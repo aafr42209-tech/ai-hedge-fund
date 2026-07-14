@@ -1,10 +1,13 @@
 from __future__ import annotations
 
 import base64
+import subprocess
 
 import pytest
 
+from . import codex_preflight
 from .codex_preflight import (
+    LOCAL_COMMAND_TIMEOUT_SECONDS,
     LocalCommandCapture,
     SubprocessLocalCommandRunner,
     build_codex_feature_gate,
@@ -159,3 +162,24 @@ def test_zero_call_capture_is_reversible_and_global_flags_precede_exec(tmp_path)
 def test_subprocess_preflight_runner_rejects_provider_acquisition() -> None:
     with pytest.raises(ValueError, match="provider-free allowlist"):
         SubprocessLocalCommandRunner().run(("codex.exe", "exec", "-"))
+
+
+def test_subprocess_preflight_runner_has_bounded_timeout(monkeypatch) -> None:
+    observed: dict[str, object] = {}
+
+    def fake_run(argv, *, capture_output, check, timeout):
+        observed.update(
+            capture_output=capture_output,
+            check=check,
+            timeout=timeout,
+        )
+        raise subprocess.TimeoutExpired(argv, timeout)
+
+    monkeypatch.setattr(codex_preflight.subprocess, "run", fake_run)
+    with pytest.raises(TimeoutError, match="timed out"):
+        SubprocessLocalCommandRunner().run(("codex.exe", "--version"))
+    assert observed == {
+        "capture_output": True,
+        "check": False,
+        "timeout": LOCAL_COMMAND_TIMEOUT_SECONDS,
+    }

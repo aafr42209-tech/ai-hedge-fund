@@ -121,8 +121,8 @@ def _command_gate_kwargs(tmp_path) -> dict[str, object]:
     }
 
 
-def _client(tmp_path, capture: CodexProcessCapture, sink_calls: list[object]):
-    runner = FakeRunner(capture)
+def _client(tmp_path, capture: CodexProcessCapture, sink_calls: list[object], process_runner=None):
+    runner = process_runner or FakeRunner(capture)
     client = CodexExecClient(
         executable="codex",
         model_id="mock-model-id",
@@ -255,6 +255,18 @@ def test_command_spec_rejects_incomplete_catalog_and_secret_config(tmp_path) -> 
                 **common,
                 disabled_features=("shell_tool", "web_search"),
                 config_overrides=(sensitive_config, "tools.web_search=false"),
+            )
+
+    for secret_value in (
+        "tools.foo=sk-live-abc123",
+        "tools.foo=Bearer abc123",
+        "tools.foo=api_key=abc123",
+    ):
+        with pytest.raises(ValueError, match="secret-bearing config values"):
+            build_codex_command_spec(
+                **common,
+                disabled_features=("shell_tool", "web_search"),
+                config_overrides=(secret_value, "tools.web_search=false"),
             )
 
 
@@ -573,6 +585,62 @@ def test_forbidden_channel_is_nonretryable_and_never_invokes_runner(tmp_path) ->
     assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
     assert client.provider_calls == 0
     assert not runner.calls
+    assert not sink_calls
+
+
+class _RaisingRunner:
+    def __init__(self, error: BaseException) -> None:
+        self.error = error
+
+    def run(self, **kwargs):
+        raise self.error
+
+
+@pytest.mark.parametrize(
+    ("error", "expected_type"),
+    (
+        (
+            CodexExecError(
+                "runner_schema_failure",
+                "runner reported a phase stop",
+                disposition=AcquisitionDisposition.STOP_PHASE,
+            ),
+            CodexExecError,
+        ),
+        (TypeError("runner programming error"), TypeError),
+    ),
+)
+def test_runner_errors_are_not_reclassified_as_transport_retry(tmp_path, error, expected_type) -> None:
+    sink_calls: list[object] = []
+    client, _runner = _client(
+        tmp_path,
+        _capture(),
+        sink_calls,
+        process_runner=_RaisingRunner(error),
+    )
+
+    with pytest.raises(expected_type) as raised:
+        client.complete(system="policy", user="fixture", identity=_identity())
+
+    if isinstance(error, CodexExecError):
+        assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
+    assert not sink_calls
+
+
+def test_oserror_runner_failure_remains_retryable(tmp_path) -> None:
+    sink_calls: list[object] = []
+    client, _runner = _client(
+        tmp_path,
+        _capture(),
+        sink_calls,
+        process_runner=_RaisingRunner(OSError("binary missing")),
+    )
+
+    with pytest.raises(CodexExecError) as raised:
+        client.complete(system="policy", user="fixture", identity=_identity())
+
+    assert raised.value.code == "process_launch_failure"
+    assert raised.value.disposition is AcquisitionDisposition.RETRY_TRANSPORT
     assert not sink_calls
 
 

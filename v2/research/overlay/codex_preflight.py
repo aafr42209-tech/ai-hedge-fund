@@ -21,6 +21,7 @@ from .contracts import (
 
 PINNED_CODEX_FEATURE_CATALOG_COUNT = 92
 FEATURE_NAME = re.compile(r"^[a-z0-9_]+$")
+LOCAL_COMMAND_TIMEOUT_SECONDS = 30
 ZERO_CALL_CAPTURE_FILENAMES = {
     "baseline_features": "r01-b2-codex-features-baseline.raw.b64",
     "post_disable_features": "r01-b2-codex-features-post-disable.raw.b64",
@@ -48,7 +49,15 @@ class SubprocessLocalCommandRunner:
     def run(self, argv: tuple[str, ...]) -> LocalCommandCapture:
         if not _is_provider_free_command(argv):
             raise ValueError("command is outside the B2 provider-free allowlist")
-        completed = subprocess.run(argv, capture_output=True, check=False)
+        try:
+            completed = subprocess.run(
+                argv,
+                capture_output=True,
+                check=False,
+                timeout=LOCAL_COMMAND_TIMEOUT_SECONDS,
+            )
+        except subprocess.TimeoutExpired as exc:
+            raise TimeoutError("provider-free preflight command timed out") from exc
         return LocalCommandCapture(
             argv=argv,
             stdout=completed.stdout,

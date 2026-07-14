@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
@@ -20,6 +21,7 @@ from .contracts import (
     codex_feature_catalog_definition_sha256,
     codex_feature_catalog_snapshot_sha256,
     config_key_may_contain_secret,
+    config_value_may_contain_secret,
 )
 from .codex_preflight import pilot_sandbox_identity_sha256
 
@@ -307,6 +309,8 @@ def build_codex_command_spec(
         raise ValueError("config override keys must be unique")
     if any(config_key_may_contain_secret(key) for key in config_keys):
         raise ValueError("secret-bearing config keys are prohibited")
+    if any(config_value_may_contain_secret(value) for _, value in config_pairs):
+        raise ValueError("secret-bearing config values are prohibited")
     actual_pilot_sandbox_sha256 = pilot_sandbox_identity_sha256(working_directory)
     if actual_pilot_sandbox_sha256 != expected_pilot_sandbox_sha256:
         raise RuntimeError("pilot sandbox differs from the external trust anchor")
@@ -675,7 +679,9 @@ class CodexExecClient:
                 working_directory=spec.working_directory,
                 timeout_ms=spec.timeout_ms,
             )
-        except Exception as exc:
+        except CodexExecError:
+            raise
+        except (OSError, subprocess.SubprocessError) as exc:
             raise CodexExecError(
                 "process_launch_failure",
                 "Codex process runner failed before producing a capture",
