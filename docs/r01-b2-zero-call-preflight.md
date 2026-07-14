@@ -10,8 +10,8 @@ Evaluation fixtures generated: `0`
 
 ## Trust anchors
 
-- Code commit: `c91669642e8801003944503e78d69c46917fc24a`
-- Research contract SHA-256: `ec27c5dd17542dc837b5501b9e98a467d845277ed6051201e6221f6663de55c5`
+- Code commit: `fe521fefcaf25475a7bd92c8626f6eccd6ca3033`
+- Research contract SHA-256: `d75229cc63a767f41b13d05ee7d686efdbc309a0a7b78b82a3f4113feccb8b8a`
 - Provider-free freeze SHA-256: `86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2`
 - Provider-free regime-gap summary SHA-256: `0e6e8945f93779a77ffc7687d63062c010efd3aee3d6c8062551e54108fbf886`
 - Freeze root-seed label: `r01-phase-b-development-fixtures-v1`
@@ -35,6 +35,16 @@ Evaluation fixtures generated: `0`
 - User-visible service tier: `TBD_D2`
 - Provider-managed model availability and routing: not frozen and not queried by this zero-call preflight.
 - Transport model-echo availability: `UNESTABLISHED_ZERO_CALL`; absence is an explicit D2 limitation, while any observed mismatch is a `STOP_PHASE` condition.
+- Global-flag placement check: the zero-call command `codex --disable shell_tool exec --help` exited successfully and returned the pinned `codex exec` help surface.
+
+## Reproduction artifacts
+
+- Reproducer: `scripts/r01_b2_preflight.py`; it permits only version, login-status, feature-list, all-feature-disable feature-list, and global-disable `exec --help` commands. It contains no provider acquisition command.
+- Canonical capture summary: `docs/r01-b2-zero-call-capture.json`, SHA-256 `409ee28ca3dc83aa69b6bacaefcd957c2c7641780af852f63ab8feb290c55242`.
+- Baseline catalog preimage: `docs/r01-b2-codex-features-baseline.raw.b64`, artifact SHA-256 `339b7ba47c67851dde94e3c1d8247a8374399bb34330b2d0a61edf2f44f4452b`; base64 decoding yields the exact 92-row stdout bytes with SHA-256 `d3d16f7d0639ce0b8fdce02078b0af7f2b8e9cc1476aa55e91b3ce83c1768afa`.
+- Post-disable catalog preimage: `docs/r01-b2-codex-features-post-disable.raw.b64`, artifact SHA-256 `31e5af5a9e7bd19f163c995b3dbc7f0055052db7d231b06221d22356535982a2`; decoded stdout SHA-256 `662c755fa3e6d3edc2b0f9cd616e4bf17517c654c3d930c0159f9f1c41a6d2fa`.
+- Global-flag help preimage: `docs/r01-b2-codex-global-disable-help.raw.b64`, artifact SHA-256 `049104832fb82b7c76534e1ba35f9cb0614e8d3df532f01cbaf803c7a9f34095`; decoded stdout SHA-256 `9f86f0115238ddde2514587e5f95b0ab0aa6b89495e5912878d49ad26038aa19`.
+- Every raw artifact is reversible base64 of exact captured bytes with no trailing artifact newline. Regeneration uses exclusive creation and therefore cannot overwrite this observation.
 
 ## Feature-catalog result
 
@@ -169,6 +179,7 @@ Evaluation fixtures generated: `0`
 - Per-attempt token reserve: `TBD_D2`.
 - USD cap: `TBD_D2`; ChatGPT subscription use does not authorize overage or API billing.
 - High-transaction-cost stratum: `6/7` zero oracle-hold gaps; treatment remains `TBD_D2_ACCEPT_UNCHANGED_OR_RESTART_PROVIDER_FREE`.
+- Transport disposition policy: `FROZEN_PRE_D2`. Parser-originated `STOP_PHASE` always dominates timeout/nonzero wrapping; retry wrappers retain the original code and disposition; a complete transport with timeout or nonzero process status is `STOP_PHASE`, never hold.
 
 D2 must resolve all items below before any B3 acquisition:
 
@@ -177,4 +188,3 @@ D2 must resolve all items below before any B3 acquisition:
 3. Accept model-echo absence as a possible transport identity limitation, subject to mismatch stopping the phase.
 4. Freeze the development token cap, per-attempt reserve, USD cap, and no-overage rule.
 5. Accept the unchanged high-cost stratum and its prospective power cost, or restart from a newly amended provider-free contract and freeze.
-

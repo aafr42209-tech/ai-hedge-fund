@@ -1,14 +1,14 @@
-# R01 Phase B Implementation Plan v6 — Codex Development Pilot
+# R01 Phase B Implementation Plan v7 — Codex Development Pilot
 
 > **DRAFT PLAN — DEVELOPMENT ONLY — NOT SEALED — NO INVESTMENT CLAIM**
 
 ## 1. Plan identity
 
-- Plan ID: `R01-PHASE-B-PLAN-v6`
-- Supersedes plan SHA-256: `e7ab1010695186e634bfa6053d718bbd1fcfc98fc43d5ead14efd6e58fde66ac`
+- Plan ID: `R01-PHASE-B-PLAN-v7`
+- Supersedes plan SHA-256: `45df0e378451b48458ef36075fd0abfdcd3342d6208e3d0eba2e6035c828b93b`
 - Research contract: `docs/research-contract-01-llm-overlay.md`
-- Contract SHA-256 before v6 hardening: `31e7948632fe492cd49f5c8b3f4eba1a9b7aa2355af16b2d5d01c04bea2d0570`
-- Base commit: `99fbe334791aa100d521c96c3ae7c9ce28031fc3`
+- Contract SHA-256 before v7 hardening: `ec27c5dd17542dc837b5501b9e98a467d845277ed6051201e6221f6663de55c5`
+- Base commit: `fe521fefcaf25475a7bd92c8626f6eccd6ca3033`
 - Base branch: `codex/llm-overlay-research-01`
 - Created: `2026-07-13`; revised: `2026-07-14`
 - Status: `DRAFT`
@@ -154,18 +154,20 @@ Clarify `unsuccessful acquisition` and retry behavior:
   `RETRY_TRANSPORT`, `FAIL_CLOSED_SCORE`, or `STOP_PHASE`;
 - `RETRY_TRANSPORT`: process launch failure, timeout with no complete terminal
   response, nonzero CLI exit without a complete response, malformed JSONL
-  transport, missing final agent message, or missing required usage record;
+  transport, missing final agent message, or missing required usage record; a
+  timeout/nonzero wrapper retains the original parser code and disposition;
 - `FAIL_CLOSED_SCORE`: parse failure, decision-schema failure, duplicate asset, quantity
   violation, reasoning-length violation, tool-use violation, or poor utility;
 - `STOP_PHASE`: artifact persistence or hash failure, forbidden channel, model
-  mismatch, feature/catalog/sandbox mismatch, and unknown event/item/field shape;
+  mismatch, feature/catalog/sandbox mismatch, unknown event/item/field shape,
+  and any complete transport with timeout or nonzero process status;
 - a complete but invalid response is scored once as `ABSTAIN`/hold and counts in
   parse, fallback, and agreement metrics;
 - a `STOP_PHASE` failure is never converted to `ABSTAIN` and never enters an LLM
   quality, fallback, or agreement metric;
-- `successful acquisition` means a complete provider transport with the
-  required terminal response and usage evidence; it does not mean a valid or
-  profitable policy decision;
+- `successful acquisition` means a successful process status plus a complete
+  provider transport with the required terminal response and usage evidence;
+  it does not mean a valid or profitable policy decision;
 - attempt 2 uses the same acquisition target and a new append-only attempt
   identity; attempt 1 remains immutable.
 
@@ -620,6 +622,27 @@ outputs.
   `ec27c5dd17542dc837b5501b9e98a467d845277ed6051201e6221f6663de55c5`;
 - all `86` focused overlay tests pass; no provider call made.
 
+#### Post-B2 disposition and reproducibility hardening — 2026-07-14
+
+- parser-originated `STOP_PHASE` always dominates timeout/nonzero wrapping;
+  retry wrappers retain the original parser code and disposition;
+- complete transports with timeout or nonzero process status map to
+  `STOP_PHASE`, not retry or hold, and the client consumes that classification
+  before returning a response;
+- generic key/session/private config markers and CR/LF/NUL separators are
+  rejected; the feature parser applies the pinned name regex directly;
+- `scripts/r01_b2_preflight.py` reproduces the zero-call facts and writes
+  exclusive reversible raw captures plus canonical summary
+  `docs/r01-b2-zero-call-capture.json`, SHA-256
+  `409ee28ca3dc83aa69b6bacaefcd957c2c7641780af852f63ab8feb290c55242`;
+- its subprocess runner uses an exact provider-free command allowlist and
+  rejects plain `codex exec` before process launch;
+- the global-flag probe `codex --disable shell_tool exec --help` succeeds on
+  pinned `codex-cli 0.144.1`; its exact stdout preimage is committed;
+- updated contract SHA-256:
+  `d75229cc63a767f41b13d05ee7d686efdbc309a0a7b78b82a3f4113feccb8b8a`;
+- all `92` overlay tests pass; no provider call made.
+
 ### B2 — zero-call preflight
 
 Produce a hashed preflight report containing:
@@ -649,8 +672,11 @@ Produce a hashed preflight report containing:
 Current zero-call observation on pinned local `codex-cli 0.144.1`:
 
 - the complete B2 report is `docs/r01-b2-zero-call-preflight.md`, SHA-256
-  `cf1658ca2804b5afc1fc9afb526dae559808dc404ed91d6f3458c444a9ce27e6`,
-  anchored to hardening commit `c91669642e8801003944503e78d69c46917fc24a`;
+  `5bd2fb782056cd3c6e215c4e1a4513199f796fb0e3e90920c448b1103ff1dd74`,
+  anchored to provider-free hardening commit
+  `fe521fefcaf25475a7bd92c8626f6eccd6ca3033`;
+- the committed capture summary and reversible raw preimages reproduce both
+  92-row catalogs and prove that global `--disable` before `exec` is accepted;
 - `codex login status` reports ChatGPT authentication without exposing a
   credential;
 - the strict parser reads all `92` rows and reproduces stage counts
@@ -668,6 +694,11 @@ Current zero-call observation on pinned local `codex-cli 0.144.1`:
 - model-echo availability cannot be established without a provider transport.
   The parser is ready to verify or stop, and D2 must accept echo absence as a
   possible identity limitation before any authorized B3 call.
+
+The timeout/nonzero rules are not discretionary D2 choices: a parser
+`STOP_PHASE` is never downgraded, and a complete response with a process-status
+violation is `STOP_PHASE`. D2 records acknowledgement of these frozen rules;
+changing either requires a new plan and contract identity before any call.
 
 User decision gate D2 selects the exact model and reasoning effort after this
 report and approves the provisional development token cap and per-attempt
@@ -1061,3 +1092,8 @@ be relabeled as a successful pilot.
 | M15: pilot sandbox isolation was only documented | Require an empty nonsymlink directory outside the repository and bind its external identity before spec creation. |
 | M16: command specs did not prove full catalog coverage | Bind all catalog entries and the external definition hash into command-spec v2; require exact disable/allowlist coverage and a post-disable subset. |
 | LOW: config overrides could persist secrets | Deny secret-bearing config key markers before argv or artifact construction. |
+| MEDIUM: timeout/nonzero wrapping could hide `STOP_PHASE` parser causes | Preserve `STOP_PHASE` precedence; wrap only retry-eligible failures and retain the original code/disposition. |
+| MEDIUM: complete process-status violations had no consumed disposition | Classify them as `STOP_PHASE` in the client before response return; never score them as hold. |
+| LOW: generic secret config names and control separators passed validation | Deny key/session/private markers and CR/LF/NUL in executable, model, and config inputs. |
+| LOW: feature-name syntax was enforced only by downstream schema validation | Apply the same pinned regex during catalog parsing and retain the schema validator as a second check. |
+| INFO: global `--disable` placement and catalog preimages were undocumented | Commit a zero-call reproducer, reversible raw captures, canonical summary, and exact global-flag help evidence. |

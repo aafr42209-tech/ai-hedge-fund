@@ -487,7 +487,7 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 - perturbation ID is part of invariance-artifact identity;
 - responses are append-only and never overwritten;
 - the exact command spec, stdout JSONL bytes, stderr bytes, and process status are stored before transport parsing;
-- `successful acquisition` means a complete provider transport with exactly one thread identity, one completed turn, at least one completed agent message, and all four required usage fields; it does not mean a schema-valid or high-utility portfolio decision;
+- `successful acquisition` means a successful process status plus a complete provider transport with exactly one thread identity, one completed turn, at least one completed agent message, and all four required usage fields; it does not mean a schema-valid or high-utility portfolio decision;
 - every failed attempt receives exactly one disposition: `RETRY_TRANSPORT`, `FAIL_CLOSED_SCORE`, or `STOP_PHASE`; a harness or identity failure can never be converted into an LLM abstention;
 - `RETRY_TRANSPORT` applies only to process launch failure, timeout without a complete response, nonzero exit without a complete response, malformed JSONL, missing final message, missing usage, and contradictory or duplicate terminal status. A timeout/nonzero wrapper preserves the original parser code and disposition in the attempt record;
 - `FAIL_CLOSED_SCORE` applies to a complete transport whose response quality fails the decision or known-tool contract; it is scored once as hold and is not retried;

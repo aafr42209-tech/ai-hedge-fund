@@ -6,15 +6,34 @@ scoring, complete-enumeration oracle and baselines, append-only artifacts, repla
 bootstrap analysis, nuisance transforms, the Codex command/JSONL contract, and
 the provider-free B2 feature/catalog/isolation gates.
 
-The Codex adapter requires an injected process runner and raw-capture sink; this
-package intentionally provides no default subprocess implementation and cannot
-make a provider call or generate evaluation fixtures. Every report is marked:
+The provider-capable Codex adapter requires an injected process runner and
+raw-capture sink; this package provides no default acquisition subprocess and
+cannot generate evaluation fixtures. Its B2 local subprocess runner accepts
+only version, login-status, feature-list, and `exec --help` preflight commands;
+plain `codex exec` is rejected before launch. Every report is marked:
 
 > DEVELOPMENT_ONLY — NOT SEALED — NO INVESTMENT CLAIM
 
 ## Commands
 
 Run from the repository root:
+
+```powershell
+$codexNative = Join-Path $env:APPDATA `
+  "npm/node_modules/@openai/codex/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe"
+$recheck = Join-Path $env:TEMP "r01-b2-preflight-recheck"
+New-Item -ItemType Directory -Path $recheck
+
+python -m scripts.r01_b2_preflight `
+  --codex-executable $codexNative `
+  --output-directory $recheck `
+  --expected-catalog-sha256 14b554bd29e409dd348878c18ad8b0820a1165772039bb839b538dca03956aad `
+  --expected-definition-sha256 aa86f33bf40be81c79fdcbc6254b8162bf9d081b5ff1a7634f669223fea1d530
+```
+
+This zero-call command writes four files exclusively: exact reversible base64
+captures of the baseline catalog, post-disable catalog, and global-disable help
+output, plus a canonical summary. It refuses to overwrite an existing capture.
 
 ```powershell
 python -m v2.research.overlay `
