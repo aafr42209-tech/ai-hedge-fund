@@ -46,6 +46,8 @@ class SubprocessLocalCommandRunner:
     """Run only the explicit provider-free commands assembled below."""
 
     def run(self, argv: tuple[str, ...]) -> LocalCommandCapture:
+        if not _is_provider_free_command(argv):
+            raise ValueError("command is outside the B2 provider-free allowlist")
         completed = subprocess.run(argv, capture_output=True, check=False)
         return LocalCommandCapture(
             argv=argv,
@@ -57,6 +59,31 @@ class SubprocessLocalCommandRunner:
 
 def _sha256(value: bytes) -> str:
     return hashlib.sha256(value).hexdigest()
+
+
+def _is_provider_free_command(argv: tuple[str, ...]) -> bool:
+    if len(argv) < 2 or not argv[0]:
+        return False
+    arguments = argv[1:]
+    if arguments in {
+        ("--version",),
+        ("login", "status"),
+        ("features", "list"),
+        ("--disable", "shell_tool", "exec", "--help"),
+    }:
+        return True
+    if len(arguments) < 4 or arguments[-2:] != ("features", "list"):
+        return False
+    disable_arguments = arguments[:-2]
+    if len(disable_arguments) % 2:
+        return False
+    names: list[str] = []
+    for index in range(0, len(disable_arguments), 2):
+        flag, name = disable_arguments[index : index + 2]
+        if flag != "--disable" or FEATURE_NAME.fullmatch(name) is None:
+            return False
+        names.append(name)
+    return len(names) == len(set(names))
 
 
 def _require_success(capture: LocalCommandCapture, label: str) -> None:

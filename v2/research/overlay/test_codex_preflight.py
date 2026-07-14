@@ -6,6 +6,7 @@ import pytest
 
 from .codex_preflight import (
     LocalCommandCapture,
+    SubprocessLocalCommandRunner,
     build_codex_feature_gate,
     capture_zero_call_preflight,
     parse_codex_feature_catalog,
@@ -153,3 +154,8 @@ def test_zero_call_capture_is_reversible_and_global_flags_precede_exec(tmp_path)
     assert base64.b64decode(baseline_artifact.read_bytes(), validate=True) == baseline
     with pytest.raises(FileExistsError):
         write_zero_call_preflight(str(tmp_path), summary, raw_artifacts)
+
+
+def test_subprocess_preflight_runner_rejects_provider_acquisition() -> None:
+    with pytest.raises(ValueError, match="provider-free allowlist"):
+        SubprocessLocalCommandRunner().run(("codex.exe", "exec", "-"))
