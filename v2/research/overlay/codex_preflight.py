@@ -2,8 +2,15 @@
 
 from __future__ import annotations
 
+import base64
+import hashlib
+import re
+import subprocess
+from dataclasses import dataclass
 from pathlib import Path
+from typing import Protocol
 
+from .canonical import canonical_json_bytes
 from .contracts import (
     CodexFeatureCatalogEntry,
     CodexFeatureGate,
@@ -13,6 +20,141 @@ from .contracts import (
 )
 
 PINNED_CODEX_FEATURE_CATALOG_COUNT = 92
+FEATURE_NAME = re.compile(r"^[a-z0-9_]+$")
+ZERO_CALL_CAPTURE_FILENAMES = {
+    "baseline_features": "r01-b2-codex-features-baseline.raw.b64",
+    "post_disable_features": "r01-b2-codex-features-post-disable.raw.b64",
+    "global_disable_help": "r01-b2-codex-global-disable-help.raw.b64",
+    "summary": "r01-b2-zero-call-capture.json",
+}
+
+
+@dataclass(frozen=True)
+class LocalCommandCapture:
+    argv: tuple[str, ...]
+    stdout: bytes
+    stderr: bytes
+    exit_code: int
+
+
+class LocalCommandRunner(Protocol):
+    def run(self, argv: tuple[str, ...]) -> LocalCommandCapture:
+        ...
+
+
+class SubprocessLocalCommandRunner:
+    """Run only the explicit provider-free commands assembled below."""
+
+    def run(self, argv: tuple[str, ...]) -> LocalCommandCapture:
+        completed = subprocess.run(argv, capture_output=True, check=False)
+        return LocalCommandCapture(
+            argv=argv,
+            stdout=completed.stdout,
+            stderr=completed.stderr,
+            exit_code=completed.returncode,
+        )
+
+
+def _sha256(value: bytes) -> str:
+    return hashlib.sha256(value).hexdigest()
+
+
+def _require_success(capture: LocalCommandCapture, label: str) -> None:
+    if capture.exit_code != 0:
+        raise RuntimeError(f"provider-free {label} command failed")
+
+
+def capture_zero_call_preflight(
+    executable: str,
+    *,
+    expected_catalog_sha256: str,
+    expected_definition_sha256: str,
+    runner: LocalCommandRunner,
+) -> tuple[dict[str, object], dict[str, bytes]]:
+    """Capture the pinned B2 local facts without issuing a model request."""
+
+    baseline = runner.run((executable, "features", "list"))
+    _require_success(baseline, "baseline feature catalog")
+    baseline_catalog = parse_codex_feature_catalog(baseline.stdout)
+    actual_catalog_sha256 = codex_feature_catalog_snapshot_sha256(baseline_catalog)
+    actual_definition_sha256 = codex_feature_catalog_definition_sha256(baseline_catalog)
+    if actual_catalog_sha256 != expected_catalog_sha256:
+        raise RuntimeError("feature catalog differs from the B2 snapshot anchor")
+    if actual_definition_sha256 != expected_definition_sha256:
+        raise RuntimeError("feature catalog definition differs from the B2 anchor")
+
+    disable_argv = [executable]
+    for entry in baseline_catalog:
+        disable_argv.extend(("--disable", entry.name))
+    disable_argv.extend(("features", "list"))
+    post_disable = runner.run(tuple(disable_argv))
+    _require_success(post_disable, "post-disable feature catalog")
+    post_disable_catalog = parse_codex_feature_catalog(post_disable.stdout)
+    if codex_feature_catalog_definition_sha256(post_disable_catalog) != actual_definition_sha256:
+        raise RuntimeError("post-disable feature catalog definition drifted")
+
+    global_disable_help = runner.run((executable, "--disable", "shell_tool", "exec", "--help"))
+    _require_success(global_disable_help, "global disable help")
+    if b"Usage: codex exec" not in global_disable_help.stdout:
+        raise RuntimeError("global --disable placement was not accepted by the pinned CLI")
+
+    version = runner.run((executable, "--version"))
+    _require_success(version, "version")
+    login = runner.run((executable, "login", "status"))
+    _require_success(login, "login status")
+    login_text = (login.stdout + b"\n" + login.stderr).decode("utf-8", errors="strict").strip()
+    if login_text != "Logged in using ChatGPT":
+        raise RuntimeError("authentication mode is not the pinned ChatGPT mode")
+
+    raw_artifacts = {
+        "baseline_features": baseline.stdout,
+        "post_disable_features": post_disable.stdout,
+        "global_disable_help": global_disable_help.stdout,
+    }
+    summary: dict[str, object] = {
+        "schema_version": "r01-b2-zero-call-capture-v1",
+        "provider_calls": 0,
+        "evaluation_fixtures_generated": 0,
+        "codex_cli_version": version.stdout.decode("utf-8", errors="strict").strip(),
+        "authentication_mode": "ChatGPT",
+        "feature_catalog_count": len(baseline_catalog),
+        "feature_catalog_sha256": actual_catalog_sha256,
+        "feature_catalog_definition_sha256": actual_definition_sha256,
+        "baseline_effective_true_features": [entry.name for entry in baseline_catalog if entry.enabled],
+        "disabled_features": [entry.name for entry in baseline_catalog],
+        "post_disable_effective_true_features": [entry.name for entry in post_disable_catalog if entry.enabled],
+        "global_disable_before_exec_help_verified": True,
+        "raw_sha256": {key: _sha256(value) for key, value in sorted(raw_artifacts.items())},
+        "raw_encoding": "base64 of exact captured bytes; artifact files have no trailing newline",
+    }
+    return summary, raw_artifacts
+
+
+def write_zero_call_preflight(
+    output_directory: str,
+    summary: dict[str, object],
+    raw_artifacts: dict[str, bytes],
+) -> tuple[Path, ...]:
+    """Write exact reversible captures and the canonical summary exclusively."""
+
+    output = Path(output_directory)
+    if not output.is_absolute() or not output.is_dir():
+        raise ValueError("output directory must be an existing absolute directory")
+    if set(raw_artifacts) != {
+        "baseline_features",
+        "post_disable_features",
+        "global_disable_help",
+    }:
+        raise ValueError("raw artifact set differs from the B2 capture contract")
+    payloads = {ZERO_CALL_CAPTURE_FILENAMES[key]: base64.b64encode(value) for key, value in raw_artifacts.items()}
+    payloads[ZERO_CALL_CAPTURE_FILENAMES["summary"]] = canonical_json_bytes(summary)
+    written: list[Path] = []
+    for name, payload in sorted(payloads.items()):
+        destination = output / name
+        with destination.open("xb") as handle:
+            handle.write(payload)
+        written.append(destination)
+    return tuple(written)
 
 
 def parse_codex_feature_catalog(
@@ -34,6 +176,8 @@ def parse_codex_feature_catalog(
         tokens = line.split()
         if len(tokens) < 3 or tokens[-1] not in {"true", "false"}:
             raise ValueError(f"unparsed feature catalog row {line_number}")
+        if FEATURE_NAME.fullmatch(tokens[0]) is None:
+            raise ValueError(f"invalid feature name on catalog row {line_number}")
         entries.append(
             CodexFeatureCatalogEntry(
                 name=tokens[0],

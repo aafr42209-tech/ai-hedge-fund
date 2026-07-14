@@ -245,6 +245,41 @@ def test_command_spec_rejects_incomplete_catalog_and_secret_config(tmp_path) -> 
             ),
         )
 
+    for sensitive_config in (
+        "provider.foo_key=hidden",
+        "provider.private_value=hidden",
+        "provider.session_id=hidden",
+    ):
+        with pytest.raises(ValueError, match="secret-bearing config"):
+            build_codex_command_spec(
+                **common,
+                disabled_features=("shell_tool", "web_search"),
+                config_overrides=(sensitive_config, "tools.web_search=false"),
+            )
+
+
+@pytest.mark.parametrize(
+    ("override", "executable"),
+    (
+        ("tools.web_search=false\0hidden", "codex"),
+        ("tools.web_search=false", "codex\0hidden"),
+    ),
+)
+def test_command_spec_rejects_null_bytes(tmp_path, override, executable) -> None:
+    with pytest.raises(ValueError):
+        build_codex_command_spec(
+            executable=executable,
+            model_id="mock-model-id",
+            **_command_gate_kwargs(tmp_path),
+            disabled_features=("shell_tool", "web_search"),
+            active_feature_allowlist=(),
+            config_overrides=(override,),
+            working_directory=str(tmp_path),
+            timeout_ms=30_000,
+            policy_instruction="policy",
+            fixture_prompt="fixture",
+        )
+
 
 def test_command_spec_rejects_wrong_sandbox_and_transport_shape_anchors(
     tmp_path,
@@ -336,6 +371,15 @@ def test_transport_failures_are_retry_eligible(tmp_path, capture, expected_code)
         client.complete(system="policy", user="fixture", identity=_identity())
     assert raised.value.code == expected_code
     assert raised.value.disposition is AcquisitionDisposition.RETRY_TRANSPORT
+    if expected_code in {
+        "timeout_without_complete_response",
+        "nonzero_exit_without_complete_response",
+    }:
+        assert raised.value.origin_code is not None
+        assert raised.value.origin_disposition is AcquisitionDisposition.RETRY_TRANSPORT
+    else:
+        assert raised.value.origin_code is None
+        assert raised.value.origin_disposition is None
     assert len(sink_calls) == 1
 
 
@@ -445,6 +489,28 @@ def test_matching_model_echo_is_verified_and_mismatch_stops_phase() -> None:
     assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
 
 
+@pytest.mark.parametrize(
+    "capture_kwargs",
+    (
+        {"exit_code": 9, "stderr": b"model selection failed"},
+        {"exit_code": None, "timed_out": True},
+    ),
+)
+def test_stop_phase_parse_errors_are_never_downgraded(tmp_path, capture_kwargs) -> None:
+    mismatched = _events()
+    mismatched[0]["model"] = "different-model"
+    sink_calls: list[object] = []
+    client, _runner = _client(tmp_path, _capture(mismatched, **capture_kwargs), sink_calls)
+
+    with pytest.raises(CodexExecError) as raised:
+        client.complete(system="policy", user="fixture", identity=_identity())
+
+    assert raised.value.code == "model_identity_mismatch"
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
+    assert raised.value.origin_code is None
+    assert len(sink_calls) == 1
+
+
 def test_unknown_item_and_known_event_field_are_schema_drift_stop() -> None:
     unknown_item = {
         "type": "item.completed",
@@ -487,8 +553,15 @@ def test_complete_invalid_decision_text_is_not_transport_retry(tmp_path) -> None
 def test_complete_response_with_process_violation_is_not_retried(tmp_path, capture) -> None:
     sink_calls: list[object] = []
     client, _runner = _client(tmp_path, capture, sink_calls)
-    response = client.complete(system="policy", user="fixture", identity=_identity())
-    assert response.process_status_violation
+    parsed = parse_codex_jsonl(capture, requested_model_id="mock-model-id")
+    assert parsed.process_status_violation
+    assert complete_response_disposition(parsed) is AcquisitionDisposition.STOP_PHASE
+
+    with pytest.raises(CodexExecError) as raised:
+        client.complete(system="policy", user="fixture", identity=_identity())
+    assert raised.value.code == "process_status_violation"
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
+    assert len(sink_calls) == 1
 
 
 def test_forbidden_channel_is_nonretryable_and_never_invokes_runner(tmp_path) -> None:

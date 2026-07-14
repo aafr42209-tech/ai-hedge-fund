@@ -125,10 +125,16 @@ class CodexExecError(RuntimeError):
         message: str,
         *,
         disposition: AcquisitionDisposition,
+        origin_code: str | None = None,
+        origin_disposition: AcquisitionDisposition | None = None,
     ) -> None:
         super().__init__(message)
+        if (origin_code is None) != (origin_disposition is None):
+            raise ValueError("origin code and disposition must be recorded together")
         self.code = code
         self.disposition = disposition
+        self.origin_code = origin_code
+        self.origin_disposition = origin_disposition
 
 
 @dataclass(frozen=True)
@@ -291,7 +297,7 @@ def build_codex_command_spec(
         raise RuntimeError("post-disable effective-true features exceed the allowlist")
     if "tools.web_search=false" not in configs:
         raise ValueError("tools.web_search=false is mandatory")
-    if any("\n" in value or "\r" in value or "=" not in value for value in configs):
+    if any(any(character in value for character in "\r\n\0") or "=" not in value for value in configs):
         raise ValueError("config overrides must be one-line key=value strings")
     config_pairs = [value.split("=", 1) for value in configs]
     config_keys = [pair[0] for pair in config_pairs]
@@ -310,7 +316,7 @@ def build_codex_command_spec(
     directory = Path(working_directory)
     if timeout_ms <= 0:
         raise ValueError("timeout_ms must be positive")
-    if not executable or not model_id or any(character in model_id for character in "\r\n\0"):
+    if not executable or not model_id or any(character in executable or character in model_id for character in "\r\n\0"):
         raise ValueError("executable and model_id are required")
 
     argv: list[str] = [executable]
@@ -391,6 +397,8 @@ def complete_response_disposition(
 ) -> AcquisitionDisposition | None:
     """Classify complete transport quality without conflating harness failure."""
 
+    if response.process_status_violation:
+        return AcquisitionDisposition.STOP_PHASE
     if response.tool_use_violation:
         return AcquisitionDisposition.FAIL_CLOSED_SCORE
     return None
@@ -688,18 +696,32 @@ class CodexExecClient:
                 disposition=AcquisitionDisposition.RETRY_TRANSPORT,
             )
         try:
-            return parse_codex_jsonl(capture, requested_model_id=self._model_id)
+            response = parse_codex_jsonl(capture, requested_model_id=self._model_id)
+            disposition = complete_response_disposition(response)
+            if disposition is AcquisitionDisposition.STOP_PHASE:
+                raise CodexExecError(
+                    "process_status_violation",
+                    "complete Codex transport has a non-success process status",
+                    disposition=AcquisitionDisposition.STOP_PHASE,
+                )
+            return response
         except CodexExecError as exc:
+            if exc.disposition is AcquisitionDisposition.STOP_PHASE:
+                raise
             if capture.timed_out:
                 raise CodexExecError(
                     "timeout_without_complete_response",
                     "Codex process timed out without a complete response",
                     disposition=AcquisitionDisposition.RETRY_TRANSPORT,
+                    origin_code=exc.code,
+                    origin_disposition=exc.disposition,
                 ) from exc
             if capture.exit_code not in (None, 0):
                 raise CodexExecError(
                     "nonzero_exit_without_complete_response",
                     "Codex process exited nonzero without a complete response",
                     disposition=AcquisitionDisposition.RETRY_TRANSPORT,
+                    origin_code=exc.code,
+                    origin_disposition=exc.disposition,
                 ) from exc
             raise

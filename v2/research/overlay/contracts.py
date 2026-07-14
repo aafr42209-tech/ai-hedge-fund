@@ -28,8 +28,11 @@ SENSITIVE_CONFIG_KEY_TOKENS = (
     "bearer",
     "cookie",
     "credential",
+    "key",
     "password",
+    "private",
     "secret",
+    "session",
     "token",
 )
 
@@ -527,6 +530,8 @@ class CodexCommandSpec(StrictModel):
 
     @model_validator(mode="after")
     def validate_command_identity(self) -> "CodexCommandSpec":
+        if any(character in self.executable or character in self.model_id for character in "\r\n\0"):
+            raise ValueError("executable and model id cannot contain control separators")
         if self.feature_catalog != tuple(sorted(self.feature_catalog, key=lambda entry: entry.name)):
             raise ValueError("feature catalog must be sorted by name")
         catalog_names = tuple(entry.name for entry in self.feature_catalog)
@@ -554,7 +559,7 @@ class CodexCommandSpec(StrictModel):
             raise ValueError("feature names must be lowercase alphanumeric identifiers")
         if self.config_overrides != tuple(sorted(set(self.config_overrides))):
             raise ValueError("config overrides must be unique and sorted")
-        if any("=" not in value or "\n" in value or "\r" in value for value in self.config_overrides):
+        if any("=" not in value or any(character in value for character in "\r\n\0") for value in self.config_overrides):
             raise ValueError("config overrides must be one-line key=value strings")
         config_pairs = [value.split("=", 1) for value in self.config_overrides]
         config_keys = [pair[0] for pair in config_pairs]

@@ -489,15 +489,15 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 - the exact command spec, stdout JSONL bytes, stderr bytes, and process status are stored before transport parsing;
 - `successful acquisition` means a complete provider transport with exactly one thread identity, one completed turn, at least one completed agent message, and all four required usage fields; it does not mean a schema-valid or high-utility portfolio decision;
 - every failed attempt receives exactly one disposition: `RETRY_TRANSPORT`, `FAIL_CLOSED_SCORE`, or `STOP_PHASE`; a harness or identity failure can never be converted into an LLM abstention;
-- `RETRY_TRANSPORT` applies only to process launch failure, timeout without a complete response, nonzero exit without a complete response, malformed JSONL, missing final message, missing usage, and contradictory or duplicate terminal status;
+- `RETRY_TRANSPORT` applies only to process launch failure, timeout without a complete response, nonzero exit without a complete response, malformed JSONL, missing final message, missing usage, and contradictory or duplicate terminal status. A timeout/nonzero wrapper preserves the original parser code and disposition in the attempt record;
 - `FAIL_CLOSED_SCORE` applies to a complete transport whose response quality fails the decision or known-tool contract; it is scored once as hold and is not retried;
-- `STOP_PHASE` applies to artifact persistence/integrity failure, forbidden channel, model-identity mismatch, feature/catalog/sandbox mismatch, and unknown event, item, or field shape;
-- a complete response with tool use, nonzero exit, timeout status, invalid decision JSON, schema failure, constraint violation, or poor utility is observed once, fails closed to hold where applicable, and is not retried;
+- `STOP_PHASE` applies to artifact persistence/integrity failure, forbidden channel, model-identity mismatch, feature/catalog/sandbox mismatch, unknown event, item, or field shape, and any complete transport with a timeout or nonzero process status;
+- a parser-originated `STOP_PHASE` disposition is never downgraded by timeout or nonzero exit. A complete response with known tool use, invalid decision JSON, schema failure, constraint violation, or poor utility is observed once, fails closed to hold where applicable, and is not retried; a complete response with a process-status violation stops the phase and is never scored as hold;
 - failure to persist the raw transport before parsing is non-retryable and stops the acquisition path.
 
-The parser searches the documented event- and item-level `model` locations. One or more matching echoes set `model_identity_verified_by_transport = true`; no echo records `transport_echo_absent` and remains an explicit limitation; any different echo is `STOP_PHASE`. The pinned JSONL transport-shape specification enumerates allowed fields for every known event and item type. Each acquisition records its observed shape hash. A field outside the pinned shape or an unknown item type is schema drift and stops Phase B rather than increasing an LLM fallback rate.
+The parser searches the documented event- and item-level `model` locations. One or more matching echoes set `model_identity_verified_by_transport = true`; no echo records `transport_echo_absent` and remains an explicit limitation; any different echo is `STOP_PHASE`, even when the process also times out or exits nonzero. The pinned JSONL transport-shape specification enumerates allowed fields for every known event and item type. Each acquisition records its observed shape hash. A field outside the pinned shape or an unknown item type is schema drift and stops Phase B rather than increasing an LLM fallback rate.
 
-Before command-spec creation, the complete pinned feature catalog must be supplied, its definition hash must match the B2 external anchor, and `disabled_features ∪ active_feature_allowlist` must equal the complete catalog with no overlap. The post-disable effective-true set must be a subset of the allowlist. The pilot working directory must match its external identity, be empty, resolve outside the repository, and contain no inherited research files. Secret-bearing config keys are prohibited from command specs and artifacts.
+Before command-spec creation, the complete pinned feature catalog must be supplied, every feature name must match `^[a-z0-9_]+$`, its definition hash must match the B2 external anchor, and `disabled_features ∪ active_feature_allowlist` must equal the complete catalog with no overlap. The post-disable effective-true set must be a subset of the allowlist. The pilot working directory must match its external identity, be empty, resolve outside the repository, and contain no inherited research files. Secret-bearing config keys, including generic key/session/private markers, are prohibited from command specs and artifacts. Executable, model, and config values reject CR, LF, and NUL separators.
 
 ### Replay mode
 
@@ -563,6 +563,7 @@ Stop immediately and issue no GO/NO-GO performance verdict if any of these occur
 
 - model ID or sampling configuration changes;
 - provider returns a different model identity;
+- a complete transport has timeout or nonzero process status;
 - an unknown JSONL event, item type, or event/item field appears, or the pinned transport-shape hash changes;
 - the complete feature catalog, generated disable coverage, effective-true subset, or pilot-sandbox identity check fails;
 - append-only raw capture persistence or artifact hashing fails;
@@ -842,3 +843,8 @@ sealed_by: TBD
 | M15: command construction did not prove isolation | Require an externally anchored, empty, nonsymlink pilot directory outside the repository before every command-spec build. |
 | M16: command specs could omit most feature disables | Bind the full catalog and definition hash into command-spec v2; require disable/allowlist completeness and post-disable effective-true subset validation. |
 | Secret-bearing config keys could enter immutable artifacts | Reject config keys containing credential, auth, token, secret, password, cookie, bearer, or API-key markers. |
+| Timeout/nonzero wrapping could hide a parser `STOP_PHASE` cause | Let `STOP_PHASE` dominate process-status wrapping; only retry-eligible parser failures may be wrapped, and the wrapper records the original code and disposition. |
+| Complete transports with process-status violations had no disposition | Map every complete timeout/nonzero response to `STOP_PHASE`; it is never retried or scored as hold. |
+| Generic secret-bearing config names and NUL separators could pass validation | Reject key, session, and private markers plus CR/LF/NUL in executable, model, and config inputs. |
+| The feature parser relied on downstream model validation for name syntax | Apply the pinned feature-name regex directly while parsing and retain the downstream schema check. |
+| B2 recorded hashes without committed raw preimages or a reproducer | Commit reversible base64 captures of both 92-row catalogs and global-flag help output plus a zero-provider-call capture script and canonical summary. |
