@@ -156,6 +156,9 @@ Clarify `unsuccessful acquisition` and retry behavior:
   response, nonzero CLI exit without a complete response, malformed JSONL
   transport, missing final agent message, or missing required usage record; a
   timeout/nonzero wrapper retains the original parser code and disposition;
+- exception: attempt-1 `nonzero_exit_without_complete_response` is
+  `STOP_PHASE`, so an unavailable or misspelled model cannot silently consume a
+  retry;
 - `FAIL_CLOSED_SCORE`: parse failure, decision-schema failure, duplicate asset, quantity
   violation, reasoning-length violation, tool-use violation, or poor utility;
 - `STOP_PHASE`: artifact persistence or hash failure, forbidden channel, model
@@ -170,6 +173,10 @@ Clarify `unsuccessful acquisition` and retry behavior:
   it does not mean a valid or profitable policy decision;
 - attempt 2 uses the same acquisition target and a new append-only attempt
   identity; attempt 1 remains immutable.
+- a second consecutive `RETRY_TRANSPORT` is persisted as
+  `retry_transport_limit_reached` / `STOP_PHASE`; attempt 3 is never emitted;
+- the runner checks the `200`-attempt development cap immediately before each
+  provider call and stops before creating an over-cap attempt.
 
 This prevents response-quality cherry-picking through retries.
 
@@ -681,7 +688,7 @@ Produce a hashed preflight report containing:
 Current zero-call observation on pinned local `codex-cli 0.144.1`:
 
 - the complete B2 report is `docs/r01-b2-zero-call-preflight.md`, SHA-256
-  `8cf6ed8f02681da68496d8762697769f34d2975fdf49b8d4e656a903b5c0a7f3`,
+  `eccae5fb6e1ed014d42047634d2c70187123e2e1e91778e2267803e2b49bba8b`,
   anchored to provider-free hardening commit
   `fe521fefcaf25475a7bd92c8626f6eccd6ca3033`;
 - the committed capture summary and reversible raw preimages reproduce both
@@ -702,6 +709,10 @@ Current zero-call observation on pinned local `codex-cli 0.144.1`:
   guards, and tests. The canonical source-proof artifact is
   `docs/r01-b2-codex-source-feature-proof.json`, SHA-256
   `1de5d131356deb6dec8186eb07795e47717d4960937b9142689a5e9cc3554f91`;
+- limitation: package-manifest version `0.144.1` is used to attribute the
+  prebuilt npm binary to tag `rust-v0.144.1`; no reproducible source build or
+  cryptographic binary-to-commit proof was performed. Any package, binary, or
+  source-identity drift stops the phase;
 - B2 remains `BLOCKED_PENDING_D2` until the user accepts exactly those four
   removed/no-op entries as the minimal non-tool allowlist or stops Option A; no
   prompt wording can override this gate;
@@ -715,8 +726,9 @@ violation is `STOP_PHASE`. D2 records acknowledgement of these frozen rules;
 changing either requires a new plan and contract identity before any call.
 
 User decision gate D2 selects the exact model and reasoning effort after this
-report and approves the provisional development token cap and per-attempt
-reserve. D2 also freezes `delta_min_e12`, `target_headroom_e12`, the resulting
+report and approves the provisional live timeout, development token cap,
+per-attempt reserve, initial-nonzero stop rule, and two-failure transport retry
+bound. D2 also freezes `delta_min_e12`, `target_headroom_e12`, the resulting
 `delta_target` rule, and the no-correction two-replicate variance policy before
 the first provider call. D2 approves the minimal non-tool allowlist and any
 unavoidable request-compression, remote-compaction, or fast-mode limitation. No
@@ -728,23 +740,31 @@ stratum after a Codex response exists.
 
 #### Provider-free B3 disposition-consumer readiness — 2026-07-15
 
-- every complete response now passes through one runner-level disposition
-  consumer before policy parsing or scoring;
+- every complete response reaches the runner's single scoring consumer before
+  policy parsing or scoring; the client-side transport classifier remains an
+  earlier defense-in-depth check;
 - `STOP_PHASE` and an impossible complete-response `RETRY_TRANSPORT` stop before
   scoring;
 - `FAIL_CLOSED_SCORE`, parse failures, and decision-validation failures create
   one canonical hold outcome and one score call;
 - replay reconstructs the strict provider response, reconsumes the disposition,
-  and verifies the persisted disposition artifact byte-for-byte;
+  verifies the final-agent-text and JSONL-stdout hashes independently, and
+  verifies the persisted disposition artifact byte-for-byte;
+- retry-eligible failures advance only once to append-only attempt 2, bind their
+  failure record into a later success, and stop on the second consecutive
+  transport failure before attempt 3;
+- attempt-1 nonzero-without-complete-response and the global development
+  attempt-cap boundary stop before another provider call;
 - each acquisition binds an `r01-complete-response-disposition-v1` artifact and
-  the containing result schema is bumped to `r01-development-run-result-v2`;
+  the containing result schema is bumped to `r01-development-run-result-v3`;
 - updated research contract SHA-256:
-  `3a2f2dab0acd4c6a274f660f3dd69b3dea0f60d1de263e1034e653a7e03028bc`;
-- `102` provider-free overlay tests pass, including dedicated consumer,
-  one-hold, missing-consumer, stop-before-score, and replay regression coverage;
+  `88c33924e249e4195a41096e256e83b0b0d20dbd1a8228d6482e909e9882b9c6`;
+- `109` provider-free overlay tests pass, including dedicated consumer,
+  one-hold, bounded-retry, first-nonzero stop, global-attempt-cap,
+  missing-consumer, stop-before-score, raw-text binding, and replay coverage;
 - D2 recommendations and unresolved approvals are recorded in
   `docs/r01-d2-decision-package.md`, SHA-256
-  `b240fde00ae335f7ced09113332c60cefacafe6a4223114bf680a8d427dcab82`;
+  `9427fcc646734ec22b6db5bc1dfa225a2590aebbf9c624cd0024268a310b799f`;
 - provider calls and development attempts remain `0`.
 
 ### B3 — 12-call micro-pilot
@@ -770,6 +790,11 @@ Before the first B3 call, the runner must consume
 `complete_response_disposition` for every complete response. A
 `FAIL_CLOSED_SCORE` result must enter the hold scorer exactly once; if no
 consumer is wired, B3 is blocked and no call is authorized.
+
+The bounded retry consumer, attempt-failure artifact binding, first-nonzero
+stop rule, and global development-attempt cap must also pass provider-free tests
+before B3. Stopped attempts may leave immutable raw evidence outside a completed
+run result; this is expected evidence preservation and never a scored result.
 
 ### B4 — bounded prompt iteration
 

@@ -13,13 +13,13 @@ Evaluation fixtures generated: `0`
 ## Trust anchors
 
 - Code commit: `fe521fefcaf25475a7bd92c8626f6eccd6ca3033`
-- Research contract SHA-256: `3a2f2dab0acd4c6a274f660f3dd69b3dea0f60d1de263e1034e653a7e03028bc`
+- Research contract SHA-256: `88c33924e249e4195a41096e256e83b0b0d20dbd1a8228d6482e909e9882b9c6`
 - B3 readiness implementation parent commit: `1b0ef0e`
 - Provider-free freeze SHA-256: `86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2`
 - Provider-free regime-gap summary SHA-256: `0e6e8945f93779a77ffc7687d63062c010efd3aee3d6c8062551e54108fbf886`
 - Exact-tag Codex source feature proof SHA-256: `1de5d131356deb6dec8186eb07795e47717d4960937b9142689a5e9cc3554f91`
 - Source tag/commit: `rust-v0.144.1` / `44918ea10c0f99151c6710411b4322c2f5c96bea`
-- D2 decision package SHA-256: `b240fde00ae335f7ced09113332c60cefacafe6a4223114bf680a8d427dcab82`
+- D2 decision package SHA-256: `9427fcc646734ec22b6db5bc1dfa225a2590aebbf9c624cd0024268a310b799f`
 - Freeze root-seed label: `r01-phase-b-development-fixtures-v1`
 - Freeze fixture count: `40`
 - Root-seed and fixture-count match: `true`
@@ -182,6 +182,10 @@ Evaluation fixtures generated: `0`
 - Runtime removal proof: exact-tag source proof is available in
   `docs/r01-b2-codex-source-feature-proof.json`; D2 acceptance is still pending,
   so no acquisition command may be built.
+- Source-proof limitation: package version `0.144.1` attributes the prebuilt npm
+  binary to `rust-v0.144.1`, but no reproducible build cryptographically proves
+  binary-to-commit identity. Any package/binary/source drift invalidates the
+  four-entry no-op conclusion.
 - `enable_request_compression`, `remote_compaction_v2`, and `fast_mode`: baseline `true`, post-disable `false`.
 - Secrets in argv, prompt, config, artifacts, or logs: none observed; secret-bearing config keys and recognizable secret-bearing values are rejected by the command-spec validator.
 
@@ -195,6 +199,10 @@ Evaluation fixtures generated: `0`
 - USD cap: `TBD_D2`; ChatGPT subscription use does not authorize overage or API billing.
 - High-transaction-cost stratum: `6/7` zero oracle-hold gaps; treatment remains `TBD_D2_ACCEPT_UNCHANGED_OR_RESTART_PROVIDER_FREE`.
 - Transport disposition policy: `FROZEN_PRE_D2`. Parser-originated `STOP_PHASE` always dominates timeout/nonzero wrapping; retry wrappers retain the original code and disposition; a complete transport with timeout or nonzero process status is `STOP_PHASE`, never hold.
+- Retry budget policy: attempt-1 `nonzero_exit_without_complete_response` is
+  `STOP_PHASE`; other transport failures may advance once to attempt 2; the
+  second consecutive `RETRY_TRANSPORT` is converted to `STOP_PHASE` before a
+  third call; the global `200`-attempt cap is checked before every call.
 
 D2 must resolve all items below before any B3 acquisition:
 
@@ -203,4 +211,6 @@ D2 must resolve all items below before any B3 acquisition:
 2. Freeze the exact model string, reasoning effort, service tier, and provider-managed setting declarations.
 3. Accept model-echo absence as a possible transport identity limitation, subject to mismatch stopping the phase.
 4. Freeze the development token cap, per-attempt reserve, USD cap, and no-overage rule.
-5. Accept the unchanged high-cost stratum and its prospective power cost, or restart from a newly amended provider-free contract and freeze.
+5. Approve the live timeout, first-nonzero stop rule, and two-failure transport
+   retry bound.
+6. Accept the unchanged high-cost stratum and its prospective power cost, or restart from a newly amended provider-free contract and freeze.

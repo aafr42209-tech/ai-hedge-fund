@@ -483,10 +483,14 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 
 - every manifest-generation and acquisition entry point requires a caller-supplied `provider_free_freeze_sha256` external pre-run trust anchor; R01 accepts only `86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2`, root-seed label `r01-phase-b-development-fixtures-v1`, and development count `40` before the first provider call;
 - each primary `(case_id, replicate_id)` and audit `(case_id, perturbation_id)` permits one initial request and at most one retry;
+- an attempt-1 `nonzero_exit_without_complete_response` is `STOP_PHASE`, because a wrong or unavailable model cannot be distinguished from a transient nonzero exit without spending another call;
+- every other `RETRY_TRANSPORT` may advance once to append-only attempt 2. A second consecutive `RETRY_TRANSPORT` becomes `STOP_PHASE`; attempt 3 is prohibited;
+- the development runner enforces the `200`-attempt cap immediately before each provider call. Reaching the cap is `STOP_PHASE`, creates no new attempt, and produces no replacement fixture or replicate;
 - replicate ID is part of the artifact identity;
 - perturbation ID is part of invariance-artifact identity;
 - responses are append-only and never overwritten;
 - the exact command spec, stdout JSONL bytes, stderr bytes, and process status are stored before transport parsing;
+- each classified failed attempt persists one `r01-acquisition-failure-v1` record. A later successful attempt binds every prior retry record into the run result;
 - `successful acquisition` means a successful process status plus a complete provider transport with exactly one thread identity, one completed turn, at least one completed agent message, and all four required usage fields; it does not mean a schema-valid or high-utility portfolio decision;
 - every failed attempt receives exactly one disposition: `RETRY_TRANSPORT`, `FAIL_CLOSED_SCORE`, or `STOP_PHASE`; a harness or identity failure can never be converted into an LLM abstention;
 - `RETRY_TRANSPORT` applies only to process launch failure, timeout without a complete response, nonzero exit without a complete response, malformed JSONL, missing final message, missing usage, and contradictory or duplicate terminal status. A timeout/nonzero wrapper preserves the original parser code and disposition in the attempt record;
@@ -494,8 +498,13 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 - `STOP_PHASE` applies to artifact persistence/integrity failure, forbidden channel, model-identity mismatch, feature/catalog/sandbox mismatch, unknown event, item, or field shape, and any complete transport with a timeout or nonzero process status;
 - a parser-originated `STOP_PHASE` disposition is never downgraded by timeout or nonzero exit. A complete response with known tool use, invalid decision JSON, schema failure, constraint violation, or poor utility is observed once, fails closed to hold where applicable, and is not retried; a complete response with a process-status violation stops the phase and is never scored as hold;
 - a runner-raised `CodexExecError` preserves its original disposition; operating-system or subprocess launch errors are retryable; unexpected programming exceptions are not reclassified as transport failures and abort the phase as harness errors;
-- every complete response must be passed through the disposition classifier. The B3 runner must consume `FAIL_CLOSED_SCORE` by scoring exactly one hold and must stop if no disposition consumer is present; this is an implementation gate, not an informal convention;
+- every complete response must be passed through the disposition classifier. The client classifies transport safety first as defense in depth; the B3 runner is the single scoring consumer and must consume `FAIL_CLOSED_SCORE` by scoring exactly one hold. It stops if no scoring consumer is present;
+- a fail-closed validation report without at least one violation reason is a harness contradiction and `STOP_PHASE`, never an unlabelled hold;
 - failure to persist the raw transport before parsing is non-retryable and stops the acquisition path.
+
+The final-agent text and process stdout JSONL are different byte streams. The response metadata therefore binds `raw_response.txt` with a dedicated `raw_text_sha256`, while `transport_sha256` separately remains equal to `process_status.stdout_sha256`. Replay verifies both bindings before reconstructing a response.
+
+If `STOP_PHASE` occurs after the command/capture or final-agent text has been persisted, those append-only evidence blobs and the failure record intentionally remain outside a completed `DevelopmentRunResult`. They are expected stopped-attempt evidence, not scored acquisitions, and must never be adopted by a later run.
 
 The parser searches the documented event- and item-level `model` locations. One or more matching echoes set `model_identity_verified_by_transport = true`; no echo records `transport_echo_absent` and remains an explicit limitation; any different echo is `STOP_PHASE`, even when the process also times out or exits nonzero. The pinned JSONL transport-shape specification enumerates allowed fields for every known event and item type. Each acquisition records its observed shape hash. A field outside the pinned shape or an unknown item type is schema drift and stops Phase B rather than increasing an LLM fallback rate.
 
@@ -746,7 +755,8 @@ codex_process_status_schema_version: r01-codex-process-status-v1
 provider_response_schema_version: r01-provider-response-v3
 codex_attempt_transport_artifacts_schema_version: r01-codex-attempt-transport-artifacts-v1
 complete_response_disposition_schema_version: r01-complete-response-disposition-v1
-development_run_result_schema_version: r01-development-run-result-v2
+acquisition_failure_schema_version: r01-acquisition-failure-v1
+development_run_result_schema_version: r01-development-run-result-v3
 codex_jsonl_schema_sha256: ba8751646f3f01a0806f23fe967cf8d5d4d2370fa89682c8a34d77efc0a698ff
 codex_transport_shape_spec_sha256: 89537de83021a90cdd984b97899895325db3745fdf1e65855439845a747af462
 codex_feature_catalog_sha256: 14b554bd29e409dd348878c18ad8b0820a1165772039bb839b538dca03956aad

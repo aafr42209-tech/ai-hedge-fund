@@ -125,7 +125,13 @@ feature catalog into command-spec v2, and requires an externally anchored empty
 sandbox outside the repository. Every complete response is consumed before
 scoring: `STOP_PHASE` never scores, while `FAIL_CLOSED_SCORE` and downstream
 parse/validation failures persist one disposition artifact and score one hold.
-Replay reconsumes and verifies the same artifact. Local `codex features list`
+Retry-eligible failures advance only to append-only attempt 2; the second
+consecutive transport failure, an initial nonzero exit without a complete
+response, or the global development-attempt cap stops before another call.
+Successful retries bind prior failure records. Replay reconsumes the response,
+verifies final-agent text separately from JSONL stdout, and verifies the same
+disposition artifact. Stopped attempts may intentionally leave immutable raw
+evidence outside a completed run result. Local `codex features list`
 inspection and exact-tag source verification make no provider call. D2 user
 approval, provider acquisition, prompt pilot work, evaluation generation,
 sealing, and GO/NO-GO verdicts remain unavailable until their contract gates.

@@ -259,6 +259,12 @@ class ValidationReport(StrictModel):
     cost_ledger: CostLedger
     executable_violation_count: Literal[0] = 0
 
+    @model_validator(mode="after")
+    def validate_fallback_reason(self) -> "ValidationReport":
+        if self.fell_back and not self.violations:
+            raise ValueError("fail-closed fallback requires at least one violation")
+        return self
+
 
 class EpisodeScore(StrictModel):
     return_e12: int
@@ -778,9 +784,27 @@ class CompleteResponseDispositionRecord(StrictModel):
         return self
 
 
+class AcquisitionFailureRecord(StrictModel):
+    schema_version: Literal["r01-acquisition-failure-v1"] = "r01-acquisition-failure-v1"
+    identity: AcquisitionIdentity
+    code: str = Field(min_length=1)
+    disposition: AcquisitionDisposition
+    origin_code: str | None = None
+    origin_disposition: AcquisitionDisposition | None = None
+
+    @model_validator(mode="after")
+    def validate_failure_record(self) -> "AcquisitionFailureRecord":
+        if self.disposition is AcquisitionDisposition.FAIL_CLOSED_SCORE:
+            raise ValueError("complete-response quality failures must be scored, not recorded as acquisition failures")
+        if (self.origin_code is None) != (self.origin_disposition is None):
+            raise ValueError("origin code and disposition must be recorded together")
+        return self
+
+
 class AcquisitionArtifacts(StrictModel):
     identity: AcquisitionIdentity
     fixture: ArtifactReference
+    prior_attempt_failures: tuple[ArtifactReference, ...] = ()
     policy_input: ArtifactReference
     system_prompt: ArtifactReference
     user_prompt: ArtifactReference
@@ -797,7 +821,7 @@ class AcquisitionArtifacts(StrictModel):
 
 
 class DevelopmentRunResult(StrictModel):
-    schema_version: Literal["r01-development-run-result-v2"] = "r01-development-run-result-v2"
+    schema_version: Literal["r01-development-run-result-v3"] = "r01-development-run-result-v3"
     experiment_id: str
     status: Literal["DEVELOPMENT_ONLY_NOT_SEALED"] = "DEVELOPMENT_ONLY_NOT_SEALED"
     run_plan: ArtifactReference

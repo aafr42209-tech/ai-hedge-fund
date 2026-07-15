@@ -11,19 +11,19 @@ from pathlib import Path
 from typing import Any, Protocol
 
 from .canonical import canonical_sha256, sha256_hex
+from .codex_preflight import pilot_sandbox_identity_sha256
 from .contracts import (
     AcquisitionDisposition,
     AcquisitionIdentity,
+    codex_feature_catalog_definition_sha256,
+    codex_feature_catalog_snapshot_sha256,
     CodexCommandSpec,
     CodexFeatureCatalogEntry,
     CodexProcessStatus,
-    ProviderResponse,
-    codex_feature_catalog_definition_sha256,
-    codex_feature_catalog_snapshot_sha256,
     config_key_may_contain_secret,
     config_value_may_contain_secret,
+    ProviderResponse,
 )
-from .codex_preflight import pilot_sandbox_identity_sha256
 
 POLICY_FIXTURE_DELIMITER = "\n\n--- R01 FIXTURE PROMPT ---\n\n"
 PROVIDER_ID = "openai-codex-chatgpt-subscription"
@@ -723,10 +723,11 @@ class CodexExecClient:
                     origin_disposition=exc.disposition,
                 ) from exc
             if capture.exit_code not in (None, 0):
+                disposition = AcquisitionDisposition.STOP_PHASE if identity.attempt == 1 else AcquisitionDisposition.RETRY_TRANSPORT
                 raise CodexExecError(
                     "nonzero_exit_without_complete_response",
-                    "Codex process exited nonzero without a complete response",
-                    disposition=AcquisitionDisposition.RETRY_TRANSPORT,
+                    ("initial Codex process exited nonzero without a complete response; " "stop before retrying a possibly unavailable model" if identity.attempt == 1 else "Codex retry process exited nonzero without a complete response"),
+                    disposition=disposition,
                     origin_code=exc.code,
                     origin_disposition=exc.disposition,
                 ) from exc

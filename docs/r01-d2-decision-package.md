@@ -5,8 +5,8 @@
 ## Status
 
 - Decision gate: `D2`
-- State: `READY_FOR_CROSS_REVIEW_PENDING_USER_APPROVAL`
-- Implementation parent commit: `1b0ef0e`
+- State: `READY_FOR_SECOND_CROSS_REVIEW_PENDING_USER_APPROVAL`
+- Implementation parent commit: `d4f06af`
 - Provider calls made: `0`
 - Development attempts spent: `0`
 - Evaluation fixtures created: `0`
@@ -19,7 +19,7 @@ build an acquisition command, or authorize the B3 micro-pilot.
 - Provider-free freeze SHA-256:
   `86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2`.
 - Research contract SHA-256:
-  `3a2f2dab0acd4c6a274f660f3dd69b3dea0f60d1de263e1034e653a7e03028bc`.
+  `88c33924e249e4195a41096e256e83b0b0d20dbd1a8228d6482e909e9882b9c6`.
 - Provider-free regime-gap summary SHA-256:
   `0e6e8945f93779a77ffc7687d63062c010efd3aee3d6c8062551e54108fbf886`.
 - B2 feature snapshot SHA-256:
@@ -35,22 +35,24 @@ build an acquisition command, or authorize the B3 micro-pilot.
   `53cbad126a94c757dd26c9e7788a402697bdde04a4d9a6077202e0fdbf6a788b`.
 - Bundled model catalog SHA-256:
   `678a11fa060b6a30573992fd15b25911f4d2f939ce43c016dffb5d08e22a4b08`.
-- Provider-free overlay test result: `102 passed`.
+- Provider-free overlay test result: `109 passed`.
 
 ## Recommended D2 resolution
 
 | Field | Recommendation | State |
 | --- | --- | --- |
-| Exact model | `gpt-5.6-sol` | Pending user approval and first-call availability check |
+| Exact model | `gpt-5.6-sol` | Pending user approval; spelling is present in the pinned local catalog, while entitlement remains a first-call check |
 | Reasoning effort | `high` | Pending user approval |
 | Service tier | provider default; do not request `priority` or `fast` | Pending user approval |
 | Temperature / top-p | `provider_managed_not_exposed` | Record as limitation |
 | Model fallback | prohibited | Frozen |
 | Transport model echo | absence accepted as a limitation; any mismatch is `STOP_PHASE` | Pending user approval |
-| Live process timeout | `300000` ms | Pending user approval |
+| Live process timeout | `900000` ms | Pending user approval |
 | Per-attempt token reserve | `32000` total tokens | Pending user approval |
 | Development token cap | `6400000` total tokens | Pending user approval |
 | Development attempt cap | `200` attempts, existing block allocation unchanged | Frozen |
+| Consecutive `RETRY_TRANSPORT` cap | `2`; the second failure becomes `STOP_PHASE` before attempt 3 | Frozen |
+| Initial model-availability failure | attempt-1 `nonzero_exit_without_complete_response` is `STOP_PHASE` | Frozen |
 | Incremental USD cap | `0`; no API key, metered overage, purchased credits, or automatic billing fallback | Pending entitlement confirmation |
 | `delta_min_e12` | `50000000000` | Pending user approval |
 | `target_headroom_e12` | `50000000000` | Pending user approval |
@@ -62,6 +64,14 @@ The margin recommendation treats `delta_min` as 5% of one normalized
 oracle-hold scale unit and targets a 10% effect. These values are independent of
 all provider output. They must not be reduced after B3 to improve power or a
 verdict.
+
+The `32000` reserve is an accounting ceiling, not a promise that every response
+must emit that many tokens. Even so, the proposed live timeout is raised from
+`300000` to `900000` ms so a high-reasoning request does not enter transport
+retry merely because the original ceiling implied roughly `107` reserved
+tokens/second. At the revised ceiling the same conservative ratio is about
+`36` tokens/second. Every retry consumes both the attempt and token caps; no
+replacement fixture or replicate is created if either cap stops the run.
 
 ## Minimal non-tool allowlist
 
@@ -77,17 +87,23 @@ and their config keys are explicitly ignored by `Features::apply_map`. A scan of
 the exact tagged Rust source found no behavior consumer outside the feature
 registry, removed-key config guards, and feature tests. They are therefore
 source-established no-op registry residues for this pinned binary identity, not
-active tools. Any package, binary, catalog, definition, or source-identity
-change invalidates this conclusion and stops the phase.
+active tools under the pinned package-to-tag attribution. The attribution is a
+named limitation: the npm package manifest links version `0.144.1` to tag
+`rust-v0.144.1`, but no reproducible build cryptographically proves that the
+prebuilt binary was built from commit
+`44918ea10c0f99151c6710411b4322c2f5c96bea`. Any package, binary, catalog,
+definition, or source-identity change invalidates this conclusion and stops the
+phase.
 
 All other `88` catalog entries remain disabled. In particular,
 `enable_request_compression`, `remote_compaction_v2`, and `fast_mode` remain
 false. Shell, browser, web search, MCP, plugin, app, external-context,
 workspace-dependency, and personality surfaces remain disabled.
 
-## B3 implementation gate now covered
+## Provider-free B3 safety gates now covered
 
-The provider-free runner now consumes every complete response disposition:
+The provider-free runner now consumes every complete response disposition and
+every bounded transport retry:
 
 - `STOP_PHASE` never reaches parsing or scoring;
 - an impossible complete-response `RETRY_TRANSPORT` is converted to a
@@ -96,11 +112,20 @@ The provider-free runner now consumes every complete response disposition:
 - parse/schema/portfolio failures receive an explicit `FAIL_CLOSED_SCORE`
   record and the same one-hold treatment;
 - replay reconstructs the provider response metadata, reconsumes the
-  disposition, and verifies the persisted disposition artifact byte-for-byte.
+  disposition, verifies final-agent text independently from JSONL stdout, and
+  verifies the persisted disposition artifact byte-for-byte;
+- attempt-1 nonzero-without-complete-response stops immediately;
+- other `RETRY_TRANSPORT` failures advance at most once to attempt 2, bind the
+  first failure record into a later success, and stop on the second consecutive
+  failure before attempt 3;
+- the development `200`-attempt cap is checked immediately before every call;
+- stopped attempts may leave immutable raw/failure evidence outside a completed
+  run result, but those blobs never enter scoring or fallback metrics.
 
 The nested run-result contract was version-bumped to
-`r01-development-run-result-v2`, and each acquisition now binds an
-`r01-complete-response-disposition-v1` artifact.
+`r01-development-run-result-v3`; each acquisition binds an
+`r01-complete-response-disposition-v1` artifact and any successful retry binds
+its preceding `r01-acquisition-failure-v1` record.
 
 ## Remaining authorization gate
 
@@ -123,3 +148,5 @@ Review should answer:
 4. Is the run-result schema bump complete across acquisition and replay?
 5. Are the proposed model, timeout, token, margin, variance, and high-cost
    decisions independent of provider outcomes and sufficiently conservative?
+6. Do the first-nonzero stop rule, two-failure retry bound, global attempt cap,
+   and retry-history replay binding close the pre-D2 budget-leak finding?

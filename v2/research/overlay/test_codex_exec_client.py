@@ -6,25 +6,25 @@ import pytest
 
 from .canonical import canonical_sha256, sha256_hex
 from .codex_exec_client import (
-    POLICY_FIXTURE_DELIMITER,
-    CodexExecClient,
-    CodexExecError,
-    CodexProcessCapture,
     build_codex_command_spec,
     codex_jsonl_schema_sha256,
     codex_transport_shape_spec_sha256,
+    CodexExecClient,
+    CodexExecError,
+    CodexProcessCapture,
     complete_response_disposition,
     compose_stdin_bytes,
     parse_codex_jsonl,
+    POLICY_FIXTURE_DELIMITER,
 )
 from .codex_preflight import pilot_sandbox_identity_sha256
 from .contracts import (
     AcquisitionDisposition,
     AcquisitionIdentity,
-    CodexCommandSpec,
-    CodexFeatureCatalogEntry,
     codex_feature_catalog_snapshot_sha256,
     codex_pilot_sandbox_identity_sha256,
+    CodexCommandSpec,
+    CodexFeatureCatalogEntry,
 )
 
 
@@ -75,13 +75,13 @@ def _capture(
     )
 
 
-def _identity(channel: str = "development") -> AcquisitionIdentity:
+def _identity(channel: str = "development", *, attempt: int = 1) -> AcquisitionIdentity:
     return AcquisitionIdentity(
         experiment_id="b1-test",
         case_id="development-0000",
         channel=channel,
         replicate_id=0,
-        attempt=1,
+        attempt=attempt,
     )
 
 
@@ -350,7 +350,6 @@ def test_client_success_uses_injected_runner_and_sinks_raw_before_return(tmp_pat
     ("capture", "expected_code"),
     (
         (_capture(stdout=b"", exit_code=None, timed_out=True), "timeout_without_complete_response"),
-        (_capture(stdout=b"", exit_code=7, stderr=b"failure"), "nonzero_exit_without_complete_response"),
         (_capture(stdout=b"not-json"), "malformed_jsonl"),
         (
             _capture(_events(usage={"input_tokens": 1, "output_tokens": 2})),
@@ -383,15 +382,50 @@ def test_transport_failures_are_retry_eligible(tmp_path, capture, expected_code)
         client.complete(system="policy", user="fixture", identity=_identity())
     assert raised.value.code == expected_code
     assert raised.value.disposition is AcquisitionDisposition.RETRY_TRANSPORT
-    if expected_code in {
-        "timeout_without_complete_response",
-        "nonzero_exit_without_complete_response",
-    }:
+    if expected_code == "timeout_without_complete_response":
         assert raised.value.origin_code is not None
         assert raised.value.origin_disposition is AcquisitionDisposition.RETRY_TRANSPORT
     else:
         assert raised.value.origin_code is None
         assert raised.value.origin_disposition is None
+    assert len(sink_calls) == 1
+
+
+def test_initial_nonzero_without_complete_response_stops_before_retry(tmp_path) -> None:
+    sink_calls: list[object] = []
+    client, _runner = _client(
+        tmp_path,
+        _capture(stdout=b"", exit_code=7, stderr=b"failure"),
+        sink_calls,
+    )
+
+    with pytest.raises(CodexExecError) as raised:
+        client.complete(system="policy", user="fixture", identity=_identity())
+
+    assert raised.value.code == "nonzero_exit_without_complete_response"
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
+    assert raised.value.origin_disposition is AcquisitionDisposition.RETRY_TRANSPORT
+    assert len(sink_calls) == 1
+
+
+def test_retry_nonzero_without_complete_response_remains_transport_failure(tmp_path) -> None:
+    sink_calls: list[object] = []
+    client, _runner = _client(
+        tmp_path,
+        _capture(stdout=b"", exit_code=7, stderr=b"failure"),
+        sink_calls,
+    )
+
+    with pytest.raises(CodexExecError) as raised:
+        client.complete(
+            system="policy",
+            user="fixture",
+            identity=_identity(attempt=2),
+        )
+
+    assert raised.value.code == "nonzero_exit_without_complete_response"
+    assert raised.value.disposition is AcquisitionDisposition.RETRY_TRANSPORT
+    assert raised.value.origin_disposition is AcquisitionDisposition.RETRY_TRANSPORT
     assert len(sink_calls) == 1
 
 

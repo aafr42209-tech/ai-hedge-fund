@@ -11,16 +11,17 @@ from .artifacts import (
     ArtifactIntegrityError,
 )
 from .canonical import canonical_sha256
-from .contracts import ASSET_IDS, AcquisitionIdentity, DevelopmentManifest
-from .freeze import generate_provider_free_freeze
-from .llm_policy import ScriptedAcquisitionClient, acquisition_key
-from .runner import (
-    generate_development_manifest as _generate_development_manifest,
-    main,
-    replay,
-    run_scripted_acquisition,
-    scripted_response_template,
+from .codex_exec_client import CodexExecError
+from .contracts import (
+    AcquisitionDisposition,
+    AcquisitionIdentity,
+    ASSET_IDS,
+    DevelopmentManifest,
 )
+from .freeze import generate_provider_free_freeze
+from .llm_policy import acquisition_key, ScriptedAcquisitionClient
+from .runner import generate_development_manifest as _generate_development_manifest
+from .runner import main, replay, run_scripted_acquisition, scripted_response_template
 
 
 def _hold_raw() -> str:
@@ -38,6 +39,23 @@ def _hold_raw() -> str:
         },
         separators=(",", ":"),
     )
+
+
+class _RetryOnceClient:
+    def __init__(self, response: str) -> None:
+        self.provider_calls = 0
+        self._response = response
+
+    def complete(self, *, system, user, identity):
+        self.provider_calls += 1
+        if identity.attempt == 1:
+            raise CodexExecError(
+                "timeout_without_complete_response",
+                "scripted timeout",
+                disposition=AcquisitionDisposition.RETRY_TRANSPORT,
+            )
+        delegate = ScriptedAcquisitionClient({acquisition_key(identity): self._response})
+        return delegate.complete(system=system, user=user, identity=identity)
 
 
 def generate_development_manifest(
@@ -125,6 +143,7 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
         expected_freeze_sha256=manifest.provider_free_freeze_sha256,
     )
     assert client.provider_calls == 1
+    assert result.schema_version == "r01-development-run-result-v3"
     acquisition = result.acquisitions[0]
     assert store.read_bytes(acquisition.raw_response) == _hold_raw().encode()
     verification = _anchored_replay(store, result_ref, manifest_ref)
@@ -173,6 +192,58 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
                 result_ref.sha256,
             ]
         )
+
+
+def test_retry_success_is_bound_into_run_result_and_replay(tmp_path) -> None:
+    store = AppendOnlyArtifactStore(tmp_path)
+    manifest_ref, manifest = generate_development_manifest(
+        store,
+        experiment_id="artifact-retry-test",
+        root_seed="artifact-retry-seed",
+        contract_bytes=b"draft-contract",
+        count=1,
+    )
+    client = _RetryOnceClient(_hold_raw())
+
+    result_ref, result = run_scripted_acquisition(
+        store,
+        manifest_reference=manifest_ref,
+        client=client,
+        expected_freeze_sha256=manifest.provider_free_freeze_sha256,
+    )
+
+    assert client.provider_calls == 2
+    assert result.acquisitions[0].identity.attempt == 2
+    assert len(result.acquisitions[0].prior_attempt_failures) == 1
+    verification = _anchored_replay(store, result_ref, manifest_ref)
+    assert verification.provider_calls == 0
+    assert verification.verified_acquisitions == 1
+
+
+def test_development_attempt_cap_stops_before_an_extra_call(tmp_path) -> None:
+    store = AppendOnlyArtifactStore(tmp_path)
+    manifest_ref, manifest = generate_development_manifest(
+        store,
+        experiment_id="artifact-attempt-cap-test",
+        root_seed="artifact-attempt-cap-seed",
+        contract_bytes=b"draft-contract",
+        count=2,
+    )
+    responses = scripted_response_template(manifest, replicates=1)
+    client = ScriptedAcquisitionClient(responses)
+
+    with pytest.raises(CodexExecError) as raised:
+        run_scripted_acquisition(
+            store,
+            manifest_reference=manifest_ref,
+            client=client,
+            expected_freeze_sha256=manifest.provider_free_freeze_sha256,
+            max_provider_attempts=1,
+        )
+
+    assert raised.value.code == "development_attempt_cap_reached"
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
+    assert client.provider_calls == 1
 
 
 def test_scripted_template_cli_emits_production_acquisition_keys(tmp_path, capsys, monkeypatch) -> None:

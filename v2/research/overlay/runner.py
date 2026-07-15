@@ -15,6 +15,7 @@ from .codex_exec_client import CodexExecError, complete_response_disposition
 from .contracts import (
     AcquisitionArtifacts,
     AcquisitionDisposition,
+    AcquisitionFailureRecord,
     AcquisitionIdentity,
     ArtifactReference,
     CompleteResponseDispositionRecord,
@@ -62,6 +63,9 @@ from .specs import (
     scoring_spec,
     scoring_spec_sha256,
 )
+
+MAX_CONSECUTIVE_RETRY_TRANSPORT = 2
+DEVELOPMENT_ATTEMPT_CAP = 200
 
 
 def generate_development_manifest(
@@ -196,6 +200,43 @@ class _AcquisitionOutcome:
     score: EpisodeScore
 
 
+def _initial_attempt_identity(identity: AcquisitionIdentity) -> AcquisitionIdentity:
+    return identity.model_copy(update={"attempt": 1})
+
+
+def _failure_record(
+    identity: AcquisitionIdentity,
+    error: CodexExecError,
+) -> AcquisitionFailureRecord:
+    return AcquisitionFailureRecord(
+        identity=identity,
+        code=error.code,
+        disposition=error.disposition,
+        origin_code=error.origin_code,
+        origin_disposition=error.origin_disposition,
+    )
+
+
+def _bounded_retry_failure(
+    identity: AcquisitionIdentity,
+    error: CodexExecError,
+) -> tuple[CodexExecError, AcquisitionIdentity | None]:
+    if error.disposition is not AcquisitionDisposition.RETRY_TRANSPORT:
+        return error, None
+    if identity.attempt >= MAX_CONSECUTIVE_RETRY_TRANSPORT:
+        return (
+            CodexExecError(
+                "retry_transport_limit_reached",
+                "two consecutive RETRY_TRANSPORT failures stop the acquisition before a third call",
+                disposition=AcquisitionDisposition.STOP_PHASE,
+                origin_code=error.code,
+                origin_disposition=error.disposition,
+            ),
+            None,
+        )
+    return error, identity.model_copy(update={"attempt": identity.attempt + 1})
+
+
 def development_acquisition_identities(
     manifest: DevelopmentManifest,
     replicates: int,
@@ -316,6 +357,12 @@ def _consume_complete_response(
             disposition = AcquisitionDisposition.FAIL_CLOSED_SCORE
 
     reason_codes = tuple(sorted({violation.code for violation in outcome.validation.violations}))
+    if outcome.validation.fell_back and not reason_codes:
+        raise CodexExecError(
+            "fail_closed_without_reason",
+            "fail-closed response has no recorded violation reason",
+            disposition=AcquisitionDisposition.STOP_PHASE,
+        )
     record = CompleteResponseDispositionRecord(
         disposition=disposition,
         reason_codes=reason_codes,
@@ -331,25 +378,49 @@ def _complete_acquisition(
     episode: SyntheticEpisode,
     client: AcquisitionClient,
     oracle: OracleResult,
+    provider_call_ceiling: int | None = None,
 ) -> _AcquisitionOutcome:
     identity = entry.identity
-    prefix = _acquisition_prefix(identity)
-    request = _write_request_artifacts(
-        store,
-        identity=identity,
-        episode=episode,
-        client=client,
-    )
-    response = client.complete(
-        system=SYSTEM_PROMPT_V1,
-        user=request.user_prompt,
-        identity=identity,
-    )
+    prior_attempt_failures: list[ArtifactReference] = []
+    while True:
+        if provider_call_ceiling is not None and client.provider_calls >= provider_call_ceiling:
+            raise CodexExecError(
+                "development_attempt_cap_reached",
+                "development provider-attempt cap reached before the next call",
+                disposition=AcquisitionDisposition.STOP_PHASE,
+            )
+        prefix = _acquisition_prefix(identity)
+        request = _write_request_artifacts(
+            store,
+            identity=identity,
+            episode=episode,
+            client=client,
+        )
+        try:
+            response = client.complete(
+                system=SYSTEM_PROMPT_V1,
+                user=request.user_prompt,
+                identity=identity,
+            )
+        except CodexExecError as error:
+            effective_error, retry_identity = _bounded_retry_failure(identity, error)
+            failure_ref = store.write_json(
+                f"{prefix}/acquisition_failure.json",
+                _failure_record(identity, effective_error),
+            )
+            if retry_identity is None:
+                raise effective_error from error
+            prior_attempt_failures.append(failure_ref)
+            identity = retry_identity
+            continue
+        break
 
     raw_ref = store.write_text(f"{prefix}/raw_response.txt", response.raw_text)
+    response_metadata = response.model_dump(mode="python", exclude={"raw_text"})
+    response_metadata["raw_text_sha256"] = raw_ref.sha256
     response_metadata_ref = store.write_json(
         f"{prefix}/provider_response_metadata.json",
-        response.model_dump(mode="python", exclude={"raw_text"}),
+        response_metadata,
     )
     outcome, disposition = _consume_complete_response(episode, response)
     score = score_episode(episode, outcome.validation)
@@ -368,6 +439,7 @@ def _complete_acquisition(
     artifacts = AcquisitionArtifacts(
         identity=identity,
         fixture=entry.fixture,
+        prior_attempt_failures=tuple(prior_attempt_failures),
         policy_input=request.policy_input,
         system_prompt=request.system_prompt,
         user_prompt=request.user_prompt_artifact,
@@ -430,6 +502,25 @@ def _write_development_result(
     return result_ref, result
 
 
+def _reconstruct_provider_response(
+    raw_bytes: bytes,
+    metadata_bytes: bytes,
+) -> ProviderResponse:
+    try:
+        metadata = json.loads(metadata_bytes)
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise RuntimeError("provider response metadata is not replayable") from exc
+    if not isinstance(metadata, dict) or "raw_text" in metadata:
+        raise RuntimeError("provider response metadata is not replayable")
+    if metadata.pop("raw_text_sha256", None) != sha256_hex(raw_bytes):
+        raise RuntimeError("raw response hash does not match provider response metadata")
+    try:
+        raw_text = raw_bytes.decode("utf-8")
+    except UnicodeDecodeError as exc:
+        raise RuntimeError("raw response is not valid UTF-8") from exc
+    return ProviderResponse.model_validate_json(canonical_json_bytes({"raw_text": raw_text, **metadata}))
+
+
 def run_scripted_acquisition(
     store: AppendOnlyArtifactStore,
     *,
@@ -437,7 +528,10 @@ def run_scripted_acquisition(
     client: AcquisitionClient,
     expected_freeze_sha256: str,
     replicates: int = 1,
+    max_provider_attempts: int = DEVELOPMENT_ATTEMPT_CAP,
 ) -> tuple[ArtifactReference, DevelopmentRunResult]:
+    if max_provider_attempts <= 0 or max_provider_attempts > DEVELOPMENT_ATTEMPT_CAP:
+        raise ValueError(f"development provider-attempt cap must be in [1, {DEVELOPMENT_ATTEMPT_CAP}]")
     manifest = DevelopmentManifest.model_validate_json(store.read_bytes(manifest_reference))
     _verify_manifest_specs(
         store,
@@ -455,6 +549,7 @@ def run_scripted_acquisition(
     report_cases: list[dict[str, Any]] = []
     baseline_cache: dict[str, dict[str, int]] = {}
     oracle_cache: dict[str, OracleResult] = {}
+    provider_call_ceiling = client.provider_calls + max_provider_attempts
     for entry in plan.entries:
         identity = entry.identity
         episode = _load_episode(store, entry.fixture)
@@ -465,6 +560,7 @@ def run_scripted_acquisition(
             episode=episode,
             client=client,
             oracle=oracle,
+            provider_call_ceiling=provider_call_ceiling,
         )
         acquisitions.append(outcome.artifacts)
         if episode.content_sha256 not in baseline_cache:
@@ -528,9 +624,20 @@ def replay(
 
     oracle_cache: dict[str, OracleResult] = {}
     for acquisition in result.acquisitions:
-        key = acquisition_key(acquisition.identity)
+        key = acquisition_key(_initial_attempt_identity(acquisition.identity))
         if key not in planned:
             raise RuntimeError(f"unplanned acquisition: {key}")
+        if len(acquisition.prior_attempt_failures) != acquisition.identity.attempt - 1:
+            raise RuntimeError("final acquisition attempt does not match its bound failure history")
+        for expected_attempt, failure_reference in enumerate(
+            acquisition.prior_attempt_failures,
+            start=1,
+        ):
+            failure = AcquisitionFailureRecord.model_validate_json(store.read_bytes(failure_reference))
+            if failure.identity != acquisition.identity.model_copy(update={"attempt": expected_attempt}):
+                raise RuntimeError("retry failure identity does not match the final acquisition")
+            if failure.disposition is not AcquisitionDisposition.RETRY_TRANSPORT:
+                raise RuntimeError("a completed retry chain may bind only RETRY_TRANSPORT failures")
         for reference in (
             acquisition.policy_input,
             acquisition.system_prompt,
@@ -540,11 +647,10 @@ def replay(
         ):
             store.verify(reference)
         episode = _load_episode(store, acquisition.fixture)
-        raw_text = store.read_bytes(acquisition.raw_response).decode("utf-8")
-        metadata = json.loads(store.read_bytes(acquisition.provider_response_metadata))
-        if not isinstance(metadata, dict) or "raw_text" in metadata:
-            raise RuntimeError("provider response metadata is not replayable")
-        response = ProviderResponse.model_validate_json(canonical_json_bytes({"raw_text": raw_text, **metadata}))
+        response = _reconstruct_provider_response(
+            store.read_bytes(acquisition.raw_response),
+            store.read_bytes(acquisition.provider_response_metadata),
+        )
         outcome, disposition = _consume_complete_response(episode, response)
         score = score_episode(episode, outcome.validation)
         oracle = _cached_oracle(oracle_cache, episode)
