@@ -5,18 +5,23 @@ from __future__ import annotations
 from dataclasses import dataclass
 from typing import Protocol, runtime_checkable
 
-from .canonical import DecisionParseError, canonical_sha256, parse_decision_batch, sha256_hex
+from .canonical import (
+    canonical_sha256,
+    DecisionParseError,
+    parse_decision_batch,
+    sha256_hex,
+)
 from .contracts import (
     AcquisitionIdentity,
+    CodexProcessStatus,
     DecisionBatch,
     MAX_REASONING_CODEPOINTS,
     ProviderResponse,
-    CodexProcessStatus,
     PublicEpisode,
     ValidationReport,
 )
 from .perturbations import identity_permutation, present_episode, render_presented_json
-from .validator import validate_batch
+from .validator import fail_closed_hold, validate_batch
 
 SYSTEM_PROMPT_V1 = f"""You are the portfolio decision policy in a synthetic research fixture.
 Return one JSON object matching the required schema. Do not omit or add assets.
@@ -115,6 +120,26 @@ class ParsedPolicyOutcome:
     parsed_batch: DecisionBatch | None
     parsed_artifact: dict[str, object]
     validation: ValidationReport
+
+
+def fail_closed_outcome(
+    public: PublicEpisode,
+    *,
+    code: str,
+    detail: str,
+) -> ParsedPolicyOutcome:
+    """Materialize one explicit upstream failure as the canonical hold outcome."""
+
+    return ParsedPolicyOutcome(
+        parsed_batch=None,
+        parsed_artifact={
+            "fail_closed_error": {
+                "code": code,
+                "detail": detail,
+            }
+        },
+        validation=fail_closed_hold(public, code=code, detail=detail),
+    )
 
 
 def parse_and_validate(public: PublicEpisode, raw_text: str) -> ParsedPolicyOutcome:

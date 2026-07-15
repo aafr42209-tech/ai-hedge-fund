@@ -6,14 +6,20 @@ Observation date: `2026-07-14` (Asia/Seoul)
 
 Provider calls made: `0`
 
+D2 cross-review package: `docs/r01-d2-decision-package.md`.
+
 Evaluation fixtures generated: `0`
 
 ## Trust anchors
 
 - Code commit: `fe521fefcaf25475a7bd92c8626f6eccd6ca3033`
-- Research contract SHA-256: `33deed096d138b74e21a4761dca25cadc9a200bcfd17136d391c4b84f7377446`
+- Research contract SHA-256: `3a2f2dab0acd4c6a274f660f3dd69b3dea0f60d1de263e1034e653a7e03028bc`
+- B3 readiness implementation parent commit: `1b0ef0e`
 - Provider-free freeze SHA-256: `86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2`
 - Provider-free regime-gap summary SHA-256: `0e6e8945f93779a77ffc7687d63062c010efd3aee3d6c8062551e54108fbf886`
+- Exact-tag Codex source feature proof SHA-256: `1de5d131356deb6dec8186eb07795e47717d4960937b9142689a5e9cc3554f91`
+- Source tag/commit: `rust-v0.144.1` / `44918ea10c0f99151c6710411b4322c2f5c96bea`
+- D2 decision package SHA-256: `b240fde00ae335f7ced09113332c60cefacafe6a4223114bf680a8d427dcab82`
 - Freeze root-seed label: `r01-phase-b-development-fixtures-v1`
 - Freeze fixture count: `40`
 - Root-seed and fixture-count match: `true`
@@ -60,9 +66,14 @@ Evaluation fixtures generated: `0`
 - Post-disable effective-false count: `88`.
 - Post-disable effective-true count: `4`.
 - Residual effective-true entries: `resize_all_images`, `terminal_resize_reflow`, `tool_search_always_defer_mcp_tools`, `tui_app_server`.
-- Residual runtime inertness: `UNESTABLISHED_ZERO_CALL`. The `removed` stage label is not accepted as inertness evidence.
-- Command-spec SHA-256: absent because the effective-true set exceeds the empty allowlist.
-- Gate result: `BLOCKED`; prompt wording cannot override it.
+- Residual runtime inertness:
+  `SOURCE_ESTABLISHED_REMOVED_NOOP_PENDING_D2_ACCEPTANCE`. Exact tagged source
+  explicitly ignores all four config keys and has no behavior consumer outside
+  the feature registry, removed-key guards, and tests. The stage label alone was
+  not used as evidence.
+- Command-spec SHA-256: absent until D2 approves or rejects the exact four-entry
+  non-tool allowlist.
+- Gate result: `BLOCKED_PENDING_D2`; prompt wording cannot override it.
 
 `baseline` is the effective value before generated disables.
 
@@ -168,7 +179,9 @@ Evaluation fixtures generated: `0`
 - Absolute, outside repository, non-symlink, empty at check: `true`.
 - B2 runner exceptions: OS/subprocess launch errors are retryable; phase-stop and unexpected programming errors are preserved, not reclassified.
 - Shell, exec, browser, app, plugin, MCP, external-context, workspace-dependency, personality, request-compression, remote-compaction, and fast-mode feature disables were generated from the complete catalog.
-- Runtime removal proof: unavailable while the four residual effective-true entries remain unproved; no acquisition command may be built.
+- Runtime removal proof: exact-tag source proof is available in
+  `docs/r01-b2-codex-source-feature-proof.json`; D2 acceptance is still pending,
+  so no acquisition command may be built.
 - `enable_request_compression`, `remote_compaction_v2`, and `fast_mode`: baseline `true`, post-disable `false`.
 - Secrets in argv, prompt, config, artifacts, or logs: none observed; secret-bearing config keys and recognizable secret-bearing values are rejected by the command-spec validator.
 
@@ -185,7 +198,8 @@ Evaluation fixtures generated: `0`
 
 D2 must resolve all items below before any B3 acquisition:
 
-1. Establish acceptable evidence that the four residual entries are runtime-inert, or stop Option A.
+1. Accept the exact-tag source proof and approve exactly the four residual
+   removed/no-op entries, or reject it and stop Option A.
 2. Freeze the exact model string, reasoning effort, service tier, and provider-managed setting declarations.
 3. Accept model-echo absence as a possible transport identity limitation, subject to mismatch stopping the phase.
 4. Freeze the development token cap, per-attempt reserve, USD cap, and no-overage rule.

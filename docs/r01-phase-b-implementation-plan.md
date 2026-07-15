@@ -697,9 +697,14 @@ Current zero-call observation on pinned local `codex-cli 0.144.1`:
   definition, but the post-disable result is `88` false and four still true:
   `resize_all_images`, `terminal_resize_reflow`,
   `tool_search_always_defer_mcp_tools`, and `tui_app_server`;
-- therefore the desired empty allowlist correctly blocks command-spec creation.
-  B2 remains `BLOCKED_PENDING_D2` until inertness is established or Option A is
-  stopped; no prompt wording can override this gate;
+- exact tagged source at `rust-v0.144.1` explicitly ignores all four config keys
+  and has no behavior consumer outside the feature registry, removed-key
+  guards, and tests. The canonical source-proof artifact is
+  `docs/r01-b2-codex-source-feature-proof.json`, SHA-256
+  `1de5d131356deb6dec8186eb07795e47717d4960937b9142689a5e9cc3554f91`;
+- B2 remains `BLOCKED_PENDING_D2` until the user accepts exactly those four
+  removed/no-op entries as the minimal non-tool allowlist or stops Option A; no
+  prompt wording can override this gate;
 - model-echo availability cannot be established without a provider transport.
   The parser is ready to verify or stop, and D2 must accept echo absence as a
   possible identity limitation before any authorized B3 call.
@@ -720,6 +725,27 @@ choose one of two provider-free outcomes: accept the anchored generator with the
 `high_transaction_cost` `6/7` zero-gap stratum and record its power cost, or stop
 and issue a new contract and freeze. It cannot exclude, rebalance, or alter that
 stratum after a Codex response exists.
+
+#### Provider-free B3 disposition-consumer readiness — 2026-07-15
+
+- every complete response now passes through one runner-level disposition
+  consumer before policy parsing or scoring;
+- `STOP_PHASE` and an impossible complete-response `RETRY_TRANSPORT` stop before
+  scoring;
+- `FAIL_CLOSED_SCORE`, parse failures, and decision-validation failures create
+  one canonical hold outcome and one score call;
+- replay reconstructs the strict provider response, reconsumes the disposition,
+  and verifies the persisted disposition artifact byte-for-byte;
+- each acquisition binds an `r01-complete-response-disposition-v1` artifact and
+  the containing result schema is bumped to `r01-development-run-result-v2`;
+- updated research contract SHA-256:
+  `3a2f2dab0acd4c6a274f660f3dd69b3dea0f60d1de263e1034e653a7e03028bc`;
+- `102` provider-free overlay tests pass, including dedicated consumer,
+  one-hold, missing-consumer, stop-before-score, and replay regression coverage;
+- D2 recommendations and unresolved approvals are recorded in
+  `docs/r01-d2-decision-package.md`, SHA-256
+  `b240fde00ae335f7ced09113332c60cefacafe6a4223114bf680a8d427dcab82`;
+- provider calls and development attempts remain `0`.
 
 ### B3 — 12-call micro-pilot
 

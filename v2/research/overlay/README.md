@@ -1,10 +1,11 @@
-# R01 LLM overlay research — Phase A / provider-free B0-B2
+# R01 LLM overlay research — Phase A / provider-free B0-B3 readiness
 
 `v2.research.overlay` is the provider-free, development-only foundation for R01.
 It implements deterministic fixture generation, strict validation, exact integer
 scoring, complete-enumeration oracle and baselines, append-only artifacts, replay,
 bootstrap analysis, nuisance transforms, the Codex command/JSONL contract, and
-the provider-free B2 feature/catalog/isolation gates.
+the provider-free B2 feature/catalog/isolation gates, and the B3 complete-response
+disposition consumer.
 
 The provider-capable Codex adapter requires an injected process runner and
 raw-capture sink; this package provides no default acquisition subprocess and
@@ -117,11 +118,14 @@ fixed B0 freeze hash shown above, the manifest hash printed by
 mismatched external anchor fails closed before scoring. Manifest generation also
 rejects any root seed or fixture count that differs from the committed B0 freeze.
 
-The executable runner remains scripted-only. Pre-B2 hardening uses explicit
+The executable runner remains scripted-only. Provider-free hardening uses explicit
 `RETRY_TRANSPORT` / `FAIL_CLOSED_SCORE` / `STOP_PHASE` dispositions, verifies any
 transport model echo, stops on unknown JSONL item or field shapes, binds the full
 feature catalog into command-spec v2, and requires an externally anchored empty
-sandbox outside the repository. Local `codex features list` inspection makes no
-provider call. Provider acquisition, prompt pilot work, evaluation generation,
-sealing, and GO/NO-GO verdicts remain unavailable until their later contract
-phases.
+sandbox outside the repository. Every complete response is consumed before
+scoring: `STOP_PHASE` never scores, while `FAIL_CLOSED_SCORE` and downstream
+parse/validation failures persist one disposition artifact and score one hold.
+Replay reconsumes and verifies the same artifact. Local `codex features list`
+inspection and exact-tag source verification make no provider call. D2 user
+approval, provider acquisition, prompt pilot work, evaluation generation,
+sealing, and GO/NO-GO verdicts remain unavailable until their contract gates.

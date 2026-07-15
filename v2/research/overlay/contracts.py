@@ -2,8 +2,8 @@
 
 from __future__ import annotations
 
-from enum import StrEnum
 import re
+from enum import StrEnum
 from typing import Any, Literal
 
 import numpy as np
@@ -757,6 +757,27 @@ class DevelopmentRunPlan(StrictModel):
     entries: tuple[RunPlanEntry, ...]
 
 
+class CompleteResponseDispositionRecord(StrictModel):
+    schema_version: Literal["r01-complete-response-disposition-v1"] = "r01-complete-response-disposition-v1"
+    disposition: AcquisitionDisposition | None = None
+    reason_codes: tuple[str, ...] = ()
+    scored_as_hold: bool = False
+
+    @model_validator(mode="after")
+    def validate_disposition_record(self) -> "CompleteResponseDispositionRecord":
+        if self.reason_codes != tuple(sorted(set(self.reason_codes))):
+            raise ValueError("disposition reason codes must be unique and sorted")
+        if self.disposition is None:
+            if self.reason_codes or self.scored_as_hold:
+                raise ValueError("accepted response cannot carry fail-closed metadata")
+            return self
+        if self.disposition is not AcquisitionDisposition.FAIL_CLOSED_SCORE:
+            raise ValueError("only FAIL_CLOSED_SCORE responses may enter a run result")
+        if not self.reason_codes or not self.scored_as_hold:
+            raise ValueError("FAIL_CLOSED_SCORE must record reasons and one hold score")
+        return self
+
+
 class AcquisitionArtifacts(StrictModel):
     identity: AcquisitionIdentity
     fixture: ArtifactReference
@@ -766,6 +787,7 @@ class AcquisitionArtifacts(StrictModel):
     provider_request: ArtifactReference
     raw_response: ArtifactReference
     provider_response_metadata: ArtifactReference
+    response_disposition: ArtifactReference
     parsed_decision: ArtifactReference
     validation_report: ArtifactReference
     executable_batch: ArtifactReference
@@ -775,7 +797,7 @@ class AcquisitionArtifacts(StrictModel):
 
 
 class DevelopmentRunResult(StrictModel):
-    schema_version: Literal["r01-development-run-result-v1"] = "r01-development-run-result-v1"
+    schema_version: Literal["r01-development-run-result-v2"] = "r01-development-run-result-v2"
     experiment_id: str
     status: Literal["DEVELOPMENT_ONLY_NOT_SEALED"] = "DEVELOPMENT_ONLY_NOT_SEALED"
     run_plan: ArtifactReference

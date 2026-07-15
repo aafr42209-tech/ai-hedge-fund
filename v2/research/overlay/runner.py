@@ -11,23 +11,27 @@ from typing import Any
 from .artifacts import AppendOnlyArtifactStore
 from .baselines import equal_risk_policy, hold_policy, primary_deterministic
 from .canonical import canonical_json_bytes, canonical_sha256, sha256_hex
+from .codex_exec_client import CodexExecError, complete_response_disposition
 from .contracts import (
     AcquisitionArtifacts,
+    AcquisitionDisposition,
     AcquisitionIdentity,
     ArtifactReference,
+    CompleteResponseDispositionRecord,
     DevelopmentManifest,
     DevelopmentRunPlan,
     DevelopmentRunResult,
     EpisodeScore,
     FixtureManifestEntry,
     GeneratorConfig,
+    normalize_artifact_relative_path,
     OracleResult,
     ProviderFreeFreeze,
+    ProviderResponse,
     ReplayVerification,
     RunPlanEntry,
     SyntheticEpisode,
     ValidationReport,
-    normalize_artifact_relative_path,
 )
 from .fixtures import generate_development_episodes
 from .freeze import (
@@ -37,20 +41,27 @@ from .freeze import (
     load_committed_provider_free_regime_gap_summary,
     verify_frozen_development_identity,
 )
+from .lattice import hold_batch
 from .llm_policy import (
-    SYSTEM_PROMPT_V1,
-    AcquisitionClient,
-    ScriptedAcquisitionClient,
     acquisition_key,
+    AcquisitionClient,
     build_policy_input,
     build_user_prompt,
+    fail_closed_outcome,
     parse_and_validate,
+    ParsedPolicyOutcome,
+    ScriptedAcquisitionClient,
+    SYSTEM_PROMPT_V1,
 )
-from .lattice import hold_batch
 from .oracle import assert_oracle_bound, solve_oracle
 from .report import build_report
 from .scoring import score_episode
-from .specs import analysis_spec, analysis_spec_sha256, scoring_spec, scoring_spec_sha256
+from .specs import (
+    analysis_spec,
+    analysis_spec_sha256,
+    scoring_spec,
+    scoring_spec_sha256,
+)
 
 
 def generate_development_manifest(
@@ -180,6 +191,7 @@ class _RequestArtifacts:
 @dataclass(frozen=True)
 class _AcquisitionOutcome:
     artifacts: AcquisitionArtifacts
+    disposition: CompleteResponseDispositionRecord
     validation: ValidationReport
     score: EpisodeScore
 
@@ -273,6 +285,45 @@ def _write_request_artifacts(
     )
 
 
+def _consume_complete_response(
+    episode: SyntheticEpisode,
+    response: ProviderResponse,
+) -> tuple[ParsedPolicyOutcome, CompleteResponseDispositionRecord]:
+    disposition = complete_response_disposition(response)
+    if disposition is AcquisitionDisposition.STOP_PHASE:
+        raise CodexExecError(
+            "complete_response_stop_phase",
+            "complete response is not eligible for scoring",
+            disposition=AcquisitionDisposition.STOP_PHASE,
+        )
+    if disposition is AcquisitionDisposition.RETRY_TRANSPORT:
+        raise CodexExecError(
+            "missing_complete_response_disposition_consumer",
+            "complete response cannot enter transport retry",
+            disposition=AcquisitionDisposition.STOP_PHASE,
+        )
+
+    if disposition is AcquisitionDisposition.FAIL_CLOSED_SCORE:
+        tool_types = ", ".join(response.tool_event_types) or "unspecified complete-response violation"
+        outcome = fail_closed_outcome(
+            episode.public,
+            code="tool_use_violation",
+            detail=f"complete response emitted forbidden tool events: {tool_types}",
+        )
+    else:
+        outcome = parse_and_validate(episode.public, response.raw_text)
+        if outcome.validation.fell_back:
+            disposition = AcquisitionDisposition.FAIL_CLOSED_SCORE
+
+    reason_codes = tuple(sorted({violation.code for violation in outcome.validation.violations}))
+    record = CompleteResponseDispositionRecord(
+        disposition=disposition,
+        reason_codes=reason_codes,
+        scored_as_hold=disposition is AcquisitionDisposition.FAIL_CLOSED_SCORE,
+    )
+    return outcome, record
+
+
 def _complete_acquisition(
     store: AppendOnlyArtifactStore,
     *,
@@ -300,10 +351,14 @@ def _complete_acquisition(
         f"{prefix}/provider_response_metadata.json",
         response.model_dump(mode="python", exclude={"raw_text"}),
     )
-    outcome = parse_and_validate(episode.public, response.raw_text)
+    outcome, disposition = _consume_complete_response(episode, response)
     score = score_episode(episode, outcome.validation)
     assert_oracle_bound("llm", score.utility_e12, oracle)
 
+    disposition_ref = store.write_json(
+        f"{prefix}/response_disposition.json",
+        disposition,
+    )
     parsed_ref = store.write_json(f"{prefix}/parsed_decision.json", outcome.parsed_artifact)
     validation_ref = store.write_json(f"{prefix}/validation_report.json", outcome.validation)
     executable_ref = store.write_json(f"{prefix}/executable_batch.json", outcome.validation.executable)
@@ -319,6 +374,7 @@ def _complete_acquisition(
         provider_request=request.provider_request,
         raw_response=raw_ref,
         provider_response_metadata=response_metadata_ref,
+        response_disposition=disposition_ref,
         parsed_decision=parsed_ref,
         validation_report=validation_ref,
         executable_batch=executable_ref,
@@ -328,6 +384,7 @@ def _complete_acquisition(
     )
     return _AcquisitionOutcome(
         artifacts=artifacts,
+        disposition=disposition,
         validation=outcome.validation,
         score=score,
     )
@@ -419,6 +476,7 @@ def run_scripted_acquisition(
                 "replicate_id": identity.replicate_id,
                 "raw_valid": outcome.validation.raw_valid,
                 "fell_back": outcome.validation.fell_back,
+                "acquisition_disposition": outcome.disposition.disposition,
                 "llm_utility_e12": outcome.score.utility_e12,
                 "oracle_utility_e12": oracle.score.utility_e12,
                 **baseline_cache[episode.content_sha256],
@@ -483,10 +541,15 @@ def replay(
             store.verify(reference)
         episode = _load_episode(store, acquisition.fixture)
         raw_text = store.read_bytes(acquisition.raw_response).decode("utf-8")
-        outcome = parse_and_validate(episode.public, raw_text)
+        metadata = json.loads(store.read_bytes(acquisition.provider_response_metadata))
+        if not isinstance(metadata, dict) or "raw_text" in metadata:
+            raise RuntimeError("provider response metadata is not replayable")
+        response = ProviderResponse.model_validate_json(canonical_json_bytes({"raw_text": raw_text, **metadata}))
+        outcome, disposition = _consume_complete_response(episode, response)
         score = score_episode(episode, outcome.validation)
         oracle = _cached_oracle(oracle_cache, episode)
         assert_oracle_bound("replayed llm", score.utility_e12, oracle)
+        _assert_json_bytes(store, acquisition.response_disposition, disposition)
         _assert_json_bytes(store, acquisition.parsed_decision, outcome.parsed_artifact)
         _assert_json_bytes(store, acquisition.validation_report, outcome.validation)
         _assert_json_bytes(store, acquisition.executable_batch, outcome.validation.executable)

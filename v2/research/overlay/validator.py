@@ -6,7 +6,7 @@ from typing import Any
 
 from pydantic import ValidationError
 
-from .arithmetic import BASIS_POINTS, UTILITY_SCALE, ceil_ratio, round_ratio_half_even
+from .arithmetic import BASIS_POINTS, ceil_ratio, round_ratio_half_even, UTILITY_SCALE
 from .contracts import (
     ASSET_IDS,
     CostLedger,
@@ -164,6 +164,17 @@ def _fallback(public: PublicEpisode, violations: list[Violation]) -> ValidationR
         executable=executable,
         cost_ledger=ledger,
     )
+
+
+def fail_closed_hold(
+    public: PublicEpisode,
+    *,
+    code: str,
+    detail: str,
+) -> ValidationReport:
+    """Return the canonical hold fallback for an upstream response failure."""
+
+    return _fallback(public, [Violation(code=code, detail=detail)])
 
 
 def validate_batch(public: PublicEpisode, raw_batch: DecisionBatch | dict[str, Any]) -> ValidationReport:
