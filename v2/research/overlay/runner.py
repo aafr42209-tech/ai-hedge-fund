@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Any
 
@@ -25,6 +25,7 @@ from .contracts import (
     CompleteResponseDispositionRecord,
     DEVELOPMENT_ATTEMPT_CAP,
     DEVELOPMENT_TOKEN_CAP,
+    DevelopmentBudgetCarryForward,
     DevelopmentManifest,
     DevelopmentRunPlan,
     DevelopmentRunResult,
@@ -79,11 +80,19 @@ from .specs import (
 
 @dataclass
 class _TokenBudgetState:
-    provider_attempts: int = 0
-    successful_responses: int = 0
-    failed_or_unsettled_attempts: int = 0
-    actual_total_tokens: int = 0
-    conservatively_charged_total_tokens: int = 0
+    carry_forward: DevelopmentBudgetCarryForward = field(default_factory=DevelopmentBudgetCarryForward)
+    provider_attempts: int = field(init=False)
+    successful_responses: int = field(init=False)
+    failed_or_unsettled_attempts: int = field(init=False)
+    actual_total_tokens: int = field(init=False)
+    conservatively_charged_total_tokens: int = field(init=False)
+
+    def __post_init__(self) -> None:
+        self.provider_attempts = self.carry_forward.provider_attempts
+        self.successful_responses = self.carry_forward.successful_responses
+        self.failed_or_unsettled_attempts = self.carry_forward.failed_or_unsettled_attempts
+        self.actual_total_tokens = self.carry_forward.actual_total_tokens
+        self.conservatively_charged_total_tokens = self.carry_forward.conservatively_charged_total_tokens
 
     def reserve(self, identity: AcquisitionIdentity) -> TokenBudgetReservation:
         if self.provider_attempts >= DEVELOPMENT_ATTEMPT_CAP:
@@ -137,6 +146,7 @@ class _TokenBudgetState:
 
     def summary(self) -> DevelopmentTokenBudgetSummary:
         return DevelopmentTokenBudgetSummary(
+            carry_forward=self.carry_forward,
             provider_attempts=self.provider_attempts,
             successful_responses=self.successful_responses,
             failed_or_unsettled_attempts=self.failed_or_unsettled_attempts,
@@ -717,13 +727,14 @@ def _execute_development_plan(
     plan: DevelopmentRunPlan,
     client: AcquisitionClient,
     max_provider_attempts: int,
+    budget_carry_forward: DevelopmentBudgetCarryForward,
 ) -> tuple[ArtifactReference, DevelopmentRunResult]:
     plan_reference = store.write_json(f"{manifest.experiment_id}/run_plan.json", plan)
     acquisitions: list[AcquisitionArtifacts] = []
     report_cases: list[dict[str, Any]] = []
     baseline_cache: dict[str, dict[str, int]] = {}
     oracle_cache: dict[str, OracleResult] = {}
-    token_budget = _TokenBudgetState()
+    token_budget = _TokenBudgetState(carry_forward=budget_carry_forward)
     provider_call_ceiling = client.provider_calls + max_provider_attempts
     for entry in plan.entries:
         identity = entry.identity
@@ -773,6 +784,7 @@ def run_scripted_acquisition(
     expected_freeze_sha256: str,
     replicates: int = 1,
     max_provider_attempts: int = DEVELOPMENT_ATTEMPT_CAP,
+    budget_carry_forward: DevelopmentBudgetCarryForward | None = None,
 ) -> tuple[ArtifactReference, DevelopmentRunResult]:
     if max_provider_attempts <= 0 or max_provider_attempts > DEVELOPMENT_ATTEMPT_CAP:
         raise ValueError(f"development provider-attempt cap must be in [1, {DEVELOPMENT_ATTEMPT_CAP}]")
@@ -793,6 +805,7 @@ def run_scripted_acquisition(
         plan=plan,
         client=client,
         max_provider_attempts=max_provider_attempts,
+        budget_carry_forward=budget_carry_forward or DevelopmentBudgetCarryForward(),
     )
 
 
@@ -805,6 +818,7 @@ def run_b3_micro_pilot(
     expected_freeze_sha256: str,
     expected_anchor_manifest_sha256: str,
     max_provider_attempts: int = B3_MAX_PROVIDER_ATTEMPTS,
+    budget_carry_forward: DevelopmentBudgetCarryForward | None = None,
 ) -> tuple[ArtifactReference, DevelopmentRunResult]:
     if max_provider_attempts <= 0 or max_provider_attempts > DEVELOPMENT_ATTEMPT_CAP:
         raise ValueError(f"development provider-attempt cap must be in [1, {DEVELOPMENT_ATTEMPT_CAP}]")
@@ -837,6 +851,7 @@ def run_b3_micro_pilot(
         plan=plan,
         client=client,
         max_provider_attempts=max_provider_attempts,
+        budget_carry_forward=budget_carry_forward or DevelopmentBudgetCarryForward(),
     )
 
 
@@ -982,15 +997,25 @@ def replay(
     store.verify(result.report_json)
     store.verify(result.report_markdown)
     store.verify(result.token_budget_summary)
+    persisted_summary = DevelopmentTokenBudgetSummary.model_validate_json(store.read_bytes(result.token_budget_summary))
+    carry_forward = persisted_summary.carry_forward
     ordinals = sorted(reservation.provider_attempt_ordinal for reservation in replay_reservations)
-    if ordinals != list(range(1, len(replay_reservations) + 1)):
+    expected_ordinals = list(
+        range(
+            carry_forward.provider_attempts + 1,
+            carry_forward.provider_attempts + len(replay_reservations) + 1,
+        )
+    )
+    if ordinals != expected_ordinals:
         raise RuntimeError("token reservation ordinals are not contiguous")
+    current_failures = len(replay_reservations) - len(replay_usages)
     replay_summary = DevelopmentTokenBudgetSummary(
-        provider_attempts=len(replay_reservations),
-        successful_responses=len(replay_usages),
-        failed_or_unsettled_attempts=len(replay_reservations) - len(replay_usages),
-        actual_total_tokens=sum(usage.accounting_total_tokens for usage in replay_usages),
-        conservatively_charged_total_tokens=(sum(usage.accounting_total_tokens for usage in replay_usages) + (len(replay_reservations) - len(replay_usages)) * PER_ATTEMPT_TOKEN_RESERVE),
+        carry_forward=carry_forward,
+        provider_attempts=carry_forward.provider_attempts + len(replay_reservations),
+        successful_responses=carry_forward.successful_responses + len(replay_usages),
+        failed_or_unsettled_attempts=carry_forward.failed_or_unsettled_attempts + current_failures,
+        actual_total_tokens=carry_forward.actual_total_tokens + sum(usage.accounting_total_tokens for usage in replay_usages),
+        conservatively_charged_total_tokens=(carry_forward.conservatively_charged_total_tokens + sum(usage.accounting_total_tokens for usage in replay_usages) + current_failures * PER_ATTEMPT_TOKEN_RESERVE),
     )
     _assert_json_bytes(store, result.token_budget_summary, replay_summary)
     verification = ReplayVerification(
@@ -1055,6 +1080,8 @@ def main(argv: list[str] | None = None) -> int:
     b3_preflight.add_argument("--sandbox-directory", required=True)
     b3_preflight.add_argument("--account-attestation", required=True)
     b3_preflight.add_argument("--expected-account-attestation-sha256", required=True)
+    b3_preflight.add_argument("--budget-carry-forward", required=True)
+    b3_preflight.add_argument("--expected-budget-carry-forward-sha256", required=True)
     b3_preflight.add_argument(
         "--committed-zero-call-capture",
         default="docs/r01-b2-zero-call-capture.json",
@@ -1066,6 +1093,7 @@ def main(argv: list[str] | None = None) -> int:
     b3_run.add_argument("--freeze-sha256", required=True)
     b3_run.add_argument("--sandbox-directory", required=True)
     b3_run.add_argument("--account-attestation", required=True)
+    b3_run.add_argument("--budget-carry-forward", required=True)
     b3_run.add_argument(
         "--committed-zero-call-capture",
         default="docs/r01-b2-zero-call-capture.json",
@@ -1174,6 +1202,8 @@ def main(argv: list[str] | None = None) -> int:
             sandbox_directory=args.sandbox_directory,
             account_attestation_path=args.account_attestation,
             expected_account_attestation_sha256=args.expected_account_attestation_sha256,
+            budget_carry_forward_path=args.budget_carry_forward,
+            expected_budget_carry_forward_sha256=args.expected_budget_carry_forward_sha256,
             committed_capture_path=args.committed_zero_call_capture,
         )
         _print_reference(preflight_reference)
@@ -1188,6 +1218,7 @@ def main(argv: list[str] | None = None) -> int:
             expected_preflight_sha256=args.expected_preflight_sha256,
             sandbox_directory=args.sandbox_directory,
             account_attestation_path=args.account_attestation,
+            budget_carry_forward_path=args.budget_carry_forward,
             committed_capture_path=args.committed_zero_call_capture,
         )
         result_reference, _result = run_b3_micro_pilot(
@@ -1198,6 +1229,7 @@ def main(argv: list[str] | None = None) -> int:
             expected_freeze_sha256=args.freeze_sha256,
             expected_anchor_manifest_sha256=preflight.anchor_manifest.sha256,
             max_provider_attempts=preflight.b3_max_provider_attempts,
+            budget_carry_forward=preflight.budget_carry_forward,
         )
         _print_reference(result_reference)
         return 0

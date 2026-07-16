@@ -21,15 +21,33 @@ from .contracts import (
     AcquisitionIdentity,
     CodexFeatureCatalogEntry,
     CodexFeatureGate,
+    DevelopmentBudgetCarryForward,
     DevelopmentManifest,
     DevelopmentTokenBudgetSummary,
     REGIMES,
     RunPlanEntry,
+    TokenBudgetReservation,
 )
 from .freeze import generate_provider_free_freeze
 from .lattice import hold_batch
 from .llm_policy import ScriptedAcquisitionClient
 from .oracle import solve_oracle
+
+
+def _carry_forward() -> DevelopmentBudgetCarryForward:
+    return DevelopmentBudgetCarryForward(
+        source_kind="STOP_RECORD",
+        source_experiment_id="stopped-b3-test",
+        source_preflight_sha256="a" * 64,
+        source_failure_sha256="b" * 64,
+        source_stop_report_sha256="c" * 64,
+        provider_attempts=1,
+        successful_responses=0,
+        failed_or_unsettled_attempts=1,
+        actual_total_tokens=0,
+        observed_unsettled_actual_tokens=13_651,
+        conservatively_charged_total_tokens=32_000,
+    )
 
 
 def _development_manifest(store, *, experiment_id: str, root_seed: str):
@@ -170,15 +188,22 @@ def test_b3_scripted_micro_pilot_binds_token_budget_and_replays(tmp_path) -> Non
         client=client,
         expected_freeze_sha256=manifest.provider_free_freeze_sha256,
         expected_anchor_manifest_sha256=anchor_reference.sha256,
+        budget_carry_forward=_carry_forward(),
     )
 
     assert client.provider_calls == 12
     assert len(result.acquisitions) == 12
     assert result.schema_version == "r01-development-run-result-v4"
     summary = DevelopmentTokenBudgetSummary.model_validate_json(store.read_bytes(result.token_budget_summary))
-    assert summary.provider_attempts == 12
+    assert summary.provider_attempts == 13
     assert summary.successful_responses == 12
+    assert summary.failed_or_unsettled_attempts == 1
     assert summary.actual_total_tokens == 0
+    assert summary.conservatively_charged_total_tokens == 32_000
+    assert summary.carry_forward == _carry_forward()
+    first_reservation = TokenBudgetReservation.model_validate_json(store.read_bytes(result.acquisitions[0].token_reservation))
+    assert first_reservation.provider_attempt_ordinal == 2
+    assert first_reservation.charged_total_tokens_before == 32_000
     verification = runner.replay(
         store,
         result_reference=result_reference,
@@ -207,6 +232,8 @@ def test_b3_preflight_is_provider_free_and_binds_reviewed_command_specs(
     executable.write_bytes(b"pinned-test-executable")
     attestation = tmp_path / "attestation.md"
     attestation.write_text("zero cost attested", encoding="utf-8")
+    carry_forward = tmp_path / "budget-carry-forward.json"
+    carry_forward.write_bytes(canonical_json_bytes(_carry_forward()))
     gate = _minimal_feature_gate()
     monkeypatch.setattr(
         b3,
@@ -223,10 +250,14 @@ def test_b3_preflight_is_provider_free_and_binds_reviewed_command_specs(
         sandbox_directory=str(sandbox),
         account_attestation_path=attestation,
         expected_account_attestation_sha256=sha256_hex(attestation.read_bytes()),
+        budget_carry_forward_path=carry_forward,
+        expected_budget_carry_forward_sha256=sha256_hex(carry_forward.read_bytes()),
         committed_capture_path=tmp_path / "unused.json",
     )
 
     assert preflight.provider_calls == 0
+    assert preflight.schema_version == "r01-b3-preflight-v2"
+    assert preflight.budget_carry_forward == _carry_forward()
     assert len(preflight.command_specs) == 6
     assert len(list(sandbox.iterdir())) == 0
     client, rebuilt = b3.build_live_b3_client(
@@ -235,6 +266,7 @@ def test_b3_preflight_is_provider_free_and_binds_reviewed_command_specs(
         expected_preflight_sha256=preflight_reference.sha256,
         sandbox_directory=str(sandbox),
         account_attestation_path=attestation,
+        budget_carry_forward_path=carry_forward,
         committed_capture_path=tmp_path / "unused.json",
     )
     assert client.provider_calls == 0

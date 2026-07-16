@@ -93,4 +93,4 @@ development budget.
 
 Provider-free remediation validation: `125 passed`; Python compile, Black,
 isort, and `git diff --check` pass. Remediated research contract SHA-256:
-`8b1d498b56432caebbe4a7236f98c66e86f343c6fbd922998935c698a2740006`.
+`f0c29d0bb4c6e55673206f3d1c3415f82318cdc0fcb8208df568df00e528a5a1`.

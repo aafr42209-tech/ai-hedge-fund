@@ -25,6 +25,7 @@ from .contracts import (
     B3Preflight,
     CodexCommandSpec,
     CodexFeatureGate,
+    DevelopmentBudgetCarryForward,
     DevelopmentManifest,
     LIVE_PROCESS_TIMEOUT_MS,
 )
@@ -47,6 +48,17 @@ EXPECTED_CLI_VERSION = "codex-cli 0.144.1"
 
 def _file_sha256(path: str | Path) -> str:
     return sha256_hex(Path(path).read_bytes())
+
+
+def _load_budget_carry_forward(
+    path: str | Path,
+    *,
+    expected_sha256: str,
+) -> DevelopmentBudgetCarryForward:
+    payload = Path(path).read_bytes()
+    if sha256_hex(payload) != expected_sha256:
+        raise RuntimeError("development budget carry-forward differs from the external trust anchor")
+    return DevelopmentBudgetCarryForward.model_validate_json(payload)
 
 
 def _current_feature_gate(
@@ -86,6 +98,8 @@ def prepare_b3_preflight(
     sandbox_directory: str,
     account_attestation_path: str | Path,
     expected_account_attestation_sha256: str,
+    budget_carry_forward_path: str | Path,
+    expected_budget_carry_forward_sha256: str,
     committed_capture_path: str | Path,
 ) -> tuple[ArtifactReference, B3Preflight]:
     executable_path = Path(executable).resolve()
@@ -95,6 +109,10 @@ def prepare_b3_preflight(
         raise RuntimeError("Codex executable differs from the external trust anchor")
     if _file_sha256(account_attestation_path) != expected_account_attestation_sha256:
         raise RuntimeError("zero-cost account attestation differs from the external trust anchor")
+    budget_carry_forward = _load_budget_carry_forward(
+        budget_carry_forward_path,
+        expected_sha256=expected_budget_carry_forward_sha256,
+    )
 
     manifest = DevelopmentManifest.model_validate_json(store.read_bytes(manifest_reference))
     _verify_manifest_specs(
@@ -148,6 +166,8 @@ def prepare_b3_preflight(
         feature_gate=feature_gate_reference,
         command_specs=tuple(command_spec_references),
         account_attestation_sha256=expected_account_attestation_sha256,
+        budget_carry_forward_document_sha256=expected_budget_carry_forward_sha256,
+        budget_carry_forward=budget_carry_forward,
         executable=str(executable_path),
         executable_sha256=expected_executable_sha256,
         codex_cli_version=str(current_summary["codex_cli_version"]),
@@ -166,6 +186,7 @@ def build_live_b3_client(
     expected_preflight_sha256: str,
     sandbox_directory: str,
     account_attestation_path: str | Path,
+    budget_carry_forward_path: str | Path,
     committed_capture_path: str | Path,
 ) -> tuple[CodexExecClient, B3Preflight]:
     if preflight_reference.sha256 != expected_preflight_sha256:
@@ -173,6 +194,12 @@ def build_live_b3_client(
     preflight = B3Preflight.model_validate_json(store.read_bytes(preflight_reference))
     if _file_sha256(account_attestation_path) != preflight.account_attestation_sha256:
         raise RuntimeError("zero-cost account attestation changed after B3 preflight")
+    current_carry_forward = _load_budget_carry_forward(
+        budget_carry_forward_path,
+        expected_sha256=preflight.budget_carry_forward_document_sha256,
+    )
+    if current_carry_forward != preflight.budget_carry_forward:
+        raise RuntimeError("development budget carry-forward changed after B3 preflight")
     if _file_sha256(preflight.executable) != preflight.executable_sha256:
         raise RuntimeError("Codex executable changed after B3 preflight")
     _summary, current_gate = _current_feature_gate(

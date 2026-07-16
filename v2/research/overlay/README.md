@@ -146,7 +146,9 @@ python -m v2.research.overlay `
   --expected-executable-sha256 cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4 `
   --sandbox-directory $b3Sandbox `
   --account-attestation docs/r01-b3-zero-cost-account-attestation.md `
-  --expected-account-attestation-sha256 94ca690340273e02da7de19e0c1ea5efc8793547f2a87822dc40eb5b630b9746
+  --expected-account-attestation-sha256 94ca690340273e02da7de19e0c1ea5efc8793547f2a87822dc40eb5b630b9746 `
+  --budget-carry-forward docs/r01-b3-budget-carry-forward.json `
+  --expected-budget-carry-forward-sha256 13872058b922736e31c83e54ecbf8c17e36c20f68205ab249a9883b954248507
 ```
 
 `b3-preflight` makes zero provider calls. Do not run `b3-run` until the printed
@@ -173,8 +175,11 @@ Successful retries bind prior failure records, their raw transport graphs, and
 token reservations. Replay reconsumes the response, verifies final-agent text
 separately from JSONL stdout, and verifies both successful and failed transport
 hashes. Stopped attempts may intentionally leave immutable raw evidence outside
-a completed run result. Local `codex features list`
-inspection and exact-tag source verification make no provider call. D2 user
+a completed run result. The live identity inspection is paired with an
+externally hashed budget carry-forward document;
+replacement experiment roots cannot reset global provider ordinals or the
+conservative token charge. Local `codex features list` inspection and exact-tag
+source verification make no provider call. D2 user
 approval is recorded; provider acquisition remains blocked until the B3
 preflight identity is generated and independently reviewed. Evaluation
 generation, sealing, and GO/NO-GO verdicts remain unavailable until their later

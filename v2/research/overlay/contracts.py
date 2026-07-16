@@ -792,8 +792,54 @@ class ProviderTokenUsage(StrictModel):
         return self
 
 
+class DevelopmentBudgetCarryForward(StrictModel):
+    schema_version: Literal["r01-development-budget-carry-forward-v1"] = "r01-development-budget-carry-forward-v1"
+    source_kind: Literal["NONE", "STOP_RECORD"] = "NONE"
+    source_experiment_id: str | None = None
+    source_preflight_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    source_failure_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    source_stop_report_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    provider_attempts: int = Field(default=0, ge=0, le=DEVELOPMENT_ATTEMPT_CAP)
+    successful_responses: int = Field(default=0, ge=0, le=DEVELOPMENT_ATTEMPT_CAP)
+    failed_or_unsettled_attempts: int = Field(default=0, ge=0, le=DEVELOPMENT_ATTEMPT_CAP)
+    actual_total_tokens: int = Field(default=0, ge=0, le=DEVELOPMENT_TOKEN_CAP)
+    observed_unsettled_actual_tokens: int = Field(default=0, ge=0, le=DEVELOPMENT_TOKEN_CAP)
+    conservatively_charged_total_tokens: int = Field(default=0, ge=0, le=DEVELOPMENT_TOKEN_CAP)
+
+    @model_validator(mode="after")
+    def validate_carry_forward(self) -> "DevelopmentBudgetCarryForward":
+        if self.successful_responses + self.failed_or_unsettled_attempts != self.provider_attempts:
+            raise ValueError("carry-forward attempt counts do not reconcile")
+        if self.actual_total_tokens > self.conservatively_charged_total_tokens:
+            raise ValueError("carry-forward actual tokens exceed conservative charge")
+        if self.observed_unsettled_actual_tokens > self.conservatively_charged_total_tokens:
+            raise ValueError("observed unsettled tokens exceed conservative charge")
+        source_fields = (
+            self.source_experiment_id,
+            self.source_preflight_sha256,
+            self.source_failure_sha256,
+            self.source_stop_report_sha256,
+        )
+        numeric_fields = (
+            self.provider_attempts,
+            self.successful_responses,
+            self.failed_or_unsettled_attempts,
+            self.actual_total_tokens,
+            self.observed_unsettled_actual_tokens,
+            self.conservatively_charged_total_tokens,
+        )
+        if self.source_kind == "NONE":
+            if any(value is not None for value in source_fields) or any(numeric_fields):
+                raise ValueError("empty carry-forward cannot contain source or budget state")
+        else:
+            if not all(source_fields) or self.provider_attempts == 0:
+                raise ValueError("STOP_RECORD carry-forward requires complete source identity and spent attempts")
+        return self
+
+
 class DevelopmentTokenBudgetSummary(StrictModel):
-    schema_version: Literal["r01-development-token-budget-summary-v1"] = "r01-development-token-budget-summary-v1"
+    schema_version: Literal["r01-development-token-budget-summary-v2"] = "r01-development-token-budget-summary-v2"
+    carry_forward: DevelopmentBudgetCarryForward = Field(default_factory=DevelopmentBudgetCarryForward)
     provider_attempts: int = Field(ge=0, le=DEVELOPMENT_ATTEMPT_CAP)
     successful_responses: int = Field(ge=0, le=DEVELOPMENT_ATTEMPT_CAP)
     failed_or_unsettled_attempts: int = Field(ge=0, le=DEVELOPMENT_ATTEMPT_CAP)
@@ -815,6 +861,16 @@ class DevelopmentTokenBudgetSummary(StrictModel):
             raise ValueError("token summary attempt counts do not reconcile")
         if self.actual_total_tokens > self.conservatively_charged_total_tokens:
             raise ValueError("actual token total cannot exceed conservative charge")
+        if self.provider_attempts < self.carry_forward.provider_attempts:
+            raise ValueError("token summary cannot discard carry-forward attempts")
+        if self.successful_responses < self.carry_forward.successful_responses:
+            raise ValueError("token summary cannot discard carry-forward successes")
+        if self.failed_or_unsettled_attempts < self.carry_forward.failed_or_unsettled_attempts:
+            raise ValueError("token summary cannot discard carry-forward failures")
+        if self.actual_total_tokens < self.carry_forward.actual_total_tokens:
+            raise ValueError("token summary cannot discard carry-forward actual tokens")
+        if self.conservatively_charged_total_tokens < self.carry_forward.conservatively_charged_total_tokens:
+            raise ValueError("token summary cannot discard carry-forward conservative charge")
         return self
 
 
@@ -862,7 +918,7 @@ class B3AnchorManifest(StrictModel):
 
 
 class B3Preflight(StrictModel):
-    schema_version: Literal["r01-b3-preflight-v1"] = "r01-b3-preflight-v1"
+    schema_version: Literal["r01-b3-preflight-v2"] = "r01-b3-preflight-v2"
     status: Literal["READY_FOR_REVIEW_PROVIDER_CALLS_ZERO"] = "READY_FOR_REVIEW_PROVIDER_CALLS_ZERO"
     experiment_id: str
     manifest: ArtifactReference
@@ -870,6 +926,8 @@ class B3Preflight(StrictModel):
     feature_gate: ArtifactReference
     command_specs: tuple[ArtifactReference, ...]
     account_attestation_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    budget_carry_forward_document_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    budget_carry_forward: DevelopmentBudgetCarryForward
     executable: str = Field(min_length=1)
     executable_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     codex_cli_version: str = Field(min_length=1)
@@ -897,6 +955,11 @@ class B3Preflight(StrictModel):
             raise ValueError("B3 attempt cap differs from the contract constant")
         if self.b3_max_provider_attempts != B3_MAX_PROVIDER_ATTEMPTS:
             raise ValueError("B3 micro-pilot attempt cap differs from the contract constant")
+        if self.budget_carry_forward.provider_attempts + self.b3_max_provider_attempts > DEVELOPMENT_ATTEMPT_CAP:
+            raise ValueError("B3 worst-case attempts exceed the remaining development cap")
+        worst_case_charge = self.budget_carry_forward.conservatively_charged_total_tokens + self.b3_max_provider_attempts * PER_ATTEMPT_TOKEN_RESERVE
+        if worst_case_charge > DEVELOPMENT_TOKEN_CAP:
+            raise ValueError("B3 worst-case token reservations exceed the remaining development cap")
         if len(self.command_specs) != len(REGIMES):
             raise ValueError("B3 preflight must bind one command spec per regime anchor")
         if len({reference.sha256 for reference in self.command_specs}) != len(self.command_specs):

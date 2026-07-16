@@ -486,6 +486,7 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 - an attempt-1 `nonzero_exit_without_complete_response` is `STOP_PHASE`, because a wrong or unavailable model cannot be distinguished from a transient nonzero exit without spending another call;
 - every other `RETRY_TRANSPORT` may advance once to append-only attempt 2. A second consecutive `RETRY_TRANSPORT` becomes `STOP_PHASE`; attempt 3 is prohibited;
 - the development runner enforces the `200`-attempt cap immediately before each provider call. Reaching the cap is `STOP_PHASE`, creates no new attempt, and produces no replacement fixture or replicate;
+- development attempt and token caps are global across replacement experiment identities. A replacement run must load an externally hashed `r01-development-budget-carry-forward-v1` document, start provider ordinals and conservative token charge from that state, bind it into `r01-b3-preflight-v2`, and reproduce it in `r01-development-token-budget-summary-v2`; resetting either counter for a new artifact root is prohibited;
 - replicate ID is part of the artifact identity;
 - perturbation ID is part of invariance-artifact identity;
 - responses are append-only and never overwritten;
@@ -762,9 +763,10 @@ complete_response_disposition_schema_version: r01-complete-response-disposition-
 acquisition_failure_schema_version: r01-acquisition-failure-v2
 token_budget_reservation_schema_version: r01-token-budget-reservation-v1
 provider_token_usage_schema_version: r01-provider-token-usage-v1
-development_token_budget_summary_schema_version: r01-development-token-budget-summary-v1
+development_budget_carry_forward_schema_version: r01-development-budget-carry-forward-v1
+development_token_budget_summary_schema_version: r01-development-token-budget-summary-v2
 b3_anchor_manifest_schema_version: r01-b3-anchor-manifest-v1
-b3_preflight_schema_version: r01-b3-preflight-v1
+b3_preflight_schema_version: r01-b3-preflight-v2
 development_run_result_schema_version: r01-development-run-result-v4
 codex_jsonl_parser_schema_version: r01-codex-jsonl-parser-v3
 codex_jsonl_schema_sha256: 33f4b4ceceb67421a9e9f901e45ae2c4cfb42b2442325a68f6d055de7e63af8d
@@ -822,6 +824,7 @@ sealed_by: TBD
 - D2 approval resolves the policy decision but does not waive operational preflight. No provider process may start until zero-cost account state is proven and the live B3 runner, deterministic six-case anchor manifest, command spec, and token ledger are implemented, hashed, reviewed, and fail closed.
 - The 2026-07-16 B3 failure-path audit requires every captured failed attempt to bind its command spec, stdout JSONL, stderr, process status, optional parsed response, and token reservation through `r01-acquisition-failure-v2`. Pre-call command-build failures and append-only artifact failures are `STOP_PHASE`; they are never untyped crashes or scored fallbacks.
 - The first authorized B3 acquisition on 2026-07-16 stopped before scoring because pinned CLI deprecation notices appeared as a previously unknown `item.completed/error` shape. The stopped experiment `r01-b3-prompt-v1-20260716` is immutable, consumed one provider attempt and a conservative `32000`-token reserve, has no run result, and cannot be adopted by a later experiment. Transport parser v3 permits only the exact observed pre-turn diagnostic triple (or none); all other error items remain phase stops.
+- A replacement experiment cannot reset development budgets. Its preflight must bind the committed carry-forward document for the stopped attempt; the next reservation ordinal is `2`, the starting conservative charge is `32000`, and replay must combine prior and current counts before accepting a token summary.
 - The regret scale, superiority margin, and target-headroom rule are frozen before the first provider call so pilot outcomes cannot select the statistical target.
 - No evaluation-driven clipping or winsorization is allowed.
 - Utility and normalized-regret bounds are certified over each fixture's complete feasible action lattice before seal, so poor policy performance cannot be relabeled INVALID.
@@ -894,3 +897,4 @@ sealed_by: TBD
 | Failed-attempt raw transports were outside the replay graph | Add `r01-codex-attempt-failure-transport-artifacts-v1`, bind it from `r01-acquisition-failure-v2`, and verify every bound failed-attempt byte/hash edge during replay. |
 | Retry attempt updates bypassed Pydantic validation and safety constants were duplicated | Rebuild attempt identities through `model_validate` and define retry, attempt, token, and timeout caps once in `contracts.py`, with persisted validators consuming those constants. |
 | First live B3 transport exposed `item.completed/error` deprecation diagnostics before an otherwise complete turn | Preserve the stopped attempt unscored; add an exact ordered pre-turn diagnostic allowlist bound by three message hashes, bump JSONL parser to v3, transport-shape spec to v2, and provider response to v4; require a new experiment identity and preflight before another provider call. |
+| A new experiment artifact root would otherwise initialize attempt and token counters at zero | Add an externally hashed carry-forward contract, bind it into B3 preflight v2, initialize reservations from its ordinal/charge, persist token-summary v2 with the same source state, and make replay verify carry-inclusive ordinals and arithmetic. |

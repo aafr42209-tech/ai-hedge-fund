@@ -854,10 +854,20 @@ run result; this is expected evidence preservation and never a scored result.
 - any subsequent provider call requires a new development experiment identity,
   updated contract-bound manifest, new command specs and preflight hash, and
   another provider-free external review.
+- the replacement experiment must not reset the global development budget. A
+  committed `r01-development-budget-carry-forward-v1` document binds the prior
+  STOP record, initializes the next provider ordinal at 2 and conservative
+  charge at `32000`, and is rechecked by live B3 construction;
+- token-summary v2 persists that carry-forward state, while replay expects only
+  current-run reservations but requires ordinals to begin after the carried
+  attempts and recomputes global attempt/token totals;
 - remediated research contract SHA-256:
-  `8b1d498b56432caebbe4a7236f98c66e86f343c6fbd922998935c698a2740006`;
+  `f0c29d0bb4c6e55673206f3d1c3415f82318cdc0fcb8208df568df00e528a5a1`;
 - immutable first-call STOP report: `docs/r01-b3-first-call-stop.md`, SHA-256
-  `eadbba2d1e27233ff868728b00e7ec031512328a3c1a95aed70435bcb20c47d8`;
+  `5c14367d0ef4923cecd6f6334a9e7c54afd0d3e6e7966938c8790a4659ed4cc3`;
+- committed development-budget carry-forward:
+  `docs/r01-b3-budget-carry-forward.json`, SHA-256
+  `13872058b922736e31c83e54ecbf8c17e36c20f68205ab249a9883b954248507`;
 - full provider-free overlay suite: `125 passed`; compile, Black, isort, and
   `git diff --check` pass.
 
