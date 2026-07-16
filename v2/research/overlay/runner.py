@@ -1103,6 +1103,8 @@ def main(argv: list[str] | None = None) -> int:
     b3_preflight.add_argument("--sandbox-directory", required=True)
     b3_preflight.add_argument("--account-attestation", required=True)
     b3_preflight.add_argument("--expected-account-attestation-sha256", required=True)
+    b3_preflight.add_argument("--resource-amendment", required=True)
+    b3_preflight.add_argument("--expected-resource-amendment-sha256", required=True)
     b3_preflight.add_argument("--budget-carry-forward", required=True)
     b3_preflight.add_argument("--expected-budget-carry-forward-sha256", required=True)
     b3_preflight.add_argument(
@@ -1116,6 +1118,7 @@ def main(argv: list[str] | None = None) -> int:
     b3_run.add_argument("--freeze-sha256", required=True)
     b3_run.add_argument("--sandbox-directory", required=True)
     b3_run.add_argument("--account-attestation", required=True)
+    b3_run.add_argument("--resource-amendment", required=True)
     b3_run.add_argument("--budget-carry-forward", required=True)
     b3_run.add_argument(
         "--committed-zero-call-capture",
@@ -1225,6 +1228,8 @@ def main(argv: list[str] | None = None) -> int:
             sandbox_directory=args.sandbox_directory,
             account_attestation_path=args.account_attestation,
             expected_account_attestation_sha256=args.expected_account_attestation_sha256,
+            resource_amendment_path=args.resource_amendment,
+            expected_resource_amendment_sha256=args.expected_resource_amendment_sha256,
             budget_carry_forward_path=args.budget_carry_forward,
             expected_budget_carry_forward_sha256=args.expected_budget_carry_forward_sha256,
             committed_capture_path=args.committed_zero_call_capture,
@@ -1241,6 +1246,7 @@ def main(argv: list[str] | None = None) -> int:
             expected_preflight_sha256=args.expected_preflight_sha256,
             sandbox_directory=args.sandbox_directory,
             account_attestation_path=args.account_attestation,
+            resource_amendment_path=args.resource_amendment,
             budget_carry_forward_path=args.budget_carry_forward,
             committed_capture_path=args.committed_zero_call_capture,
         )

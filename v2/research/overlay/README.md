@@ -147,8 +147,10 @@ python -m v2.research.overlay `
   --sandbox-directory $b3Sandbox `
   --account-attestation docs/r01-b3-zero-cost-account-attestation.md `
   --expected-account-attestation-sha256 94ca690340273e02da7de19e0c1ea5efc8793547f2a87822dc40eb5b630b9746 `
-  --budget-carry-forward docs/r01-b3-budget-carry-forward.json `
-  --expected-budget-carry-forward-sha256 13872058b922736e31c83e54ecbf8c17e36c20f68205ab249a9883b954248507
+  --resource-amendment docs/r01-d2-resource-amendment-01.md `
+  --expected-resource-amendment-sha256 cb1e39b9c19ece973c6a19d44b59389bcd8bbfeea2638b78c554b3808d050124 `
+  --budget-carry-forward docs/r01-b3-aggregate-budget-carry-forward.json `
+  --expected-budget-carry-forward-sha256 002cc7b8e726e3d5041bc1d888e2a7da15ea258aa661ff1dd17ecb9de9397953
 ```
 
 `b3-preflight` makes zero provider calls. Do not run `b3-run` until the printed
@@ -176,9 +178,11 @@ token reservations. Replay reconsumes the response, verifies final-agent text
 separately from JSONL stdout, and verifies both successful and failed transport
 hashes. Stopped attempts may intentionally leave immutable raw evidence outside
 a completed run result. The live identity inspection is paired with an
-externally hashed budget carry-forward document;
+externally hashed D2 resource amendment and aggregate budget carry-forward;
 replacement experiment roots cannot reset global provider ordinals or the
-conservative token charge. Local `codex features list` inspection and exact-tag
+conservative token charge. New reservations use `64000` and the `12800000`
+development cap, while historical 32K ledger schemas remain parseable only
+under their original constants. Local `codex features list` inspection and exact-tag
 source verification make no provider call. D2 user
 approval is recorded; provider acquisition remains blocked until the B3
 preflight identity is generated and independently reviewed. Evaluation

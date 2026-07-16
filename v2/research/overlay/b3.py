@@ -98,6 +98,8 @@ def prepare_b3_preflight(
     sandbox_directory: str,
     account_attestation_path: str | Path,
     expected_account_attestation_sha256: str,
+    resource_amendment_path: str | Path,
+    expected_resource_amendment_sha256: str,
     budget_carry_forward_path: str | Path,
     expected_budget_carry_forward_sha256: str,
     committed_capture_path: str | Path,
@@ -109,10 +111,14 @@ def prepare_b3_preflight(
         raise RuntimeError("Codex executable differs from the external trust anchor")
     if _file_sha256(account_attestation_path) != expected_account_attestation_sha256:
         raise RuntimeError("zero-cost account attestation differs from the external trust anchor")
+    if _file_sha256(resource_amendment_path) != expected_resource_amendment_sha256:
+        raise RuntimeError("D2 resource amendment differs from the external trust anchor")
     budget_carry_forward = _load_budget_carry_forward(
         budget_carry_forward_path,
         expected_sha256=expected_budget_carry_forward_sha256,
     )
+    if budget_carry_forward.schema_version != "r01-development-budget-carry-forward-v2":
+        raise RuntimeError("new B3 preflight requires aggregate budget carry-forward v2")
 
     manifest = DevelopmentManifest.model_validate_json(store.read_bytes(manifest_reference))
     _verify_manifest_specs(
@@ -166,6 +172,7 @@ def prepare_b3_preflight(
         feature_gate=feature_gate_reference,
         command_specs=tuple(command_spec_references),
         account_attestation_sha256=expected_account_attestation_sha256,
+        resource_amendment_sha256=expected_resource_amendment_sha256,
         budget_carry_forward_document_sha256=expected_budget_carry_forward_sha256,
         budget_carry_forward=budget_carry_forward,
         executable=str(executable_path),
@@ -186,6 +193,7 @@ def build_live_b3_client(
     expected_preflight_sha256: str,
     sandbox_directory: str,
     account_attestation_path: str | Path,
+    resource_amendment_path: str | Path,
     budget_carry_forward_path: str | Path,
     committed_capture_path: str | Path,
 ) -> tuple[CodexExecClient, B3Preflight]:
@@ -194,6 +202,8 @@ def build_live_b3_client(
     preflight = B3Preflight.model_validate_json(store.read_bytes(preflight_reference))
     if _file_sha256(account_attestation_path) != preflight.account_attestation_sha256:
         raise RuntimeError("zero-cost account attestation changed after B3 preflight")
+    if preflight.resource_amendment_sha256 is None or _file_sha256(resource_amendment_path) != preflight.resource_amendment_sha256:
+        raise RuntimeError("D2 resource amendment changed after B3 preflight")
     current_carry_forward = _load_budget_carry_forward(
         budget_carry_forward_path,
         expected_sha256=preflight.budget_carry_forward_document_sha256,

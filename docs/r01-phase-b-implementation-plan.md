@@ -12,8 +12,8 @@
 - Base branch: `codex/llm-overlay-research-01`
 - Created: `2026-07-13`; revised: `2026-07-16`
 - Status: `DRAFT`
-- D2 state: `APPROVED_RESOURCE_LIMIT_REOPEN_REQUIRED`
-- B3 state: `TRANSPORT_V3_STOPPED_PER_ATTEMPT_TOKEN_RESERVE`
+- D2 state: `RESOURCE_AMENDMENT_01_APPROVED_PROVIDER_FREE_IMPLEMENTATION`
+- B3 state: `TOKEN_RESERVE_STOP_AGGREGATE_PREFLIGHT_PENDING`
 - Development provider attempts spent: `4`; conservative tokens charged: `103623`
 
 This plan implements only Phase B of R01: a development-fixture pilot using one
@@ -742,6 +742,8 @@ minimal non-tool allowlist, and acceptance of the unchanged
 fallback or unclassified effective-true feature is allowed. The immutable user
 decision is `docs/r01-d2-user-approval.md`, SHA-256
 `95e55764963cc86e18e6e66348956bcde84082e3f0da28faf1c60145eb4e150c`.
+Resource Amendment 01 later supersedes only the prospective reserve and
+development total-token-cap fields; every other D2 field remains unchanged.
 
 #### Provider-free B3 disposition-consumer readiness — 2026-07-15
 
@@ -899,10 +901,40 @@ run result; this is expected evidence preservation and never a scored result.
 - immutable machine evidence:
   `docs/r01-b3-token-reserve-stop-evidence.json`, SHA-256
   `cd51330661e2f4a55627fd9464e681c763c16f80b0a3f43a5b3b59dd12ba80da`;
-- no further provider call is authorized. D2 must amend or retain the `32000`
-  reserve on independent resource grounds, and any replacement requires a new
-  aggregate carry-forward schema, experiment identity, manifest, preflight,
-  review, and explicit user approval.
+- no further provider call was authorized by the incident record. D2 Resource
+  Amendment 01 subsequently resolved the prospective resource values, but any
+  replacement still requires a new aggregate carry-forward schema, experiment
+  identity, manifest, preflight, review, and explicit user approval.
+
+#### D2 Resource Amendment 01 and aggregate carry — 2026-07-16
+
+- the user approved a deterministic one-step reserve doubling from `32000` to
+  `64000` and a matching development total-token-cap increase from `6400000` to
+  `12800000`;
+- the development attempt cap remains `200`, incremental USD remains `0`, a
+  complete response above `64000` is immediate `STOP_PHASE`, and no automatic
+  further increase is allowed;
+- immutable approval: `docs/r01-d2-resource-amendment-01.md`, SHA-256
+  `cb1e39b9c19ece973c6a19d44b59389bcd8bbfeea2638b78c554b3808d050124`;
+- aggregate carry-forward v2 binds the prior carry document, transport-v3
+  preflight, terminal evidence, and STOP report without inventing a failure
+  artifact for ordinal 4;
+- aggregate carry state is four attempts, three complete responses, one prior
+  failed or unsettled attempt, `71623` settled actual tokens, `13651` observed
+  unsettled tokens, `32000` unsettled conservative charge, and `103623` total
+  conservative charge;
+- immutable aggregate carry:
+  `docs/r01-b3-aggregate-budget-carry-forward.json`, SHA-256
+  `002cc7b8e726e3d5041bc1d888e2a7da15ea258aa661ff1dd17ecb9de9397953`;
+- new reservation/usage v2, token-summary v3, and preflight v3 use the amended
+  constants. Historical reservation/usage v1, token-summary/preflight v2, and
+  carry v1 remain parseable only under the original `32000`/`6400000` identity;
+- post-amendment research-contract SHA-256:
+  `6edb5573aec4d54283cc916de3def8b14c875888106770653af680354b8c7276`;
+- focused B3 tests: `8 passed`; full provider-free overlay suite: `126 passed`;
+  compile, Black, isort, and `git diff --check` pass;
+- no provider call is authorized by this amendment. The new implementation and
+  provider-free preflight require independent review and explicit approval.
 
 ### B4 — bounded prompt iteration
 
