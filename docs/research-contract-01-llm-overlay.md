@@ -722,23 +722,26 @@ provider_free_freeze_schema_version: r01-provider-free-freeze-v1
 provider_free_freeze_sha256: 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2
 provider_free_regime_gap_summary_schema_version: r01-provider-free-regime-gap-summary-v1
 provider_free_regime_gap_summary_sha256: 0e6e8945f93779a77ffc7687d63062c010efd3aee3d6c8062551e54108fbf886
-high_transaction_cost_gap_treatment: TBD_D2
+d2_decision_status: APPROVED
+d2_approval_record_sha256: 95e55764963cc86e18e6e66348956bcde84082e3f0da28faf1c60145eb4e150c
+high_transaction_cost_gap_treatment: ACCEPT_UNCHANGED_6_OF_7_ZERO_GAP
 development_manifest_schema_version: r01-development-manifest-v2
 development_root_seed_label: r01-phase-b-development-fixtures-v1
 development_root_seed_sha256: c25ccc51af836b213032b4555284a317fd6ffecc6d5e1cd5c926d6a11c50ca66
 evaluation_manifest_sha256: TBD
 invariance_anchor_manifest_sha256: TBD
 adversarial_validator_suite_sha256: TBD
-provider: TBD
-exact_model_id: TBD
-model_version_metadata: TBD
-sampling_parameters: TBD
+provider: openai_codex_chatgpt_subscription
+exact_model_id: gpt-5.6-sol
+model_version_metadata: requested_model_id_with_transport_echo_absence_accepted_as_limitation
+sampling_parameters: reasoning_effort=high;service_tier=provider_default;temperature_top_p=provider_managed_not_exposed
 codex_managed_system_layer: provider_managed_not_exposed
 system_prompt_sha256: TBD
 policy_instruction_sha256: TBD
 user_template_sha256: TBD
-delta_min_e12: TBD
-delta_target_e12: TBD
+delta_min_e12: 50000000000
+target_headroom_e12: 50000000000
+delta_target_e12: 100000000000
 normalization_epsilon_e12: 100000000
 regret_scale_e12: 3136616200
 max_abs_utility_e12: 25088993397
@@ -775,13 +778,18 @@ power_seed: TBD
 bootstrap_resamples: 10000
 power_simulations: 1000
 per_acquisition_max_attempts: 2
+max_consecutive_retry_transport: 2
+initial_nonzero_without_complete_response: STOP_PHASE
+live_process_timeout_ms: 900000
+per_attempt_total_token_reserve: 32000
 max_development_provider_attempts: 200
+max_development_total_tokens: 6400000
 max_primary_evaluation_provider_attempts: 1100
 max_invariance_provider_attempts: 180
 max_provider_attempts: 1480
 max_input_tokens: TBD
 max_output_tokens: TBD
-max_usd: TBD
+max_usd: 0
 sealed_at_utc: TBD
 sealed_by: TBD
 ```
@@ -800,6 +808,8 @@ sealed_by: TBD
 - Forty sealed audit anchors and four perturbations fund the invariance GO gate without contaminating the primary endpoint; each anchor uses the per-asset modal action across five primary replicates, with ties mapped to `ABSTAIN`, as its noise-robust reference.
 - A fixed development-derived regret scale prevents near-optimal hold episodes from creating near-zero denominators.
 - The provider-free regime summary shows six zero-gap cases among seven `high_transaction_cost` cases; this is a one-sided near-degenerate stratum, not a fully degenerate regime, and D2 must accept its power cost or restart the provider-free freeze before any Codex call.
+- On 2026-07-16 (Asia/Seoul), the user approved D2 without amendment and accepted the unchanged `high_transaction_cost` stratum, exact model and runtime settings, zero-incremental-cost ceiling, bounded retry/stop rules, fixed statistical margins, and no variance correction. The immutable decision text is `docs/r01-d2-user-approval.md`, SHA-256 `95e55764963cc86e18e6e66348956bcde84082e3f0da28faf1c60145eb4e150c`.
+- D2 approval resolves the policy decision but does not waive operational preflight. No provider process may start until zero-cost account state is proven and the live B3 runner, deterministic six-case anchor manifest, command spec, and token ledger are implemented, hashed, reviewed, and fail closed.
 - The regret scale, superiority margin, and target-headroom rule are frozen before the first provider call so pilot outcomes cannot select the statistical target.
 - No evaluation-driven clipping or winsorization is allowed.
 - Utility and normalized-regret bounds are certified over each fixture's complete feasible action lattice before seal, so poor policy performance cannot be relabeled INVALID.

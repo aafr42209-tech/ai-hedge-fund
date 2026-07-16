@@ -10,8 +10,9 @@
 - Contract SHA-256 before v7 hardening: `ec27c5dd17542dc837b5501b9e98a467d845277ed6051201e6221f6663de55c5`
 - Base commit: `fe521fefcaf25475a7bd92c8626f6eccd6ca3033`
 - Base branch: `codex/llm-overlay-research-01`
-- Created: `2026-07-13`; revised: `2026-07-14`
+- Created: `2026-07-13`; revised: `2026-07-16`
 - Status: `DRAFT`
+- D2 state: `APPROVED_B3_OPERATIONAL_PREFLIGHT_PENDING`
 
 This plan implements only Phase B of R01: a development-fixture pilot using one
 Codex model through ChatGPT subscription authentication. It does not authorize
@@ -688,7 +689,7 @@ Produce a hashed preflight report containing:
 Current zero-call observation on pinned local `codex-cli 0.144.1`:
 
 - the complete B2 report is `docs/r01-b2-zero-call-preflight.md`, SHA-256
-  `eccae5fb6e1ed014d42047634d2c70187123e2e1e91778e2267803e2b49bba8b`,
+  `a7b99aacc13bdc4857faab6394f9a4296c679d86b402d7667e62c21f66cf6ff7`,
   anchored to provider-free hardening commit
   `fe521fefcaf25475a7bd92c8626f6eccd6ca3033`;
 - the committed capture summary and reversible raw preimages reproduce both
@@ -713,30 +714,30 @@ Current zero-call observation on pinned local `codex-cli 0.144.1`:
   prebuilt npm binary to tag `rust-v0.144.1`; no reproducible source build or
   cryptographic binary-to-commit proof was performed. Any package, binary, or
   source-identity drift stops the phase;
-- B2 remains `BLOCKED_PENDING_D2` until the user accepts exactly those four
-  removed/no-op entries as the minimal non-tool allowlist or stops Option A; no
-  prompt wording can override this gate;
+- D2 approved exactly those four removed/no-op entries as the minimal non-tool
+  allowlist on 2026-07-16; no prompt wording may expand that allowlist;
 - model-echo availability cannot be established without a provider transport.
-  The parser is ready to verify or stop, and D2 must accept echo absence as a
-  possible identity limitation before any authorized B3 call.
+  D2 accepted echo absence as a possible identity limitation; the parser must
+  still stop on any observed mismatch.
 
 The timeout/nonzero rules are not discretionary D2 choices: a parser
 `STOP_PHASE` is never downgraded, and a complete response with a process-status
 violation is `STOP_PHASE`. D2 records acknowledgement of these frozen rules;
 changing either requires a new plan and contract identity before any call.
 
-User decision gate D2 selects the exact model and reasoning effort after this
-report and approves the provisional live timeout, development token cap,
-per-attempt reserve, initial-nonzero stop rule, and two-failure transport retry
-bound. D2 also freezes `delta_min_e12`, `target_headroom_e12`, the resulting
-`delta_target` rule, and the no-correction two-replicate variance policy before
-the first provider call. D2 approves the minimal non-tool allowlist and any
-unavoidable request-compression, remote-compaction, or fast-mode limitation. No
-model fallback or unclassified effective-true feature is allowed. D2 must also
-choose one of two provider-free outcomes: accept the anchored generator with the
-`high_transaction_cost` `6/7` zero-gap stratum and record its power cost, or stop
-and issue a new contract and freeze. It cannot exclude, rebalance, or alter that
-stratum after a Codex response exists.
+User decision gate D2 was approved without amendment on 2026-07-16. It freezes
+`gpt-5.6-sol`, reasoning effort `high`, provider-default service tier, the
+`900000` ms live timeout, `32000` per-attempt token reserve, `6400000`
+development token cap, `200`-attempt cap, zero incremental USD, the
+initial-nonzero stop rule, and the attempt-2 transport retry bound. It also
+freezes `delta_min_e12=50000000000`,
+`target_headroom_e12=50000000000`,
+`delta_target_e12=100000000000`, no two-versus-five variance correction, the
+minimal non-tool allowlist, and acceptance of the unchanged
+`high_transaction_cost` `6/7` zero-gap stratum with its power cost. No model
+fallback or unclassified effective-true feature is allowed. The immutable user
+decision is `docs/r01-d2-user-approval.md`, SHA-256
+`95e55764963cc86e18e6e66348956bcde84082e3f0da28faf1c60145eb4e150c`.
 
 #### Provider-free B3 disposition-consumer readiness — 2026-07-15
 
@@ -758,13 +759,13 @@ stratum after a Codex response exists.
 - each acquisition binds an `r01-complete-response-disposition-v1` artifact and
   the containing result schema is bumped to `r01-development-run-result-v3`;
 - updated research contract SHA-256:
-  `88c33924e249e4195a41096e256e83b0b0d20dbd1a8228d6482e909e9882b9c6`;
+  `58a53af504de754b1b69d26bcd9aab4360950d5405a562cc3a1e196793f749fc`;
 - `109` provider-free overlay tests pass, including dedicated consumer,
   one-hold, bounded-retry, first-nonzero stop, global-attempt-cap,
   missing-consumer, stop-before-score, raw-text binding, and replay coverage;
-- D2 recommendations and unresolved approvals are recorded in
+- D2 recommendations and approved resolution are recorded in
   `docs/r01-d2-decision-package.md`, SHA-256
-  `9427fcc646734ec22b6db5bc1dfa225a2590aebbf9c624cd0024268a310b799f`;
+  `f605c1cea63b676a012645853cb2984deee1e5c61931050c1f63515a866d1ddc`;
 - provider calls and development attempts remain `0`.
 
 ### B3 — 12-call micro-pilot
@@ -790,6 +791,12 @@ Before the first B3 call, the runner must consume
 `complete_response_disposition` for every complete response. A
 `FAIL_CLOSED_SCORE` result must enter the hold scorer exactly once; if no
 consumer is wired, B3 is blocked and no call is authorized.
+
+The first B3 call is also blocked until a provider-free preflight proves that no
+purchased or shared credit can be drawn and automatic credit top-up is disabled,
+and until the live B3 command, deterministic six-case anchor manifest, command
+spec, and reservation/actual-token ledger are implemented, hashed, reviewed,
+and tested. D2 approval does not waive these operational requirements.
 
 The bounded retry consumer, attempt-failure artifact binding, first-nonzero
 stop rule, and global development-attempt cap must also pass provider-free tests

@@ -1,8 +1,8 @@
 # R01 Phase B2 zero-call preflight
 
-Status: `BLOCKED_PENDING_D2`
+Status: `D2_APPROVED_B3_PREFLIGHT_BLOCKED`
 
-Observation date: `2026-07-14` (Asia/Seoul)
+Observation date: `2026-07-14`; D2 approval recorded `2026-07-16` (Asia/Seoul)
 
 Provider calls made: `0`
 
@@ -13,17 +13,18 @@ Evaluation fixtures generated: `0`
 ## Trust anchors
 
 - Code commit: `fe521fefcaf25475a7bd92c8626f6eccd6ca3033`
-- Research contract SHA-256: `88c33924e249e4195a41096e256e83b0b0d20dbd1a8228d6482e909e9882b9c6`
+- Research contract SHA-256: `58a53af504de754b1b69d26bcd9aab4360950d5405a562cc3a1e196793f749fc`
 - B3 readiness implementation parent commit: `1b0ef0e`
 - Provider-free freeze SHA-256: `86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2`
 - Provider-free regime-gap summary SHA-256: `0e6e8945f93779a77ffc7687d63062c010efd3aee3d6c8062551e54108fbf886`
 - Exact-tag Codex source feature proof SHA-256: `1de5d131356deb6dec8186eb07795e47717d4960937b9142689a5e9cc3554f91`
 - Source tag/commit: `rust-v0.144.1` / `44918ea10c0f99151c6710411b4322c2f5c96bea`
-- D2 decision package SHA-256: `9427fcc646734ec22b6db5bc1dfa225a2590aebbf9c624cd0024268a310b799f`
+- D2 decision package SHA-256: `f605c1cea63b676a012645853cb2984deee1e5c61931050c1f63515a866d1ddc`
+- D2 user approval record SHA-256: `95e55764963cc86e18e6e66348956bcde84082e3f0da28faf1c60145eb4e150c`
 - Freeze root-seed label: `r01-phase-b-development-fixtures-v1`
 - Freeze fixture count: `40`
 - Root-seed and fixture-count match: `true`
-- Final prompt SHA-256: `TBD_D2`
+- Final prompt SHA-256: `TBD_B3_IMPLEMENTATION`
 
 ## Local Codex identity
 
@@ -36,11 +37,11 @@ Evaluation fixtures generated: `0`
 - Resolved native executable: `%USERPROFILE%/AppData/Roaming/npm/node_modules/@openai/codex/node_modules/@openai/codex-win32-x64/vendor/x86_64-pc-windows-msvc/bin/codex.exe`
 - Native-executable SHA-256: `cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4`
 - Installed package dependency lock: absent.
-- Exact selected model: `TBD_D2`
-- User-visible reasoning effort: `TBD_D2`
-- User-visible service tier: `TBD_D2`
+- Exact selected model: `gpt-5.6-sol`
+- User-visible reasoning effort: `high`
+- User-visible service tier: provider default
 - Provider-managed model availability and routing: not frozen and not queried by this zero-call preflight.
-- Transport model-echo availability: `UNESTABLISHED_ZERO_CALL`; absence is an explicit D2 limitation, while any observed mismatch is a `STOP_PHASE` condition.
+- Transport model-echo availability: `UNESTABLISHED_ZERO_CALL`; absence is an approved D2 identity limitation, while any observed mismatch is a `STOP_PHASE` condition.
 - Global-flag placement check: the zero-call command `codex --disable shell_tool exec --help` exited successfully and returned the pinned `codex exec` help surface.
 - Every provider-free subprocess command has a fixed `30`-second timeout; expiry fails the preflight closed.
 
@@ -67,13 +68,14 @@ Evaluation fixtures generated: `0`
 - Post-disable effective-true count: `4`.
 - Residual effective-true entries: `resize_all_images`, `terminal_resize_reflow`, `tool_search_always_defer_mcp_tools`, `tui_app_server`.
 - Residual runtime inertness:
-  `SOURCE_ESTABLISHED_REMOVED_NOOP_PENDING_D2_ACCEPTANCE`. Exact tagged source
+  `SOURCE_ESTABLISHED_REMOVED_NOOP_D2_ACCEPTED`. Exact tagged source
   explicitly ignores all four config keys and has no behavior consumer outside
   the feature registry, removed-key guards, and tests. The stage label alone was
   not used as evidence.
-- Command-spec SHA-256: absent until D2 approves or rejects the exact four-entry
-  non-tool allowlist.
-- Gate result: `BLOCKED_PENDING_D2`; prompt wording cannot override it.
+- Command-spec SHA-256: absent pending B3 live-path implementation; D2 approved
+  the exact four-entry non-tool allowlist.
+- Gate result: `D2_APPROVED_NOOP_ALLOWLIST`; provider execution remains blocked
+  by the separate post-D2 operational preflight.
 
 `baseline` is the effective value before generated disables.
 
@@ -189,28 +191,34 @@ Evaluation fixtures generated: `0`
 - `enable_request_compression`, `remote_compaction_v2`, and `fast_mode`: baseline `true`, post-disable `false`.
 - Secrets in argv, prompt, config, artifacts, or logs: none observed; secret-bearing config keys and recognizable secret-bearing values are rejected by the command-spec validator.
 
-## Budget and D2 blockers
+## Budget and post-D2 execution blockers
 
 - Development attempt cap: `200`.
 - Development attempts spent: `0`.
 - Development attempts remaining: `200`.
-- Development token cap: `TBD_D2`.
-- Per-attempt token reserve: `TBD_D2`.
-- USD cap: `TBD_D2`; ChatGPT subscription use does not authorize overage or API billing.
-- High-transaction-cost stratum: `6/7` zero oracle-hold gaps; treatment remains `TBD_D2_ACCEPT_UNCHANGED_OR_RESTART_PROVIDER_FREE`.
+- Development token cap: `6400000`.
+- Per-attempt token reserve: `32000`.
+- USD cap: `0`; ChatGPT subscription use does not authorize purchased-credit
+  drawdown, automatic top-up, shared-credit use, overage, or API billing.
+- High-transaction-cost stratum: `6/7` zero oracle-hold gaps; D2 treatment is
+  `ACCEPT_UNCHANGED_AND_CARRY_POWER_COST`.
 - Transport disposition policy: `FROZEN_PRE_D2`. Parser-originated `STOP_PHASE` always dominates timeout/nonzero wrapping; retry wrappers retain the original code and disposition; a complete transport with timeout or nonzero process status is `STOP_PHASE`, never hold.
 - Retry budget policy: attempt-1 `nonzero_exit_without_complete_response` is
   `STOP_PHASE`; other transport failures may advance once to attempt 2; the
   second consecutive `RETRY_TRANSPORT` is converted to `STOP_PHASE` before a
   third call; the global `200`-attempt cap is checked before every call.
 
-D2 must resolve all items below before any B3 acquisition:
+D2 resolved all six decision items above on 2026-07-16. Before any B3
+acquisition, the remaining operational preflight must:
 
-1. Accept the exact-tag source proof and approve exactly the four residual
-   removed/no-op entries, or reject it and stop Option A.
-2. Freeze the exact model string, reasoning effort, service tier, and provider-managed setting declarations.
-3. Accept model-echo absence as a possible transport identity limitation, subject to mismatch stopping the phase.
-4. Freeze the development token cap, per-attempt reserve, USD cap, and no-overage rule.
-5. Approve the live timeout, first-nonzero stop rule, and two-failure transport
-   retry bound.
-6. Accept the unchanged high-cost stratum and its prospective power cost, or restart from a newly amended provider-free contract and freeze.
+1. prove that no purchased-credit balance or shared workspace credit pool can
+   be drawn and automatic credit top-up is disabled;
+2. implement and hash the live B3 command spec and deterministic six-case
+   anchor manifest;
+3. wire reservation and actual-usage accounting to the approved attempt and
+   token caps; and
+4. rerun the complete provider-free identity, test, formatting, and review
+   gates against the exact implementation.
+
+No provider call is authorized until those checks pass. Inability to prove the
+zero-cost account state stops the phase.
