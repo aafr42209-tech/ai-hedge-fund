@@ -19,6 +19,7 @@ from .contracts import (
     AcquisitionDisposition,
     AcquisitionFailureRecord,
     AcquisitionIdentity,
+    CodexAttemptTransportArtifacts,
     CodexFeatureCatalogEntry,
     CodexFeatureGate,
     DevelopmentBudgetCarryForward,
@@ -372,6 +373,13 @@ def test_per_attempt_token_reserve_excess_stops_after_one_response(tmp_path) -> 
         attempt=1,
     )
     raw = json.dumps(hold_batch().model_dump(mode="json"))
+    transport_artifacts = CodexAttemptTransportArtifacts(
+        command_spec=store.write_text("transport/command_spec.json", "{}"),
+        stdout_jsonl=store.write_text("transport/stdout.jsonl", "{}\n"),
+        stderr=store.write_bytes("transport/stderr.bin", b""),
+        process_status=store.write_text("transport/process_status.json", "{}"),
+        provider_response=store.write_text("transport/provider_response.json", "{}"),
+    )
 
     class HighUsageClient:
         provider_calls = 0
@@ -387,6 +395,9 @@ def test_per_attempt_token_reserve_excess_stops_after_one_response(tmp_path) -> 
                 }
             )
 
+        def transport_artifacts_for(self, identity):
+            return transport_artifacts
+
     client = HighUsageClient()
     with pytest.raises(CodexExecError) as raised:
         runner._complete_acquisition(
@@ -399,6 +410,28 @@ def test_per_attempt_token_reserve_excess_stops_after_one_response(tmp_path) -> 
     assert raised.value.code == "per_attempt_token_reserve_exceeded"
     assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
     assert client.provider_calls == 1
+    prefix = f"token-reserve-test/acquisitions/{fixture.public.case_id}/development/replicate-000/attempt-1"
+    failure = AcquisitionFailureRecord.model_validate_json(store.read_bytes(store.reference_for_existing(f"{prefix}/acquisition_failure.json")))
+    assert failure.schema_version == "r01-acquisition-failure-v3"
+    assert failure.token_reservation is not None
+    assert failure.post_response_artifacts is not None
+    assert failure.post_response_artifacts.transport_artifacts == transport_artifacts
+    for reference in (
+        failure.token_reservation,
+        failure.post_response_artifacts.policy_input,
+        failure.post_response_artifacts.system_prompt,
+        failure.post_response_artifacts.user_prompt,
+        failure.post_response_artifacts.provider_request,
+        failure.post_response_artifacts.raw_response,
+        failure.post_response_artifacts.provider_response_metadata,
+        failure.post_response_artifacts.token_usage,
+        transport_artifacts.command_spec,
+        transport_artifacts.stdout_jsonl,
+        transport_artifacts.stderr,
+        transport_artifacts.process_status,
+        transport_artifacts.provider_response,
+    ):
+        store.verify(reference)
 
 
 def test_subprocess_runner_removes_secret_bearing_environment_names() -> None:

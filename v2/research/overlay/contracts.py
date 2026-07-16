@@ -892,6 +892,18 @@ class CodexAttemptTransportArtifacts(StrictModel):
     provider_response: ArtifactReference
 
 
+class CodexPostResponseStopArtifacts(StrictModel):
+    schema_version: Literal["r01-codex-post-response-stop-artifacts-v1"] = "r01-codex-post-response-stop-artifacts-v1"
+    policy_input: ArtifactReference
+    system_prompt: ArtifactReference
+    user_prompt: ArtifactReference
+    provider_request: ArtifactReference
+    raw_response: ArtifactReference
+    provider_response_metadata: ArtifactReference
+    token_usage: ArtifactReference
+    transport_artifacts: CodexAttemptTransportArtifacts | None = None
+
+
 class FixtureManifestEntry(StrictModel):
     case_id: str
     regime: Regime
@@ -1022,7 +1034,7 @@ class CompleteResponseDispositionRecord(StrictModel):
 
 
 class AcquisitionFailureRecord(StrictModel):
-    schema_version: Literal["r01-acquisition-failure-v2"] = "r01-acquisition-failure-v2"
+    schema_version: Literal["r01-acquisition-failure-v2", "r01-acquisition-failure-v3"] = "r01-acquisition-failure-v3"
     identity: AcquisitionIdentity
     code: str = Field(min_length=1)
     disposition: AcquisitionDisposition
@@ -1030,6 +1042,7 @@ class AcquisitionFailureRecord(StrictModel):
     origin_disposition: AcquisitionDisposition | None = None
     token_reservation: ArtifactReference | None = None
     transport_artifacts: CodexAttemptFailureTransportArtifacts | None = None
+    post_response_artifacts: CodexPostResponseStopArtifacts | None = None
 
     @model_validator(mode="after")
     def validate_failure_record(self) -> "AcquisitionFailureRecord":
@@ -1037,6 +1050,15 @@ class AcquisitionFailureRecord(StrictModel):
             raise ValueError("complete-response quality failures must be scored, not recorded as acquisition failures")
         if (self.origin_code is None) != (self.origin_disposition is None):
             raise ValueError("origin code and disposition must be recorded together")
+        if self.transport_artifacts is not None and self.post_response_artifacts is not None:
+            raise ValueError("failure record cannot bind both failed-transport and post-response artifacts")
+        if self.post_response_artifacts is not None:
+            if self.schema_version != "r01-acquisition-failure-v3":
+                raise ValueError("post-response stop artifacts require acquisition-failure v3")
+            if self.disposition is not AcquisitionDisposition.STOP_PHASE:
+                raise ValueError("post-response artifacts are valid only for STOP_PHASE")
+            if self.token_reservation is None:
+                raise ValueError("post-response stop requires a token reservation")
         return self
 
 

@@ -21,6 +21,7 @@ from .contracts import (
     B3_MAX_PROVIDER_ATTEMPTS,
     B3AnchorManifest,
     CodexAttemptFailureTransportArtifacts,
+    CodexPostResponseStopArtifacts,
     CodexProcessStatus,
     CompleteResponseDispositionRecord,
     DEVELOPMENT_ATTEMPT_CAP,
@@ -605,11 +606,33 @@ def _complete_acquisition(
         token_usage,
     )
     if token_usage.accounting_total_tokens > token_usage.reserve_total_tokens:
-        raise CodexExecError(
+        error = CodexExecError(
             "per_attempt_token_reserve_exceeded",
             "provider response exceeded the approved per-attempt token reserve",
             disposition=AcquisitionDisposition.STOP_PHASE,
         )
+        transport_lookup = getattr(client, "transport_artifacts_for", None)
+        transport_artifacts = transport_lookup(identity) if callable(transport_lookup) else None
+        store.write_json(
+            f"{prefix}/acquisition_failure.json",
+            AcquisitionFailureRecord(
+                identity=identity,
+                code=error.code,
+                disposition=error.disposition,
+                token_reservation=reservation_ref,
+                post_response_artifacts=CodexPostResponseStopArtifacts(
+                    policy_input=request.policy_input,
+                    system_prompt=request.system_prompt,
+                    user_prompt=request.user_prompt_artifact,
+                    provider_request=request.provider_request,
+                    raw_response=raw_ref,
+                    provider_response_metadata=response_metadata_ref,
+                    token_usage=token_usage_ref,
+                    transport_artifacts=transport_artifacts,
+                ),
+            ),
+        )
+        raise error
     outcome, disposition = _consume_complete_response(episode, response)
     score = score_episode(episode, outcome.validation)
     assert_oracle_bound("llm", score.utility_e12, oracle)

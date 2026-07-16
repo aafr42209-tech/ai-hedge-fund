@@ -12,9 +12,9 @@
 - Base branch: `codex/llm-overlay-research-01`
 - Created: `2026-07-13`; revised: `2026-07-16`
 - Status: `DRAFT`
-- D2 state: `APPROVED_B3_PREFLIGHT_IMPLEMENTED_REVIEW_PENDING`
-- B3 state: `FIRST_CALL_STOPPED_TRANSPORT_REMEDIATION_PREFLIGHT_PENDING`
-- Development provider attempts spent: `1`; conservative tokens charged: `32000`
+- D2 state: `APPROVED_RESOURCE_LIMIT_REOPEN_REQUIRED`
+- B3 state: `TRANSPORT_V3_STOPPED_PER_ATTEMPT_TOKEN_RESERVE`
+- Development provider attempts spent: `4`; conservative tokens charged: `103623`
 
 This plan implements only Phase B of R01: a development-fixture pilot using one
 Codex model through ChatGPT subscription authentication. It does not authorize
@@ -870,6 +870,39 @@ run result; this is expected evidence preservation and never a scored result.
   `13872058b922736e31c83e54ecbf8c17e36c20f68205ab249a9883b954248507`;
 - full provider-free overlay suite: `125 passed`; compile, Black, isort, and
   `git diff --check` pass.
+
+#### B3 transport-v3 token-reserve stop — 2026-07-16
+
+- independent review approved implementation commit `af8381f` with preflight
+  `e86c75659b1dc54e16722d2ee37403e0c6fba3f59318d00103fb84ad79823d09`;
+- the user approved 12 acquisitions, at most 24 new attempts, the carried
+  attempt/charge, zero incremental cost, and immediate fail-closed stop;
+- ordinals 2 and 3 completed transport, token settlement, disposition, and
+  scoring for `development-0005` replicates 0 and 1;
+- ordinal 4 completed transport for `development-0001` replicate 0 but used
+  `41629` input plus `3023` output tokens = `44652`, exceeding the approved
+  `32000` per-attempt reserve by `12652`;
+- the runner raised `per_attempt_token_reserve_exceeded/STOP_PHASE`; the
+  remaining nine acquisitions and every retry were not run;
+- global budget state is four attempts, three complete responses, one prior
+  failed or unsettled attempt, `71623` settled actual tokens, `13651` prior
+  observed unsettled tokens, and `103623` conservative charge;
+- no run result exists, so the two scored partial acquisitions cannot select a
+  prompt or satisfy B3;
+- the live code persisted the third raw response, metadata, token usage, and
+  complete transport graph, but raised after that point without persisting an
+  `acquisition_failure.json`. The immutable gap is recorded rather than
+  backfilled;
+- acquisition-failure v3 now binds a post-response STOP to all request,
+  response, usage, and transport artifacts before raising. A focused regression
+  test requires every edge to verify;
+- immutable machine evidence:
+  `docs/r01-b3-token-reserve-stop-evidence.json`, SHA-256
+  `cd51330661e2f4a55627fd9464e681c763c16f80b0a3f43a5b3b59dd12ba80da`;
+- no further provider call is authorized. D2 must amend or retain the `32000`
+  reserve on independent resource grounds, and any replacement requires a new
+  aggregate carry-forward schema, experiment identity, manifest, preflight,
+  review, and explicit user approval.
 
 ### B4 — bounded prompt iteration
 
