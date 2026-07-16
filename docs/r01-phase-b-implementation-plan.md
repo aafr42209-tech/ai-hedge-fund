@@ -13,8 +13,8 @@
 - Created: `2026-07-13`; revised: `2026-07-16`
 - Status: `DRAFT`
 - D2 state: `RESOURCE_AMENDMENT_01_IMPLEMENTED`
-- B3 state: `RESOURCE_V2_PREFLIGHT_READY_FOR_INDEPENDENT_REVIEW`
-- Development provider attempts spent: `4`; conservative tokens charged: `103623`
+- B3 state: `RESOURCE_V2_TOKEN_RESERVE_STOP`
+- Development provider attempts spent: `15`; conservative tokens charged: `339507`
 
 This plan implements only Phase B of R01: a development-fixture pilot using one
 Codex model through ChatGPT subscription authentication. It does not authorize
@@ -946,6 +946,36 @@ run result; this is expected evidence preservation and never a scored result.
 - no provider call is authorized by this amendment or preflight alone. The
   exact `f403e1a` + `95130a03...4bde` pair requires independent review and a
   fresh explicit user approval.
+
+#### B3 resource-v2 token-reserve STOP — 2026-07-17
+
+- independent review approved `f403e1a` plus preflight
+  `95130a039edbd43a9c610078ce6d904beb5e038bed65e9bf0252924b3bb04bde`;
+- the user then approved 12 acquisitions, at most 24 new attempts, carried
+  state 4 attempts / `103623` conservative tokens, the 64K reserve, 12.8M cap,
+  zero incremental cost, immediate fail-closed STOP, and no automatic increase;
+- provider-free live-client construction revalidated every boundary with zero
+  provider calls before `b3-run`;
+- ordinals 5 through 14 completed and each produced
+  `schema_invalid / FAIL_CLOSED_SCORE` because six confidence values were
+  floating 0-through-1 values rather than strict integer 0-through-100 values;
+- ordinal 15 (`development-0003`, replicate 0) used `59849` input plus `4174`
+  output tokens = `64023`, exceeding the approved reserve by `23`;
+- the response received `per_attempt_token_reserve_exceeded / STOP_PHASE`, was
+  persisted through acquisition-failure v3, and was not parsed, scored, retried,
+  or followed by the remaining replicate;
+- current-run actual tokens are `235884`; global state is 15 attempts, `307507`
+  actual tokens, and `339507` conservative tokens;
+- no development run result, token summary, report, or replay verification was
+  written, so ten partial hold scores cannot satisfy B3 or select a prompt;
+- machine evidence:
+  `docs/r01-b3-resource-v2-stop-evidence.json`, SHA-256
+  `c0f6a084d2a151bde1aaef2b0265789ab4073655338b3a22759b7f62a0a7d41b`;
+- STOP report: `docs/r01-b3-resource-v2-token-reserve-stop.md`, SHA-256
+  `a2adfce4a048286c132c96840668b2801b57d798bb5e5fec3e75b523f613b5a3`;
+- no further provider call is authorized. Any future live work requires a
+  provider-free prompt redesign, aggregate carry from ordinal 15, a new
+  identity/manifest/preflight, independent review, and explicit user approval.
 
 ### B4 — bounded prompt iteration
 
