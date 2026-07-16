@@ -7,7 +7,7 @@ from copy import deepcopy
 from dataclasses import dataclass
 from typing import Any, Protocol
 
-from .contracts import ASSET_IDS, SIGNAL_IDS, DecisionBatch, PublicEpisode
+from .contracts import ASSET_IDS, DecisionBatch, PublicEpisode, SIGNAL_IDS
 
 
 @dataclass(frozen=True)

@@ -2,7 +2,13 @@ from __future__ import annotations
 
 from functools import lru_cache
 
-from .contracts import ASSET_IDS, Decision, DecisionBatch, GeneratorConfig, SyntheticEpisode
+from .contracts import (
+    ASSET_IDS,
+    Decision,
+    DecisionBatch,
+    GeneratorConfig,
+    SyntheticEpisode,
+)
 from .fixtures import generate_episode
 
 

@@ -1,7 +1,7 @@
 from __future__ import annotations
 
-from ._test_helpers import hold_batch
-from .contracts import ASSET_IDS, SIGNAL_IDS, DecisionBatch
+from ._test_helpers import episode, hold_batch
+from .contracts import ASSET_IDS, DecisionBatch, SIGNAL_IDS
 from .perturbations import (
     apply_signal_order,
     inverse_map_decisions,
@@ -11,7 +11,6 @@ from .perturbations import (
     restore_episode,
     reverse_json_key_order,
 )
-from ._test_helpers import episode
 
 
 def test_asset_permutation_round_trip_restores_canonical_episode() -> None:

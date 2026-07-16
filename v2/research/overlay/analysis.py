@@ -3,9 +3,10 @@
 from __future__ import annotations
 
 import hashlib
+
 import numpy as np
 
-from .arithmetic import PARTS_PER_MILLION, mean_int, round_ratio_half_even
+from .arithmetic import mean_int, PARTS_PER_MILLION, round_ratio_half_even
 from .contracts import BootstrapInterval, PowerResult
 
 DEFAULT_BOOTSTRAP_RESAMPLES = 10_000

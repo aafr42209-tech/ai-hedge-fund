@@ -5,13 +5,13 @@ from __future__ import annotations
 import operator
 from math import isqrt
 
-from .arithmetic import BASIS_POINTS, UTILITY_SCALE, round_ratio_half_even
+from .arithmetic import BASIS_POINTS, round_ratio_half_even, UTILITY_SCALE
 from .contracts import (
     ASSET_IDS,
-    SIGNAL_IDS,
     BaselineConfig,
     PolicyResult,
     PublicEpisode,
+    SIGNAL_IDS,
     SyntheticEpisode,
     ValidationReport,
 )

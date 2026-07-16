@@ -12,11 +12,11 @@ from typing import Protocol
 
 from .canonical import canonical_json_bytes
 from .contracts import (
-    CodexFeatureCatalogEntry,
-    CodexFeatureGate,
     codex_feature_catalog_definition_sha256,
     codex_feature_catalog_snapshot_sha256,
     codex_pilot_sandbox_identity_sha256,
+    CodexFeatureCatalogEntry,
+    CodexFeatureGate,
 )
 
 PINNED_CODEX_FEATURE_CATALOG_COUNT = 92

@@ -6,7 +6,12 @@ import hashlib
 import operator
 
 from .canonical import canonical_json_bytes, canonical_sha256
-from .contracts import OracleCertificate, OracleResult, SyntheticEpisode, ValidationReport
+from .contracts import (
+    OracleCertificate,
+    OracleResult,
+    SyntheticEpisode,
+    ValidationReport,
+)
 from .lattice import iter_candidate_batches
 from .scoring import score_episode
 from .selection import prefer_candidate

@@ -99,16 +99,7 @@ def parse_json_object(raw: str) -> dict[str, Any]:
             last_error = DecisionParseError("top-level JSON value must be an object")
             continue
         candidates.append((offset, end, value))
-    outer_candidates = [
-        candidate
-        for candidate in candidates
-        if not any(
-            other_start <= candidate[0]
-            and candidate[1] <= other_end
-            and (other_start, other_end) != candidate[:2]
-            for other_start, other_end, _other_value in candidates
-        )
-    ]
+    outer_candidates = [candidate for candidate in candidates if not any(other_start <= candidate[0] and candidate[1] <= other_end and (other_start, other_end) != candidate[:2] for other_start, other_end, _other_value in candidates)]
     if len(outer_candidates) == 1:
         return outer_candidates[0][2]
     if len(outer_candidates) > 1:

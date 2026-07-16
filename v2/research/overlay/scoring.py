@@ -7,10 +7,10 @@ from itertools import combinations
 from .arithmetic import (
     BASIS_POINTS,
     COVARIANCE_BP2_SCALE,
-    PARTS_PER_MILLION,
-    UTILITY_SCALE,
     mean_int,
+    PARTS_PER_MILLION,
     round_ratio_half_even,
+    UTILITY_SCALE,
 )
 from .contracts import (
     ASSET_IDS,

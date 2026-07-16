@@ -11,7 +11,6 @@ from .arithmetic import BASIS_POINTS, round_ratio_half_even
 from .canonical import canonical_sha256
 from .contracts import (
     ASSET_IDS,
-    SIGNAL_IDS,
     AssetState,
     CostSchedule,
     Decision,
@@ -20,6 +19,7 @@ from .contracts import (
     HiddenEpisodeState,
     PublicEpisode,
     Regime,
+    SIGNAL_IDS,
     SyntheticEpisode,
 )
 from .lattice import hold_batch

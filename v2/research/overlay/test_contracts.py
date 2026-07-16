@@ -6,19 +6,19 @@ from pydantic import ValidationError
 from ._test_helpers import episode
 from .arithmetic import mean_int, median_int, round_ratio_half_even
 from .canonical import (
+    canonical_json_bytes,
     CanonicalizationError,
     DecisionParseError,
-    canonical_json_bytes,
-    parse_json_object,
     parse_decision_batch,
+    parse_json_object,
 )
 from .contracts import (
-    MAX_REASONING_CODEPOINTS,
     ArtifactReference,
     CodexAttemptTransportArtifacts,
     Decision,
+    MAX_REASONING_CODEPOINTS,
 )
-from .llm_policy import SYSTEM_PROMPT_V1, build_policy_input
+from .llm_policy import build_policy_input, SYSTEM_PROMPT_V1
 
 
 def test_round_ratio_half_even_signed_ties() -> None:

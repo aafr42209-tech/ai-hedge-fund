@@ -4,7 +4,7 @@ import pytest
 
 from . import baselines, runner
 from ._test_helpers import episode, hold_batch
-from .arithmetic import UTILITY_SCALE, round_ratio_half_even
+from .arithmetic import round_ratio_half_even, UTILITY_SCALE
 from .baselines import equal_risk_policy, hold_policy, primary_deterministic
 from .contracts import ASSET_IDS, Decision, DecisionBatch
 from .oracle import assert_oracle_bound, solve_oracle

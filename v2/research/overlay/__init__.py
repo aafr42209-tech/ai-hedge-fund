@@ -4,14 +4,14 @@ Phase A through B2 are provider-free and development-only. Nothing in this packa
 investment backtest or a live-trading path.
 """
 
-from .arithmetic import UTILITY_SCALE, mean_int, median_int, round_ratio_half_even
+from .arithmetic import mean_int, median_int, round_ratio_half_even, UTILITY_SCALE
 from .canonical import canonical_json_bytes, sha256_hex
 from .contracts import (
     ASSET_IDS,
-    SIGNAL_IDS,
     Decision,
     DecisionBatch,
     PublicEpisode,
+    SIGNAL_IDS,
     SyntheticEpisode,
 )
 

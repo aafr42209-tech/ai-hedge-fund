@@ -4,7 +4,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from .arithmetic import BASIS_POINTS, UTILITY_SCALE, mean_int, median_int
+from .arithmetic import BASIS_POINTS, mean_int, median_int, UTILITY_SCALE
 from .baselines import hold_policy
 from .canonical import canonical_json_bytes, canonical_sha256, sha256_hex
 from .contracts import (
@@ -16,7 +16,7 @@ from .contracts import (
     ProviderFreeRegimeGapSummary,
     SyntheticEpisode,
 )
-from .fixtures import REGIMES, generate_development_episodes
+from .fixtures import generate_development_episodes, REGIMES
 from .oracle import solve_oracle
 from .scoring import normalized_regret_e12
 from .specs import scoring_spec_sha256

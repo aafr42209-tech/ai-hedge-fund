@@ -5,15 +5,15 @@ import pytest
 from .canonical import canonical_sha256
 from .contracts import GeneratorConfig
 from .freeze import (
+    build_provider_free_regime_gap_summary,
     FROZEN_DEVELOPMENT_FIXTURE_COUNT,
     FROZEN_DEVELOPMENT_ROOT_SEED_LABEL,
     FROZEN_PROVIDER_FREE_FREEZE_SHA256,
     FROZEN_PROVIDER_FREE_REGIME_GAP_SUMMARY_SHA256,
-    NORMALIZATION_EPSILON_E12,
-    build_provider_free_regime_gap_summary,
     generate_provider_free_freeze,
     load_committed_provider_free_freeze,
     load_committed_provider_free_regime_gap_summary,
+    NORMALIZATION_EPSILON_E12,
 )
 from .runner import main
 
