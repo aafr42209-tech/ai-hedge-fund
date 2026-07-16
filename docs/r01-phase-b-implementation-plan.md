@@ -1011,6 +1011,24 @@ run result; this is expected evidence preservation and never a scored result.
 - this approval authorizes no provider call. A new experiment identity,
   manifest, preflight, provider-free verification, independent cross-review,
   and separate final execution approval remain mandatory.
+- amended implementation commit: `1f65106`;
+- provider-free validation: focused contract/B3 tests `22 passed`, full overlay
+  suite `127 passed`, Black 36 files clean, isort/compile/diff-check clean, and
+  nine real historical schema artifacts revalidated;
+- replacement experiment ID:
+  `r01-b3-prompt-v2-resource-v3-20260717`;
+- development manifest SHA-256:
+  `d9ef5150073717a802212cafbb1b9182b10c4ab329ca01ea57e16fb0baaa26ba`;
+- provider-free preflight v4 SHA-256:
+  `5937161ac9c2bb9c22172d0be27a5a730cc2a3dc1c8bf51044270b65ee68353e`;
+- readiness report:
+  `docs/r01-b3-prompt-v2-resource-v3-preflight-ready.md`, SHA-256
+  `ce11640f948cb236e789029d39b13a3e12e29253564381568974e09851d75408`;
+- the new artifact graph has 53 references and 53 files with no missing,
+  unreferenced, size-mismatched, or hash-mismatched item; its external sandbox
+  remains empty and its preflight records zero new provider calls;
+- the exact `1f65106` + `5937161a...8353e` pair now requires independent
+  cross-review and a separate explicit user execution approval.
 
 ### B4 — bounded prompt iteration
 

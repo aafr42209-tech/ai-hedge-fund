@@ -125,32 +125,32 @@ rendered command specs, timeout, and token caps are all hashed before any model
 process starts:
 
 ```powershell
-$b3Sandbox = "C:\tmp\r01-b3-sandbox-f403e1a"
+$b3Sandbox = "C:\tmp\r01-b3-sandbox-1f65106"
 New-Item -ItemType Directory -Path $b3Sandbox
 
 python -m v2.research.overlay `
-  --artifact-root .research_artifacts/r01-b3-f403e1a `
+  --artifact-root .research_artifacts/r01-b3-1f65106 `
   generate-development `
-  --experiment-id r01-b3-prompt-v1-resource-v2-20260716 `
+  --experiment-id r01-b3-prompt-v2-resource-v3-20260717 `
   --root-seed r01-phase-b-development-fixtures-v1 `
   --count 40 `
   --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
   --contract docs/research-contract-01-llm-overlay.md
 
 python -m v2.research.overlay `
-  --artifact-root .research_artifacts/r01-b3-f403e1a `
+  --artifact-root .research_artifacts/r01-b3-1f65106 `
   b3-preflight `
-  --manifest r01-b3-prompt-v1-resource-v2-20260716/development_manifest.json `
+  --manifest r01-b3-prompt-v2-resource-v3-20260717/development_manifest.json `
   --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
   --executable $codexNative `
   --expected-executable-sha256 cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4 `
   --sandbox-directory $b3Sandbox `
   --account-attestation docs/r01-b3-zero-cost-account-attestation.md `
   --expected-account-attestation-sha256 94ca690340273e02da7de19e0c1ea5efc8793547f2a87822dc40eb5b630b9746 `
-  --resource-amendment docs/r01-d2-resource-amendment-01.md `
-  --expected-resource-amendment-sha256 cb1e39b9c19ece973c6a19d44b59389bcd8bbfeea2638b78c554b3808d050124 `
-  --budget-carry-forward docs/r01-b3-aggregate-budget-carry-forward.json `
-  --expected-budget-carry-forward-sha256 002cc7b8e726e3d5041bc1d888e2a7da15ea258aa661ff1dd17ecb9de9397953
+  --resource-amendment docs/r01-d2-resource-amendment-02.md `
+  --expected-resource-amendment-sha256 e165471e03ce199dffb127202dd620f19fb4be2badee48ea07b14e4c6557b0f0 `
+  --budget-carry-forward docs/r01-b3-resource-v3-budget-carry-forward.json `
+  --expected-budget-carry-forward-sha256 cea3fd3aa38478d13c23cedb6cb0d41b01bfa16bb2cb781d50e5e27e4a03bbe8
 ```
 
 `b3-preflight` makes zero provider calls. Do not run `b3-run` until the printed
