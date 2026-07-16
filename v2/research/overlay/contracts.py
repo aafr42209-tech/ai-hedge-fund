@@ -10,7 +10,7 @@ import numpy as np
 from pydantic import BaseModel, ConfigDict, Field, field_validator, model_validator
 
 from .arithmetic import BASIS_POINTS
-from .canonical import canonical_sha256
+from .canonical import canonical_sha256, sha256_hex
 
 ASSET_IDS = tuple(f"A{i}" for i in range(6))
 SIGNAL_IDS = tuple(f"S{i}" for i in range(5))
@@ -21,6 +21,12 @@ PER_ATTEMPT_TOKEN_RESERVE = 32_000
 DEVELOPMENT_TOKEN_CAP = 6_400_000
 B3_MAX_PROVIDER_ATTEMPTS = 24
 LIVE_PROCESS_TIMEOUT_MS = 900_000
+CODEX_APPROVED_DEPRECATION_DIAGNOSTICS = (
+    "`[features].use_legacy_landlock` is deprecated and will be removed soon. (Remove this setting to stop opting into the legacy Linux sandbox behavior.)",
+    '`[features].web_search_cached` is deprecated because web search is enabled by default. (Set `web_search` to `"live"`, `"indexed"`, `"cached"`, or `"disabled"` at the top level (or under a profile) in config.toml if you want to override it.)',
+    '`[features].web_search_request` is deprecated because web search is enabled by default. (Set `web_search` to `"live"`, `"indexed"`, `"cached"`, or `"disabled"` at the top level (or under a profile) in config.toml if you want to override it.)',
+)
+CODEX_APPROVED_DEPRECATION_DIAGNOSTIC_SHA256 = tuple(sha256_hex(message.encode("utf-8")) for message in CODEX_APPROVED_DEPRECATION_DIAGNOSTICS)
 REGIMES = (
     "signal_consensus",
     "signal_conflict",
@@ -652,7 +658,7 @@ class CodexProcessStatus(StrictModel):
 
 
 class ProviderResponse(StrictModel):
-    schema_version: Literal["r01-provider-response-v3"] = "r01-provider-response-v3"
+    schema_version: Literal["r01-provider-response-v4"] = "r01-provider-response-v4"
     raw_text: str
     provider: str
     model_id: str
@@ -667,6 +673,7 @@ class ProviderResponse(StrictModel):
         "transport_echo_absent",
     ]
     transport_model_echoes: tuple[str, ...] = ()
+    diagnostic_message_sha256: tuple[str, ...] = ()
     tool_use_violation: bool
     tool_event_types: tuple[str, ...] = ()
     process_status_violation: bool
@@ -687,6 +694,11 @@ class ProviderResponse(StrictModel):
             raise ValueError("model identity evidence does not match transport echoes")
         if any(echo != self.model_id for echo in self.transport_model_echoes):
             raise ValueError("transport model echo must match requested model")
+        if self.diagnostic_message_sha256 not in (
+            (),
+            CODEX_APPROVED_DEPRECATION_DIAGNOSTIC_SHA256,
+        ):
+            raise ValueError("transport diagnostics differ from the reviewed exact allowlist")
         if self.tool_event_types != tuple(sorted(set(self.tool_event_types))):
             raise ValueError("tool event types must be unique and sorted")
         if self.tool_use_violation != bool(self.tool_event_types):

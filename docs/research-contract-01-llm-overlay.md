@@ -495,7 +495,7 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 - every failed attempt receives exactly one disposition: `RETRY_TRANSPORT`, `FAIL_CLOSED_SCORE`, or `STOP_PHASE`; a harness or identity failure can never be converted into an LLM abstention;
 - `RETRY_TRANSPORT` applies only to process launch failure, timeout without a complete response, nonzero exit without a complete response, malformed JSONL, missing final message, missing usage, and contradictory or duplicate terminal status. A timeout/nonzero wrapper preserves the original parser code and disposition in the attempt record;
 - `FAIL_CLOSED_SCORE` applies to a complete transport whose response quality fails the decision or known-tool contract; it is scored once as hold and is not retried;
-- `STOP_PHASE` applies to artifact persistence/integrity failure, forbidden channel, model-identity mismatch, feature/catalog/sandbox mismatch, unknown event, item, or field shape, and any complete transport with a timeout or nonzero process status;
+- `STOP_PHASE` applies to artifact persistence/integrity failure, forbidden channel, model-identity mismatch, feature/catalog/sandbox mismatch, unknown event, item, or field shape, and any complete transport with a timeout or nonzero process status. The only reviewed diagnostic exception is the exact ordered three-message `item.completed/error` deprecation set emitted before `turn.started` by pinned `codex-cli 0.144.1`; an empty set is also valid, while any partial, reordered, late, differently shaped, or differently worded diagnostic set remains `STOP_PHASE`;
 - a parser-originated `STOP_PHASE` disposition is never downgraded by timeout or nonzero exit. A complete response with known tool use, invalid decision JSON, schema failure, constraint violation, or poor utility is observed once, fails closed to hold where applicable, and is not retried; a complete response with a process-status violation stops the phase and is never scored as hold;
 - a runner-raised `CodexExecError` preserves its original disposition; operating-system or subprocess launch errors are retryable; unexpected programming exceptions are not reclassified as transport failures and abort the phase as harness errors;
 - every complete response must be passed through the disposition classifier. The client classifies transport safety first as defense in depth; the B3 runner is the single scoring consumer and must consume `FAIL_CLOSED_SCORE` by scoring exactly one hold. It stops if no scoring consumer is present;
@@ -506,7 +506,7 @@ The final-agent text and process stdout JSONL are different byte streams. The re
 
 If `STOP_PHASE` occurs after the command/capture or final-agent text has been persisted, those append-only evidence blobs and the failure record intentionally remain outside a completed `DevelopmentRunResult`. They are expected stopped-attempt evidence, not scored acquisitions, and must never be adopted by a later run. A successful retry binds its failed-attempt transport graph, and replay verifies every referenced failure byte stream and process-status hash before accepting the completed run.
 
-The parser searches the documented event- and item-level `model` locations. One or more matching echoes set `model_identity_verified_by_transport = true`; no echo records `transport_echo_absent` and remains an explicit limitation; any different echo is `STOP_PHASE`, even when the process also times out or exits nonzero. The pinned JSONL transport-shape specification enumerates allowed fields for every known event and item type. Each acquisition records its observed shape hash. A field outside the pinned shape or an unknown item type is schema drift and stops Phase B rather than increasing an LLM fallback rate.
+The parser searches the documented event- and item-level `model` locations. One or more matching echoes set `model_identity_verified_by_transport = true`; no echo records `transport_echo_absent` and remains an explicit limitation; any different echo is `STOP_PHASE`, even when the process also times out or exits nonzero. The pinned JSONL transport-shape specification enumerates allowed fields for every known event and item type. Each acquisition records its observed shape hash. A field outside the pinned shape or an unknown item type is schema drift and stops Phase B rather than increasing an LLM fallback rate. The exact pre-turn deprecation diagnostics above are CLI startup evidence, not provider tool use or response quality; their ordered message hashes are persisted in `r01-provider-response-v4`, and their text remains in the immutable stdout JSONL.
 
 Before command-spec creation, the complete pinned feature catalog must be supplied, every feature name must match `^[a-z0-9_]+$`, its definition hash must match the B2 external anchor, and `disabled_features ∪ active_feature_allowlist` must equal the complete catalog with no overlap. The post-disable effective-true set must be a subset of the allowlist. The pilot working directory must match its external identity, be empty, resolve outside the repository, and contain no inherited research files. Secret-bearing config keys, including generic key/session/private markers, and recognizable secret-bearing config values are prohibited from command specs and artifacts. Executable, model, and config values reject CR, LF, and NUL separators.
 
@@ -755,7 +755,7 @@ scoring_spec_sha256: d9cd665ee7691f24936bdab94625cdcfe0b3c658386ea9d7c9588d6cb65
 analysis_spec_sha256: 7b48176e197fd38ef4cf87fac4183e625fd2122e4db52093c9f55483e32e5749
 codex_command_spec_schema_version: r01-codex-command-spec-v2
 codex_process_status_schema_version: r01-codex-process-status-v1
-provider_response_schema_version: r01-provider-response-v3
+provider_response_schema_version: r01-provider-response-v4
 codex_attempt_transport_artifacts_schema_version: r01-codex-attempt-transport-artifacts-v1
 codex_attempt_failure_transport_artifacts_schema_version: r01-codex-attempt-failure-transport-artifacts-v1
 complete_response_disposition_schema_version: r01-complete-response-disposition-v1
@@ -766,8 +766,11 @@ development_token_budget_summary_schema_version: r01-development-token-budget-su
 b3_anchor_manifest_schema_version: r01-b3-anchor-manifest-v1
 b3_preflight_schema_version: r01-b3-preflight-v1
 development_run_result_schema_version: r01-development-run-result-v4
-codex_jsonl_schema_sha256: ba8751646f3f01a0806f23fe967cf8d5d4d2370fa89682c8a34d77efc0a698ff
-codex_transport_shape_spec_sha256: 89537de83021a90cdd984b97899895325db3745fdf1e65855439845a747af462
+codex_jsonl_parser_schema_version: r01-codex-jsonl-parser-v3
+codex_jsonl_schema_sha256: 33f4b4ceceb67421a9e9f901e45ae2c4cfb42b2442325a68f6d055de7e63af8d
+codex_transport_shape_spec_schema_version: r01-codex-transport-shape-spec-v2
+codex_transport_shape_spec_sha256: d94c5a0370bdede3dd4e5138e9e84e111368a77fc0ddea5e213cb908f083a315
+codex_approved_deprecation_diagnostic_sha256: e052476a559bbf088d2b71299fe87e7528156c6023246c5c1d2004dfc49b7503,347c0457b18c0751dc40216069532bbe56642de70196c76633db9faa4f46dbb7,462cbd24fc7212da04c67ee5dc8406a250a157e2e8fce605e7d6d3e7e1002c60
 codex_feature_catalog_sha256: 14b554bd29e409dd348878c18ad8b0820a1165772039bb839b538dca03956aad
 codex_feature_catalog_definition_sha256: aa86f33bf40be81c79fdcbc6254b8162bf9d081b5ff1a7634f669223fea1d530
 codex_source_feature_proof_sha256: 1de5d131356deb6dec8186eb07795e47717d4960937b9142689a5e9cc3554f91
@@ -818,6 +821,7 @@ sealed_by: TBD
 - On 2026-07-16 (Asia/Seoul), the user approved D2 without amendment and accepted the unchanged `high_transaction_cost` stratum, exact model and runtime settings, zero-incremental-cost ceiling, bounded retry/stop rules, fixed statistical margins, and no variance correction. The immutable decision text is `docs/r01-d2-user-approval.md`, SHA-256 `95e55764963cc86e18e6e66348956bcde84082e3f0da28faf1c60145eb4e150c`.
 - D2 approval resolves the policy decision but does not waive operational preflight. No provider process may start until zero-cost account state is proven and the live B3 runner, deterministic six-case anchor manifest, command spec, and token ledger are implemented, hashed, reviewed, and fail closed.
 - The 2026-07-16 B3 failure-path audit requires every captured failed attempt to bind its command spec, stdout JSONL, stderr, process status, optional parsed response, and token reservation through `r01-acquisition-failure-v2`. Pre-call command-build failures and append-only artifact failures are `STOP_PHASE`; they are never untyped crashes or scored fallbacks.
+- The first authorized B3 acquisition on 2026-07-16 stopped before scoring because pinned CLI deprecation notices appeared as a previously unknown `item.completed/error` shape. The stopped experiment `r01-b3-prompt-v1-20260716` is immutable, consumed one provider attempt and a conservative `32000`-token reserve, has no run result, and cannot be adopted by a later experiment. Transport parser v3 permits only the exact observed pre-turn diagnostic triple (or none); all other error items remain phase stops.
 - The regret scale, superiority margin, and target-headroom rule are frozen before the first provider call so pilot outcomes cannot select the statistical target.
 - No evaluation-driven clipping or winsorization is allowed.
 - Utility and normalized-regret bounds are certified over each fixture's complete feasible action lattice before seal, so poor policy performance cannot be relabeled INVALID.
@@ -889,3 +893,4 @@ sealed_by: TBD
 | Command-spec construction and append-only capture persistence could escape as unclassified exceptions | Convert reviewed command-build `ValueError`/`RuntimeError` and transport/provider-response `ArtifactError` failures to explicit `STOP_PHASE` `CodexExecError` records. |
 | Failed-attempt raw transports were outside the replay graph | Add `r01-codex-attempt-failure-transport-artifacts-v1`, bind it from `r01-acquisition-failure-v2`, and verify every bound failed-attempt byte/hash edge during replay. |
 | Retry attempt updates bypassed Pydantic validation and safety constants were duplicated | Rebuild attempt identities through `model_validate` and define retry, attempt, token, and timeout caps once in `contracts.py`, with persisted validators consuming those constants. |
+| First live B3 transport exposed `item.completed/error` deprecation diagnostics before an otherwise complete turn | Preserve the stopped attempt unscored; add an exact ordered pre-turn diagnostic allowlist bound by three message hashes, bump JSONL parser to v3, transport-shape spec to v2, and provider response to v4; require a new experiment identity and preflight before another provider call. |

@@ -162,6 +162,10 @@ feature catalog into command-spec v2, and requires an externally anchored empty
 sandbox outside the repository. Every complete response is consumed before
 scoring: `STOP_PHASE` never scores, while `FAIL_CLOSED_SCORE` and downstream
 parse/validation failures persist one disposition artifact and score one hold.
+Pinned CLI 0.144.1 may emit three specific deprecated-feature notices as
+`item.completed/error` before `turn.started`. Parser v3 accepts only that exact
+ordered triple (or no diagnostics), records the three message hashes in provider
+response v4, and keeps every other error item or placement as `STOP_PHASE`.
 Retry-eligible failures advance only to append-only attempt 2; the second
 consecutive transport failure, an initial nonzero exit without a complete
 response, or the global development-attempt cap stops before another call.

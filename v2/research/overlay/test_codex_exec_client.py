@@ -22,6 +22,8 @@ from .codex_preflight import pilot_sandbox_identity_sha256
 from .contracts import (
     AcquisitionDisposition,
     AcquisitionIdentity,
+    CODEX_APPROVED_DEPRECATION_DIAGNOSTIC_SHA256,
+    CODEX_APPROVED_DEPRECATION_DIAGNOSTICS,
     codex_feature_catalog_snapshot_sha256,
     codex_pilot_sandbox_identity_sha256,
     CodexCommandSpec,
@@ -323,8 +325,8 @@ def test_command_spec_is_shell_free_deterministic_and_hashes_exact_stdin(tmp_pat
     stable_payload["working_directory"] = "C:/r01-pilot-sandbox"
     stable_payload["pilot_sandbox_sha256"] = codex_pilot_sandbox_identity_sha256("C:/r01-pilot-sandbox")
     stable_spec = CodexCommandSpec.model_validate(stable_payload)
-    assert codex_jsonl_schema_sha256() == "ba8751646f3f01a0806f23fe967cf8d5d4d2370fa89682c8a34d77efc0a698ff"
-    assert canonical_sha256(stable_spec) == "497739b89a388dec7df584fcc3f3ec26cec4d43c57ff29f69c7ee2ab8d1e2f4c"
+    assert codex_jsonl_schema_sha256() == "33f4b4ceceb67421a9e9f901e45ae2c4cfb42b2442325a68f6d055de7e63af8d"
+    assert canonical_sha256(stable_spec) == "e6d9842d0fcc03730319294daccaa1791f02a82beb59d799be2384cf1a985960"
 
 
 def test_command_spec_rejects_contradictory_config_keys(tmp_path) -> None:
@@ -468,7 +470,7 @@ def test_client_success_uses_injected_runner_and_sinks_raw_before_return(tmp_pat
     assert response.model_identity_evidence == "transport_echo_absent"
     assert response.transport_model_echoes == ()
     assert canonical_sha256(response.process_status) == "df1989e4c60454a542b4806b6fd718ee54144f771b74a12a095aa269ea60cb10"
-    assert canonical_sha256(response) == "75f2157756cd3f6e7807ab00942c7f4be1c541ca31a313b797368c9221676963"
+    assert canonical_sha256(response) == "3b7d18d429478cbc098ddc28e249c957a5a566f35727f9c2bbfa9096b2d91d11"
 
 
 @pytest.mark.parametrize(
@@ -704,6 +706,96 @@ def test_unknown_item_and_known_event_field_are_schema_drift_stop() -> None:
         )
     assert field_error.value.code == "jsonl_schema_drift"
     assert field_error.value.disposition is AcquisitionDisposition.STOP_PHASE
+
+
+def test_exact_deprecation_diagnostics_are_recorded_without_tool_violation() -> None:
+    diagnostics = [
+        {
+            "type": "item.completed",
+            "item": {
+                "id": f"diagnostic-{index}",
+                "type": "error",
+                "message": message,
+            },
+        }
+        for index, message in enumerate(
+            CODEX_APPROVED_DEPRECATION_DIAGNOSTICS,
+            start=1,
+        )
+    ]
+
+    events = _events()
+    events[1:1] = diagnostics
+    response = parse_codex_jsonl(
+        _capture(events),
+        requested_model_id="mock-model-id",
+    )
+
+    assert response.diagnostic_message_sha256 == (CODEX_APPROVED_DEPRECATION_DIAGNOSTIC_SHA256)
+    assert response.event_types.count("item.completed") == 4
+    assert not response.tool_use_violation
+    assert response.tool_event_types == ()
+    invalid_payload = response.model_dump(mode="python")
+    invalid_payload["diagnostic_message_sha256"] = ("0" * 64,)
+    with pytest.raises(ValueError, match="exact allowlist"):
+        type(response).model_validate(invalid_payload)
+
+
+@pytest.mark.parametrize(
+    "diagnostics",
+    (
+        (
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": "diagnostic-unapproved",
+                    "type": "error",
+                    "message": "unreviewed provider error",
+                },
+            },
+        ),
+        (
+            {
+                "type": "item.completed",
+                "item": {
+                    "id": "diagnostic-partial",
+                    "type": "error",
+                    "message": CODEX_APPROVED_DEPRECATION_DIAGNOSTICS[0],
+                },
+            },
+        ),
+    ),
+)
+def test_unapproved_or_partial_diagnostic_set_stops_phase(diagnostics) -> None:
+    events = _events()
+    events[1:1] = diagnostics
+    with pytest.raises(CodexExecError) as raised:
+        parse_codex_jsonl(
+            _capture(events),
+            requested_model_id="mock-model-id",
+        )
+
+    assert raised.value.code == "jsonl_schema_drift"
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
+
+
+def test_approved_diagnostic_after_turn_start_stops_phase() -> None:
+    diagnostic = {
+        "type": "item.completed",
+        "item": {
+            "id": "diagnostic-late",
+            "type": "error",
+            "message": CODEX_APPROVED_DEPRECATION_DIAGNOSTICS[0],
+        },
+    }
+    with pytest.raises(CodexExecError) as raised:
+        parse_codex_jsonl(
+            _capture(_events(extra=[diagnostic])),
+            requested_model_id="mock-model-id",
+        )
+
+    assert raised.value.code == "jsonl_schema_drift"
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
 
 
 def test_complete_invalid_decision_text_is_not_transport_retry(tmp_path) -> None:

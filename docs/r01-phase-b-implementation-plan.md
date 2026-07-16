@@ -13,6 +13,8 @@
 - Created: `2026-07-13`; revised: `2026-07-16`
 - Status: `DRAFT`
 - D2 state: `APPROVED_B3_PREFLIGHT_IMPLEMENTED_REVIEW_PENDING`
+- B3 state: `FIRST_CALL_STOPPED_TRANSPORT_REMEDIATION_PREFLIGHT_PENDING`
+- Development provider attempts spent: `1`; conservative tokens charged: `32000`
 
 This plan implements only Phase B of R01: a development-fixture pilot using one
 Codex model through ChatGPT subscription authentication. It does not authorize
@@ -274,7 +276,9 @@ artifacts with `r01-codex-command-spec-v2` and `r01-provider-response-v3` to bin
 the complete feature catalog, sandbox identity, transport-shape hash, model-echo
 evidence, and observed transport-shape hash. Process-status and attempt-wrapper
 v1 remain byte-compatible. Unrelated Phase A artifact versions retain byte
-compatibility.
+compatibility. The first B3 transport observation later supersedes only the
+parser/shape/response identities with parser v3, transport-shape v2, and
+provider-response v4 as recorded in the B3 remediation section below.
 
 ## 6. Carried hardening work — first Phase B commit
 
@@ -824,6 +828,38 @@ run result; this is expected evidence preservation and never a scored result.
   by both the bounded consumer and the `AcquisitionIdentity` contract;
 - the retry, attempt, token, and timeout constants have one source in
   `contracts.py` and every persisted contract validates against those values.
+
+#### B3 first-call transport stop and remediation — 2026-07-16
+
+- externally reviewed preflight
+  `df53917b4943e41999c66506b66c09255cd05c6d3db69a870aed9f53b0482481`
+  launched exactly one provider attempt for `development-0005`, replicate 0;
+- the process exited 0 with one completed turn, one final agent message, and
+  usage `12321` input / `1330` output tokens, but three CLI deprecation notices
+  appeared as the unregistered item type `error` before `turn.started`;
+- strict parser v2 classified the shape as `jsonl_schema_drift/STOP_PHASE`;
+  no provider response, disposition, score, run result, retry, or later
+  acquisition was created;
+- the failed-attempt record and raw transport graph are immutable under
+  `r01-b3-prompt-v1-20260716`; the actual call is conservatively charged the
+  full `32000` reserve and that experiment identity is permanently stopped;
+- parser v3 accepts either no diagnostic items or only the exact ordered three
+  pre-turn deprecation messages observed from pinned `codex-cli 0.144.1`.
+  Partial, reordered, late, differently shaped, or differently worded error
+  items remain `STOP_PHASE`;
+- accepted diagnostic message hashes are persisted by
+  `r01-provider-response-v4`; transport-shape spec v2 pins the exact
+  `id/message/type` item surface. This exception is not tool use, fallback, or
+  portfolio-response quality;
+- any subsequent provider call requires a new development experiment identity,
+  updated contract-bound manifest, new command specs and preflight hash, and
+  another provider-free external review.
+- remediated research contract SHA-256:
+  `8b1d498b56432caebbe4a7236f98c66e86f343c6fbd922998935c698a2740006`;
+- immutable first-call STOP report: `docs/r01-b3-first-call-stop.md`, SHA-256
+  `eadbba2d1e27233ff868728b00e7ec031512328a3c1a95aed70435bcb20c47d8`;
+- full provider-free overlay suite: `125 passed`; compile, Black, isort, and
+  `git diff --check` pass.
 
 ### B4 — bounded prompt iteration
 

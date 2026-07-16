@@ -19,6 +19,8 @@ from .contracts import (
     AcquisitionDisposition,
     AcquisitionIdentity,
     ArtifactReference,
+    CODEX_APPROVED_DEPRECATION_DIAGNOSTIC_SHA256,
+    CODEX_APPROVED_DEPRECATION_DIAGNOSTICS,
     codex_feature_catalog_definition_sha256,
     codex_feature_catalog_snapshot_sha256,
     CodexAttemptFailureTransportArtifacts,
@@ -45,13 +47,14 @@ KNOWN_EVENT_TYPES = (
     "turn.started",
 )
 NON_TOOL_ITEM_TYPES = ("agent_message", "plan", "plan_update", "reasoning")
+DIAGNOSTIC_ITEM_TYPES = ("error",)
 KNOWN_TOOL_ITEM_TYPES = (
     "command_execution",
     "file_change",
     "mcp_tool_call",
     "web_search",
 )
-KNOWN_ITEM_TYPES = tuple(sorted(NON_TOOL_ITEM_TYPES + KNOWN_TOOL_ITEM_TYPES))
+KNOWN_ITEM_TYPES = tuple(sorted(NON_TOOL_ITEM_TYPES + DIAGNOSTIC_ITEM_TYPES + KNOWN_TOOL_ITEM_TYPES))
 USAGE_FIELDS = (
     "cached_input_tokens",
     "input_tokens",
@@ -88,6 +91,10 @@ ITEM_FIELD_SPEC = {
             "model",
             "status",
         ),
+    },
+    "error": {
+        "required": ("id", "message", "type"),
+        "optional": (),
     },
     "file_change": {
         "required": ("id", "type"),
@@ -270,7 +277,7 @@ def codex_jsonl_schema_spec() -> dict[str, object]:
     """Return the strict B1 parser identity hashed into every command spec."""
 
     return {
-        "schema_version": "r01-codex-jsonl-parser-v2",
+        "schema_version": "r01-codex-jsonl-parser-v3",
         "known_event_types": list(KNOWN_EVENT_TYPES),
         "required_counts": {
             "thread.started": 1,
@@ -281,6 +288,9 @@ def codex_jsonl_schema_spec() -> dict[str, object]:
         "final_message_event": "item.completed/agent_message",
         "usage_fields": list(USAGE_FIELDS),
         "non_tool_item_types": list(NON_TOOL_ITEM_TYPES),
+        "diagnostic_item_types": list(DIAGNOSTIC_ITEM_TYPES),
+        "approved_diagnostic_message_sha256": list(CODEX_APPROVED_DEPRECATION_DIAGNOSTIC_SHA256),
+        "diagnostic_item_policy": "empty_or_exact_ordered_allowlist_else_stop_phase",
         "known_tool_item_types": list(KNOWN_TOOL_ITEM_TYPES),
         "unknown_event_policy": "fail_closed",
         "unknown_item_policy": "schema_drift_stop_phase",
@@ -303,7 +313,7 @@ def codex_transport_shape_spec() -> dict[str, object]:
     """Return the pinned allowed field surface for every JSONL event and item."""
 
     return {
-        "schema_version": "r01-codex-transport-shape-spec-v1",
+        "schema_version": "r01-codex-transport-shape-spec-v2",
         "event_fields": EVENT_FIELD_SPEC,
         "item_fields": ITEM_FIELD_SPEC,
         "model_echo_locations": ("event.model", "item.model"),
@@ -594,8 +604,10 @@ def parse_codex_jsonl(
 
     messages: list[str] = []
     item_types: list[str] = []
+    diagnostic_messages: list[str] = []
     model_echoes: list[str] = []
-    for event in events:
+    turn_started_index = event_types.index("turn.started")
+    for event_index, event in enumerate(events):
         event_model = event.get("model")
         if event_model is not None:
             if not isinstance(event_model, str) or not event_model:
@@ -631,10 +643,33 @@ def parse_codex_jsonl(
                 )
             model_echoes.append(item_model)
         item_types.append(item_type)
+        if item_type in DIAGNOSTIC_ITEM_TYPES:
+            if event["type"] != "item.completed":
+                raise _stop_error(
+                    "jsonl_schema_drift",
+                    "diagnostic item must be emitted as item.completed",
+                )
+            if event_index >= turn_started_index:
+                raise _stop_error(
+                    "jsonl_schema_drift",
+                    "diagnostic item must precede turn.started",
+                )
+            message = item.get("message")
+            if not isinstance(message, str) or not message:
+                raise _stop_error(
+                    "jsonl_schema_drift",
+                    "diagnostic item must contain a nonempty message",
+                )
+            diagnostic_messages.append(message)
         if event["type"] == "item.completed" and item_type == "agent_message":
             if not isinstance(item.get("text"), str):
                 raise _transport_error("malformed_jsonl", "completed agent message lacks text")
             messages.append(item["text"])
+    if diagnostic_messages and tuple(diagnostic_messages) != (CODEX_APPROVED_DEPRECATION_DIAGNOSTICS):
+        raise _stop_error(
+            "jsonl_schema_drift",
+            "diagnostic items differ from the reviewed exact allowlist",
+        )
     if not messages:
         raise _transport_error("missing_final_message", "no completed agent message found")
     if not messages[-1].strip():
@@ -660,6 +695,7 @@ def parse_codex_jsonl(
         model_identity_verified_by_transport=bool(unique_model_echoes),
         model_identity_evidence=("matching_transport_echo" if unique_model_echoes else "transport_echo_absent"),
         transport_model_echoes=unique_model_echoes,
+        diagnostic_message_sha256=(CODEX_APPROVED_DEPRECATION_DIAGNOSTIC_SHA256 if diagnostic_messages else ()),
         tool_use_violation=bool(tool_types),
         tool_event_types=tool_types,
         process_status_violation=(capture.timed_out or capture.launch_error is not None or capture.exit_code != 0),
