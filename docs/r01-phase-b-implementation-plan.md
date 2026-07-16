@@ -12,8 +12,8 @@
 - Base branch: `codex/llm-overlay-research-01`
 - Created: `2026-07-13`; revised: `2026-07-16`
 - Status: `DRAFT`
-- D2 state: `RESOURCE_AMENDMENT_01_APPROVED_PROVIDER_FREE_IMPLEMENTATION`
-- B3 state: `TOKEN_RESERVE_STOP_AGGREGATE_PREFLIGHT_PENDING`
+- D2 state: `RESOURCE_AMENDMENT_01_IMPLEMENTED`
+- B3 state: `RESOURCE_V2_PREFLIGHT_READY_FOR_INDEPENDENT_REVIEW`
 - Development provider attempts spent: `4`; conservative tokens charged: `103623`
 
 This plan implements only Phase B of R01: a development-fixture pilot using one
@@ -933,8 +933,19 @@ run result; this is expected evidence preservation and never a scored result.
   `6edb5573aec4d54283cc916de3def8b14c875888106770653af680354b8c7276`;
 - focused B3 tests: `8 passed`; full provider-free overlay suite: `126 passed`;
   compile, Black, isort, and `git diff --check` pass;
-- no provider call is authorized by this amendment. The new implementation and
-  provider-free preflight require independent review and explicit approval.
+- amended resource implementation commit: `f403e1a`;
+- replacement experiment ID:
+  `r01-b3-prompt-v1-resource-v2-20260716`;
+- provider-free preflight v3 SHA-256:
+  `95130a039edbd43a9c610078ce6d904beb5e038bed65e9bf0252924b3bb04bde`;
+- readiness report: `docs/r01-b3-resource-v2-preflight-ready.md`, SHA-256
+  `97b4ac5d195ba65c88f52ad815f8e63f72578ee25dc15bfb1801f7797e0888f2`;
+- the new artifact graph has 53 references and 53 files with no missing,
+  unreferenced, size-mismatched, or hash-mismatched item; its external sandbox
+  remains empty and its preflight records zero new provider calls;
+- no provider call is authorized by this amendment or preflight alone. The
+  exact `f403e1a` + `95130a03...4bde` pair requires independent review and a
+  fresh explicit user approval.
 
 ### B4 — bounded prompt iteration
 

@@ -125,22 +125,22 @@ rendered command specs, timeout, and token caps are all hashed before any model
 process starts:
 
 ```powershell
-$b3Sandbox = "C:\tmp\r01-b3-sandbox-20260716"
+$b3Sandbox = "C:\tmp\r01-b3-sandbox-f403e1a"
 New-Item -ItemType Directory -Path $b3Sandbox
 
 python -m v2.research.overlay `
-  --artifact-root .research_artifacts/r01 `
+  --artifact-root .research_artifacts/r01-b3-f403e1a `
   generate-development `
-  --experiment-id r01-b3-prompt-v1-20260716 `
+  --experiment-id r01-b3-prompt-v1-resource-v2-20260716 `
   --root-seed r01-phase-b-development-fixtures-v1 `
   --count 40 `
   --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
   --contract docs/research-contract-01-llm-overlay.md
 
 python -m v2.research.overlay `
-  --artifact-root .research_artifacts/r01 `
+  --artifact-root .research_artifacts/r01-b3-f403e1a `
   b3-preflight `
-  --manifest r01-b3-prompt-v1-20260716/development_manifest.json `
+  --manifest r01-b3-prompt-v1-resource-v2-20260716/development_manifest.json `
   --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
   --executable $codexNative `
   --expected-executable-sha256 cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4 `
