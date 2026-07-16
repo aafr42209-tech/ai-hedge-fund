@@ -1,5 +1,7 @@
 from __future__ import annotations
 
+import json
+
 import pytest
 from pydantic import ValidationError
 
@@ -18,7 +20,12 @@ from .contracts import (
     Decision,
     MAX_REASONING_CODEPOINTS,
 )
-from .llm_policy import build_policy_input, SYSTEM_PROMPT_V1
+from .llm_policy import (
+    build_policy_input,
+    build_user_prompt_v2,
+    SYSTEM_PROMPT_V1,
+    SYSTEM_PROMPT_V2,
+)
 
 
 def test_round_ratio_half_even_signed_ties() -> None:
@@ -114,6 +121,37 @@ def test_reasoning_limit_is_visible_and_schema_enforced() -> None:
             reasoning="x" * (MAX_REASONING_CODEPOINTS + 1),
         )
     assert str(MAX_REASONING_CODEPOINTS) in SYSTEM_PROMPT_V1
+    assert str(MAX_REASONING_CODEPOINTS) in SYSTEM_PROMPT_V2
+
+
+def test_prompt_v2_pins_integer_confidence_and_forbids_fractional_form() -> None:
+    prompt = build_user_prompt_v2(episode().public)
+    for text in (SYSTEM_PROMPT_V2, prompt):
+        assert "integer" in text
+        assert "0 through 100" in text
+        assert "0.96" in text
+        assert "96" in text
+    example_text = prompt.split("\nFIXTURE=", 1)[0].split("\n", 1)[1]
+    example = json.loads(example_text)
+    assert tuple(example["decisions"]) == tuple(f"A{index}" for index in range(6))
+    assert all(type(decision["confidence"]) is int for decision in example["decisions"].values())
+    with pytest.raises(DecisionParseError, match="confidence"):
+        parse_decision_batch(
+            json.dumps(
+                {
+                    "decisions": {
+                        asset_id: {
+                            "action": "hold",
+                            "quantity": 0,
+                            "confidence": 0.96,
+                            "reasoning": "invalid fractional confidence",
+                        }
+                        for asset_id in episode().public.assets_by_id
+                    }
+                },
+                separators=(",", ":"),
+            )
+        )
 
 
 def test_b1_transport_artifact_schema_is_explicitly_versioned() -> None:

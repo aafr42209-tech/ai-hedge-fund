@@ -19,7 +19,9 @@ MAX_CONSECUTIVE_RETRY_TRANSPORT = 2
 DEVELOPMENT_ATTEMPT_CAP = 200
 LEGACY_PER_ATTEMPT_TOKEN_RESERVE = 32_000
 LEGACY_DEVELOPMENT_TOKEN_CAP = 6_400_000
-PER_ATTEMPT_TOKEN_RESERVE = 64_000
+RESOURCE_V2_PER_ATTEMPT_TOKEN_RESERVE = 64_000
+RESOURCE_V2_DEVELOPMENT_TOKEN_CAP = 12_800_000
+PER_ATTEMPT_TOKEN_RESERVE = 128_000
 DEVELOPMENT_TOKEN_CAP = 12_800_000
 B3_MAX_PROVIDER_ATTEMPTS = 24
 LIVE_PROCESS_TIMEOUT_MS = 900_000
@@ -743,7 +745,11 @@ class ArtifactReference(StrictModel):
 
 
 class TokenBudgetReservation(StrictModel):
-    schema_version: Literal["r01-token-budget-reservation-v1", "r01-token-budget-reservation-v2"] = "r01-token-budget-reservation-v2"
+    schema_version: Literal[
+        "r01-token-budget-reservation-v1",
+        "r01-token-budget-reservation-v2",
+        "r01-token-budget-reservation-v3",
+    ] = "r01-token-budget-reservation-v3"
     identity: AcquisitionIdentity
     provider_attempt_ordinal: int = Field(ge=1, le=DEVELOPMENT_ATTEMPT_CAP)
     reserve_total_tokens: int = PER_ATTEMPT_TOKEN_RESERVE
@@ -754,9 +760,21 @@ class TokenBudgetReservation(StrictModel):
 
     @model_validator(mode="after")
     def validate_reservation(self) -> "TokenBudgetReservation":
-        legacy = self.schema_version == "r01-token-budget-reservation-v1"
-        expected_reserve = LEGACY_PER_ATTEMPT_TOKEN_RESERVE if legacy else PER_ATTEMPT_TOKEN_RESERVE
-        expected_cap = LEGACY_DEVELOPMENT_TOKEN_CAP if legacy else DEVELOPMENT_TOKEN_CAP
+        generations = {
+            "r01-token-budget-reservation-v1": (
+                LEGACY_PER_ATTEMPT_TOKEN_RESERVE,
+                LEGACY_DEVELOPMENT_TOKEN_CAP,
+            ),
+            "r01-token-budget-reservation-v2": (
+                RESOURCE_V2_PER_ATTEMPT_TOKEN_RESERVE,
+                RESOURCE_V2_DEVELOPMENT_TOKEN_CAP,
+            ),
+            "r01-token-budget-reservation-v3": (
+                PER_ATTEMPT_TOKEN_RESERVE,
+                DEVELOPMENT_TOKEN_CAP,
+            ),
+        }
+        expected_reserve, expected_cap = generations[self.schema_version]
         if self.reserve_total_tokens != expected_reserve:
             raise ValueError("token reservation differs from the contract constant")
         if self.development_total_token_cap != expected_cap:
@@ -771,7 +789,11 @@ class TokenBudgetReservation(StrictModel):
 
 
 class ProviderTokenUsage(StrictModel):
-    schema_version: Literal["r01-provider-token-usage-v1", "r01-provider-token-usage-v2"] = "r01-provider-token-usage-v2"
+    schema_version: Literal[
+        "r01-provider-token-usage-v1",
+        "r01-provider-token-usage-v2",
+        "r01-provider-token-usage-v3",
+    ] = "r01-provider-token-usage-v3"
     identity: AcquisitionIdentity
     provider_attempt_ordinal: int = Field(ge=1, le=DEVELOPMENT_ATTEMPT_CAP)
     input_tokens: int = Field(ge=0)
@@ -785,7 +807,11 @@ class ProviderTokenUsage(StrictModel):
 
     @model_validator(mode="after")
     def validate_usage(self) -> "ProviderTokenUsage":
-        expected_reserve = LEGACY_PER_ATTEMPT_TOKEN_RESERVE if self.schema_version == "r01-provider-token-usage-v1" else PER_ATTEMPT_TOKEN_RESERVE
+        expected_reserve = {
+            "r01-provider-token-usage-v1": LEGACY_PER_ATTEMPT_TOKEN_RESERVE,
+            "r01-provider-token-usage-v2": RESOURCE_V2_PER_ATTEMPT_TOKEN_RESERVE,
+            "r01-provider-token-usage-v3": PER_ATTEMPT_TOKEN_RESERVE,
+        }[self.schema_version]
         if self.reserve_total_tokens != expected_reserve:
             raise ValueError("token usage reserve differs from the contract constant")
         if self.cached_input_tokens > self.input_tokens:
@@ -801,7 +827,11 @@ class ProviderTokenUsage(StrictModel):
 
 
 class DevelopmentBudgetCarryForward(StrictModel):
-    schema_version: Literal["r01-development-budget-carry-forward-v1", "r01-development-budget-carry-forward-v2"] = "r01-development-budget-carry-forward-v2"
+    schema_version: Literal[
+        "r01-development-budget-carry-forward-v1",
+        "r01-development-budget-carry-forward-v2",
+        "r01-development-budget-carry-forward-v3",
+    ] = "r01-development-budget-carry-forward-v3"
     source_kind: Literal["NONE", "STOP_RECORD", "STOP_CHAIN"] = "NONE"
     source_experiment_id: str | None = None
     source_preflight_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
@@ -864,10 +894,17 @@ class DevelopmentBudgetCarryForward(StrictModel):
             if max(self.actual_total_tokens, self.observed_unsettled_actual_tokens, self.conservatively_charged_total_tokens) > LEGACY_DEVELOPMENT_TOKEN_CAP:
                 raise ValueError("carry-forward v1 exceeds its historical development token cap")
         else:
-            if self.schema_version != "r01-development-budget-carry-forward-v2":
-                raise ValueError("STOP_CHAIN requires carry-forward v2")
-            if not all(chain_source_fields) or self.source_failure_sha256 is not None or self.provider_attempts == 0:
-                raise ValueError("STOP_CHAIN carry-forward requires aggregate source identity without a synthetic failure hash")
+            if self.schema_version not in {
+                "r01-development-budget-carry-forward-v2",
+                "r01-development-budget-carry-forward-v3",
+            }:
+                raise ValueError("STOP_CHAIN requires an aggregate carry-forward schema")
+            if not all(chain_source_fields) or self.provider_attempts == 0:
+                raise ValueError("STOP_CHAIN carry-forward requires complete aggregate source identity")
+            if self.schema_version == "r01-development-budget-carry-forward-v2" and self.source_failure_sha256 is not None:
+                raise ValueError("carry-forward v2 cannot invent the missing historical failure artifact")
+            if self.schema_version == "r01-development-budget-carry-forward-v3" and self.source_failure_sha256 is None:
+                raise ValueError("carry-forward v3 must bind the persisted terminal failure artifact")
             if self.conservatively_charged_total_tokens != self.actual_total_tokens + self.unsettled_conservative_charge_total_tokens:
                 raise ValueError("aggregate conservative charge must equal settled actual plus unsettled charge")
             if self.observed_unsettled_actual_tokens > self.unsettled_conservative_charge_total_tokens:
@@ -876,7 +913,11 @@ class DevelopmentBudgetCarryForward(StrictModel):
 
 
 class DevelopmentTokenBudgetSummary(StrictModel):
-    schema_version: Literal["r01-development-token-budget-summary-v2", "r01-development-token-budget-summary-v3"] = "r01-development-token-budget-summary-v3"
+    schema_version: Literal[
+        "r01-development-token-budget-summary-v2",
+        "r01-development-token-budget-summary-v3",
+        "r01-development-token-budget-summary-v4",
+    ] = "r01-development-token-budget-summary-v4"
     carry_forward: DevelopmentBudgetCarryForward = Field(default_factory=DevelopmentBudgetCarryForward)
     provider_attempts: int = Field(ge=0, le=DEVELOPMENT_ATTEMPT_CAP)
     successful_responses: int = Field(ge=0, le=DEVELOPMENT_ATTEMPT_CAP)
@@ -889,10 +930,24 @@ class DevelopmentTokenBudgetSummary(StrictModel):
 
     @model_validator(mode="after")
     def validate_summary(self) -> "DevelopmentTokenBudgetSummary":
-        legacy = self.schema_version == "r01-development-token-budget-summary-v2"
-        expected_reserve = LEGACY_PER_ATTEMPT_TOKEN_RESERVE if legacy else PER_ATTEMPT_TOKEN_RESERVE
-        expected_cap = LEGACY_DEVELOPMENT_TOKEN_CAP if legacy else DEVELOPMENT_TOKEN_CAP
-        expected_carry = "r01-development-budget-carry-forward-v1" if legacy else "r01-development-budget-carry-forward-v2"
+        generations = {
+            "r01-development-token-budget-summary-v2": (
+                LEGACY_PER_ATTEMPT_TOKEN_RESERVE,
+                LEGACY_DEVELOPMENT_TOKEN_CAP,
+                "r01-development-budget-carry-forward-v1",
+            ),
+            "r01-development-token-budget-summary-v3": (
+                RESOURCE_V2_PER_ATTEMPT_TOKEN_RESERVE,
+                RESOURCE_V2_DEVELOPMENT_TOKEN_CAP,
+                "r01-development-budget-carry-forward-v2",
+            ),
+            "r01-development-token-budget-summary-v4": (
+                PER_ATTEMPT_TOKEN_RESERVE,
+                DEVELOPMENT_TOKEN_CAP,
+                "r01-development-budget-carry-forward-v3",
+            ),
+        }
+        expected_reserve, expected_cap, expected_carry = generations[self.schema_version]
         if self.per_attempt_reserve != expected_reserve:
             raise ValueError("summary reserve differs from the contract constant")
         if self.development_total_token_cap != expected_cap:
@@ -974,7 +1029,11 @@ class B3AnchorManifest(StrictModel):
 
 
 class B3Preflight(StrictModel):
-    schema_version: Literal["r01-b3-preflight-v2", "r01-b3-preflight-v3"] = "r01-b3-preflight-v3"
+    schema_version: Literal[
+        "r01-b3-preflight-v2",
+        "r01-b3-preflight-v3",
+        "r01-b3-preflight-v4",
+    ] = "r01-b3-preflight-v4"
     status: Literal["READY_FOR_REVIEW_PROVIDER_CALLS_ZERO"] = "READY_FOR_REVIEW_PROVIDER_CALLS_ZERO"
     experiment_id: str
     manifest: ArtifactReference
@@ -1002,10 +1061,24 @@ class B3Preflight(StrictModel):
 
     @model_validator(mode="after")
     def validate_preflight(self) -> "B3Preflight":
-        legacy = self.schema_version == "r01-b3-preflight-v2"
-        expected_reserve = LEGACY_PER_ATTEMPT_TOKEN_RESERVE if legacy else PER_ATTEMPT_TOKEN_RESERVE
-        expected_cap = LEGACY_DEVELOPMENT_TOKEN_CAP if legacy else DEVELOPMENT_TOKEN_CAP
-        expected_carry = "r01-development-budget-carry-forward-v1" if legacy else "r01-development-budget-carry-forward-v2"
+        generations = {
+            "r01-b3-preflight-v2": (
+                LEGACY_PER_ATTEMPT_TOKEN_RESERVE,
+                LEGACY_DEVELOPMENT_TOKEN_CAP,
+                "r01-development-budget-carry-forward-v1",
+            ),
+            "r01-b3-preflight-v3": (
+                RESOURCE_V2_PER_ATTEMPT_TOKEN_RESERVE,
+                RESOURCE_V2_DEVELOPMENT_TOKEN_CAP,
+                "r01-development-budget-carry-forward-v2",
+            ),
+            "r01-b3-preflight-v4": (
+                PER_ATTEMPT_TOKEN_RESERVE,
+                DEVELOPMENT_TOKEN_CAP,
+                "r01-development-budget-carry-forward-v3",
+            ),
+        }
+        expected_reserve, expected_cap, expected_carry = generations[self.schema_version]
         if self.timeout_ms != LIVE_PROCESS_TIMEOUT_MS:
             raise ValueError("B3 timeout differs from the contract constant")
         if self.per_attempt_token_reserve != expected_reserve:
@@ -1014,10 +1087,10 @@ class B3Preflight(StrictModel):
             raise ValueError("B3 token cap differs from the contract constant")
         if self.budget_carry_forward.schema_version != expected_carry:
             raise ValueError("B3 preflight and carry-forward schema generations differ")
-        if legacy and self.resource_amendment_sha256 is not None:
+        if self.schema_version == "r01-b3-preflight-v2" and self.resource_amendment_sha256 is not None:
             raise ValueError("B3 preflight v2 cannot bind the later resource amendment")
-        if not legacy and self.resource_amendment_sha256 is None:
-            raise ValueError("B3 preflight v3 requires the resource amendment trust anchor")
+        if self.schema_version != "r01-b3-preflight-v2" and self.resource_amendment_sha256 is None:
+            raise ValueError("amended B3 preflight requires the resource amendment trust anchor")
         if self.development_provider_attempt_cap != DEVELOPMENT_ATTEMPT_CAP:
             raise ValueError("B3 attempt cap differs from the contract constant")
         if self.b3_max_provider_attempts != B3_MAX_PROVIDER_ATTEMPTS:

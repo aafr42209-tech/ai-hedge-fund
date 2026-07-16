@@ -43,20 +43,21 @@ def _carry_forward() -> DevelopmentBudgetCarryForward:
         source_kind="STOP_CHAIN",
         source_experiment_id="stopped-b3-test",
         source_preflight_sha256="a" * 64,
+        source_failure_sha256="e" * 64,
         source_terminal_evidence_sha256="b" * 64,
         source_stop_report_sha256="c" * 64,
         prior_carry_forward_document_sha256="d" * 64,
-        provider_attempts=4,
-        successful_responses=3,
+        provider_attempts=15,
+        successful_responses=14,
         failed_or_unsettled_attempts=1,
-        actual_total_tokens=71_623,
+        actual_total_tokens=307_507,
         observed_unsettled_actual_tokens=13_651,
         unsettled_conservative_charge_total_tokens=32_000,
-        conservatively_charged_total_tokens=103_623,
+        conservatively_charged_total_tokens=339_507,
     )
 
 
-def test_legacy_32k_budget_and_preflight_schemas_remain_parseable() -> None:
+def test_historical_32k_and_64k_budget_schemas_remain_parseable() -> None:
     identity = AcquisitionIdentity(
         experiment_id="legacy-budget-test",
         case_id="development-0000",
@@ -135,10 +136,80 @@ def test_legacy_32k_budget_and_preflight_schemas_remain_parseable() -> None:
         per_attempt_token_reserve=32_000,
         development_total_token_cap=6_400_000,
     )
+    resource_v2_carry = DevelopmentBudgetCarryForward(
+        schema_version="r01-development-budget-carry-forward-v2",
+        source_kind="STOP_CHAIN",
+        source_experiment_id="resource-v2-stopped-b3",
+        source_preflight_sha256="1" * 64,
+        source_terminal_evidence_sha256="2" * 64,
+        source_stop_report_sha256="3" * 64,
+        prior_carry_forward_document_sha256="4" * 64,
+        provider_attempts=4,
+        successful_responses=3,
+        failed_or_unsettled_attempts=1,
+        actual_total_tokens=71_623,
+        observed_unsettled_actual_tokens=13_651,
+        unsettled_conservative_charge_total_tokens=32_000,
+        conservatively_charged_total_tokens=103_623,
+    )
+    resource_v2_reservation = TokenBudgetReservation(
+        schema_version="r01-token-budget-reservation-v2",
+        identity=identity,
+        provider_attempt_ordinal=5,
+        reserve_total_tokens=64_000,
+        charged_total_tokens_before=103_623,
+        charged_total_tokens_after_reservation=167_623,
+        development_total_token_cap=12_800_000,
+    )
+    resource_v2_usage = ProviderTokenUsage(
+        schema_version="r01-provider-token-usage-v2",
+        identity=identity,
+        provider_attempt_ordinal=5,
+        input_tokens=1,
+        cached_input_tokens=0,
+        output_tokens=1,
+        reasoning_output_tokens=0,
+        accounting_total_tokens=2,
+        reserve_total_tokens=64_000,
+        charged_total_tokens_before=167_623,
+        charged_total_tokens_after_settlement=103_625,
+    )
+    resource_v2_summary = DevelopmentTokenBudgetSummary(
+        schema_version="r01-development-token-budget-summary-v3",
+        carry_forward=resource_v2_carry,
+        provider_attempts=4,
+        successful_responses=3,
+        failed_or_unsettled_attempts=1,
+        actual_total_tokens=71_623,
+        conservatively_charged_total_tokens=103_623,
+        per_attempt_reserve=64_000,
+        development_total_token_cap=12_800_000,
+    )
+    resource_v2_preflight = B3Preflight(
+        schema_version="r01-b3-preflight-v3",
+        experiment_id="resource-v2-budget-test",
+        manifest=references[0],
+        anchor_manifest=references[1],
+        feature_gate=references[2],
+        command_specs=references[3:],
+        account_attestation_sha256="5" * 64,
+        resource_amendment_sha256="6" * 64,
+        budget_carry_forward_document_sha256="7" * 64,
+        budget_carry_forward=resource_v2_carry,
+        executable="codex.exe",
+        executable_sha256="8" * 64,
+        codex_cli_version="codex-cli 0.144.1",
+        per_attempt_token_reserve=64_000,
+        development_total_token_cap=12_800_000,
+    )
     assert reservation.schema_version == "r01-token-budget-reservation-v1"
     assert usage.schema_version == "r01-provider-token-usage-v1"
     assert summary.schema_version == "r01-development-token-budget-summary-v2"
     assert preflight.schema_version == "r01-b3-preflight-v2"
+    assert resource_v2_reservation.schema_version == "r01-token-budget-reservation-v2"
+    assert resource_v2_usage.schema_version == "r01-provider-token-usage-v2"
+    assert resource_v2_summary.schema_version == "r01-development-token-budget-summary-v3"
+    assert resource_v2_preflight.schema_version == "r01-b3-preflight-v3"
 
 
 def _development_manifest(store, *, experiment_id: str, root_seed: str):
@@ -286,17 +357,17 @@ def test_b3_scripted_micro_pilot_binds_token_budget_and_replays(tmp_path) -> Non
     assert len(result.acquisitions) == 12
     assert result.schema_version == "r01-development-run-result-v4"
     summary = DevelopmentTokenBudgetSummary.model_validate_json(store.read_bytes(result.token_budget_summary))
-    assert summary.schema_version == "r01-development-token-budget-summary-v3"
-    assert summary.provider_attempts == 16
-    assert summary.successful_responses == 15
+    assert summary.schema_version == "r01-development-token-budget-summary-v4"
+    assert summary.provider_attempts == 27
+    assert summary.successful_responses == 26
     assert summary.failed_or_unsettled_attempts == 1
-    assert summary.actual_total_tokens == 71_623
-    assert summary.conservatively_charged_total_tokens == 103_623
+    assert summary.actual_total_tokens == 307_507
+    assert summary.conservatively_charged_total_tokens == 339_507
     assert summary.carry_forward == _carry_forward()
     first_reservation = TokenBudgetReservation.model_validate_json(store.read_bytes(result.acquisitions[0].token_reservation))
-    assert first_reservation.schema_version == "r01-token-budget-reservation-v2"
-    assert first_reservation.provider_attempt_ordinal == 5
-    assert first_reservation.charged_total_tokens_before == 103_623
+    assert first_reservation.schema_version == "r01-token-budget-reservation-v3"
+    assert first_reservation.provider_attempt_ordinal == 16
+    assert first_reservation.charged_total_tokens_before == 339_507
     verification = runner.replay(
         store,
         result_reference=result_reference,
@@ -326,7 +397,7 @@ def test_b3_preflight_is_provider_free_and_binds_reviewed_command_specs(
     attestation = tmp_path / "attestation.md"
     attestation.write_text("zero cost attested", encoding="utf-8")
     amendment = tmp_path / "resource-amendment.md"
-    amendment.write_text("64k approved", encoding="utf-8")
+    amendment.write_text("128k approved", encoding="utf-8")
     carry_forward = tmp_path / "budget-carry-forward.json"
     carry_forward.write_bytes(canonical_json_bytes(_carry_forward()))
     gate = _minimal_feature_gate()
@@ -353,9 +424,9 @@ def test_b3_preflight_is_provider_free_and_binds_reviewed_command_specs(
     )
 
     assert preflight.provider_calls == 0
-    assert preflight.schema_version == "r01-b3-preflight-v3"
+    assert preflight.schema_version == "r01-b3-preflight-v4"
     assert preflight.resource_amendment_sha256 == sha256_hex(amendment.read_bytes())
-    assert preflight.per_attempt_token_reserve == 64_000
+    assert preflight.per_attempt_token_reserve == 128_000
     assert preflight.development_total_token_cap == 12_800_000
     assert preflight.budget_carry_forward == _carry_forward()
     assert len(preflight.command_specs) == 6
@@ -489,7 +560,7 @@ def test_per_attempt_token_reserve_excess_stops_after_one_response(tmp_path) -> 
             response = ScriptedAcquisitionClient({runner.acquisition_key(identity): raw}).complete(system=system, user=user, identity=identity)
             return response.model_copy(
                 update={
-                    "input_tokens": 64_000,
+                    "input_tokens": 128_000,
                     "output_tokens": 1,
                     "reasoning_output_tokens": 0,
                 }

@@ -61,12 +61,12 @@ from .llm_policy import (
     acquisition_key,
     AcquisitionClient,
     build_policy_input,
-    build_user_prompt,
+    build_user_prompt_v2,
     fail_closed_outcome,
     parse_and_validate,
     ParsedPolicyOutcome,
     ScriptedAcquisitionClient,
-    SYSTEM_PROMPT_V1,
+    SYSTEM_PROMPT_V2,
 )
 from .oracle import assert_oracle_bound, solve_oracle
 from .report import build_report
@@ -459,9 +459,9 @@ def _write_request_artifacts(
 ) -> _RequestArtifacts:
     prefix = _acquisition_prefix(identity)
     policy_input = build_policy_input(episode.public)
-    user_prompt = build_user_prompt(episode.public)
+    user_prompt = build_user_prompt_v2(episode.public)
     policy_input_ref = store.write_json(f"{prefix}/policy_input.json", policy_input)
-    system_ref = store.write_text(f"{prefix}/system_prompt.txt", SYSTEM_PROMPT_V1)
+    system_ref = store.write_text(f"{prefix}/system_prompt.txt", SYSTEM_PROMPT_V2)
     user_ref = store.write_text(f"{prefix}/user_prompt.txt", user_prompt)
     request_ref = store.write_json(
         f"{prefix}/provider_request.json",
@@ -565,7 +565,7 @@ def _complete_acquisition(
         )
         try:
             response = client.complete(
-                system=SYSTEM_PROMPT_V1,
+                system=SYSTEM_PROMPT_V2,
                 user=request.user_prompt,
                 identity=identity,
             )

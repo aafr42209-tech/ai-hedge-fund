@@ -742,8 +742,10 @@ minimal non-tool allowlist, and acceptance of the unchanged
 fallback or unclassified effective-true feature is allowed. The immutable user
 decision is `docs/r01-d2-user-approval.md`, SHA-256
 `95e55764963cc86e18e6e66348956bcde84082e3f0da28faf1c60145eb4e150c`.
-Resource Amendment 01 later supersedes only the prospective reserve and
-development total-token-cap fields; every other D2 field remains unchanged.
+Resource Amendment 01 later superseded the original prospective reserve and
+development total-token-cap fields. Resource Amendment 02 subsequently
+supersedes the prospective reserve alone with `128000`; every other D2 field,
+including the `12800000` development total-token cap, remains unchanged.
 
 #### Provider-free B3 disposition-consumer readiness — 2026-07-15
 
@@ -976,6 +978,39 @@ run result; this is expected evidence preservation and never a scored result.
 - no further provider call is authorized. Any future live work requires a
   provider-free prompt redesign, aggregate carry from ordinal 15, a new
   identity/manifest/preflight, independent review, and explicit user approval.
+
+#### D2 Resource Amendment 02 and prompt v2 boundary — 2026-07-17
+
+- the user approved provider-free implementation only, with a deterministic
+  prospective reserve increase from `64000` to `128000` while retaining the
+  `12800000` development total-token cap, `200`-attempt cap, and zero
+  incremental USD;
+- a complete response above `128000` is immediate `STOP_PHASE`, and no further
+  automatic increase is allowed;
+- immutable approval: `docs/r01-d2-resource-amendment-02.md`, SHA-256
+  `e165471e03ce199dffb127202dd620f19fb4be2badee48ea07b14e4c6557b0f0`;
+- aggregate carry-forward v3 binds the prior aggregate carry, approved
+  resource-v2 preflight, terminal evidence, STOP report, and persisted ordinal
+  15 acquisition-failure record;
+- aggregate carry state is 15 attempts, 14 complete responses, one prior failed
+  or unsettled attempt, `307507` settled actual tokens, `13651` observed
+  unsettled tokens, `32000` unsettled conservative charge, and `339507` total
+  conservative charge;
+- immutable aggregate carry:
+  `docs/r01-b3-resource-v3-budget-carry-forward.json`, SHA-256
+  `cea3fd3aa38478d13c23cedb6cb0d41b01bfa16bb2cb781d50e5e27e4a03bbe8`;
+- prompt v2 preserves the decision schema but explicitly requires confidence as
+  a JSON integer from `0` through `100`, forbids fractional/decimal forms such
+  as `0.96`, and gives `96` as the valid 96% representation;
+- new reservation/usage/carry v3, token-summary v4, and preflight v4 use the
+  amended constants. Historical 32K v1 and 64K v2 records remain parseable only
+  under their original constants and are never rewritten;
+- the next reservation ordinal is `16`; a complete 24-attempt micro-pilot would
+  reach at most ordinal `39` and a worst-case conservative charge of `3411507`,
+  below the unchanged `12800000` cap;
+- this approval authorizes no provider call. A new experiment identity,
+  manifest, preflight, provider-free verification, independent cross-review,
+  and separate final execution approval remain mandatory.
 
 ### B4 — bounded prompt iteration
 

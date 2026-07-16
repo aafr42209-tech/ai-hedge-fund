@@ -30,6 +30,16 @@ Quantity is an integer number of shares, must be an exact visible-lot multiple,
 and may not exceed two lots per asset. Reasoning for each asset must not exceed
 {MAX_REASONING_CODEPOINTS} Unicode code points. Never use external facts or real markets."""
 
+SYSTEM_PROMPT_V2 = f"""You are the portfolio decision policy in a synthetic research fixture.
+Return exactly one JSON object matching the required schema, with no markdown,
+code fence, or surrounding prose. Do not omit or add assets. Optimize only from
+the supplied anonymous numeric inputs and constraints. Quantity is an integer
+number of shares, must be an exact visible-lot multiple, and may not exceed two
+lots per asset. Confidence must be a JSON integer from 0 through 100 inclusive.
+Fractional or decimal confidence values are forbidden: use 96, never 0.96.
+Reasoning for each asset must not exceed {MAX_REASONING_CODEPOINTS} Unicode code
+points. Never use external facts or real markets."""
+
 
 @runtime_checkable
 class AcquisitionClient(Protocol):
@@ -113,6 +123,27 @@ def build_policy_input(public: PublicEpisode) -> dict[str, object]:
 def build_user_prompt(public: PublicEpisode, presented_json: str | None = None) -> str:
     payload = presented_json or render_presented_json(build_policy_input(public))
     return "Choose buy, sell, or hold for every A0-A5 asset. " "Quantity is shares, must be a lot-size multiple, and is capped at two lots. " "All six decisions are validated jointly; any violation makes the full batch hold.\n" 'Return: {"decisions":{"A0":{"action":"hold","quantity":0,' '"confidence":0,"reasoning":"short text"},...}}\n' f"FIXTURE={payload}"
+
+
+def build_user_prompt_v2(public: PublicEpisode, presented_json: str | None = None) -> str:
+    payload = presented_json or render_presented_json(build_policy_input(public))
+    return (
+        "Choose buy, sell, or hold for every A0-A5 asset. Quantity is an integer "
+        "number of shares, must be a lot-size multiple, and is capped at two lots. "
+        "Confidence MUST be a JSON integer from 0 through 100 inclusive; decimal "
+        "or fractional forms such as 0.96 are invalid. Use 96 instead of 0.96. "
+        "All six decisions are validated jointly; any violation makes the full "
+        "batch hold. Return exactly one JSON object and no other text:\n"
+        '{"decisions":{'
+        '"A0":{"action":"hold","quantity":0,"confidence":0,"reasoning":"short text"},'
+        '"A1":{"action":"hold","quantity":0,"confidence":0,"reasoning":"short text"},'
+        '"A2":{"action":"hold","quantity":0,"confidence":0,"reasoning":"short text"},'
+        '"A3":{"action":"hold","quantity":0,"confidence":0,"reasoning":"short text"},'
+        '"A4":{"action":"hold","quantity":0,"confidence":0,"reasoning":"short text"},'
+        '"A5":{"action":"hold","quantity":0,"confidence":0,"reasoning":"short text"}'
+        "}}\n"
+        f"FIXTURE={payload}"
+    )
 
 
 @dataclass(frozen=True)

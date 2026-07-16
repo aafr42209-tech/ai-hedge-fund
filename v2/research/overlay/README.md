@@ -180,9 +180,9 @@ hashes. Stopped attempts may intentionally leave immutable raw evidence outside
 a completed run result. The live identity inspection is paired with an
 externally hashed D2 resource amendment and aggregate budget carry-forward;
 replacement experiment roots cannot reset global provider ordinals or the
-conservative token charge. New reservations use `64000` and the `12800000`
-development cap, while historical 32K ledger schemas remain parseable only
-under their original constants. Local `codex features list` inspection and exact-tag
+conservative token charge. New reservations use `128000` and the `12800000`
+development cap, while historical 32K and 64K ledger schemas remain parseable
+only under their original constants. Local `codex features list` inspection and exact-tag
 source verification make no provider call. D2 user
 approval is recorded; provider acquisition remains blocked until the B3
 preflight identity is generated and independently reviewed. Evaluation

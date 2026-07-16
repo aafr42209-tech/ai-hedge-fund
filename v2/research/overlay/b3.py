@@ -29,7 +29,7 @@ from .contracts import (
     DevelopmentManifest,
     LIVE_PROCESS_TIMEOUT_MS,
 )
-from .llm_policy import build_user_prompt, SYSTEM_PROMPT_V1
+from .llm_policy import build_user_prompt_v2, SYSTEM_PROMPT_V2
 from .runner import _load_episode, _verify_manifest_specs, build_b3_anchor_manifest
 
 MODEL_ID = "gpt-5.6-sol"
@@ -117,8 +117,8 @@ def prepare_b3_preflight(
         budget_carry_forward_path,
         expected_sha256=expected_budget_carry_forward_sha256,
     )
-    if budget_carry_forward.schema_version != "r01-development-budget-carry-forward-v2":
-        raise RuntimeError("new B3 preflight requires aggregate budget carry-forward v2")
+    if budget_carry_forward.schema_version != "r01-development-budget-carry-forward-v3":
+        raise RuntimeError("new B3 preflight requires aggregate budget carry-forward v3")
 
     manifest = DevelopmentManifest.model_validate_json(store.read_bytes(manifest_reference))
     _verify_manifest_specs(
@@ -156,8 +156,8 @@ def prepare_b3_preflight(
             expected_pilot_sandbox_sha256=expected_sandbox_sha256,
             expected_transport_shape_spec_sha256=codex_transport_shape_spec_sha256(),
             timeout_ms=LIVE_PROCESS_TIMEOUT_MS,
-            policy_instruction=SYSTEM_PROMPT_V1,
-            fixture_prompt=build_user_prompt(episode.public),
+            policy_instruction=SYSTEM_PROMPT_V2,
+            fixture_prompt=build_user_prompt_v2(episode.public),
         )
         command_spec_references.append(
             store.write_json(

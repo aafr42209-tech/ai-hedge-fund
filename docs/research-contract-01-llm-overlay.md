@@ -180,7 +180,9 @@ Contract rules:
 - a buy or sell may contain at most `2` lots per asset;
 - `hold` requires quantity `0`;
 - `buy` and `sell` require a strictly positive quantity;
-- confidence is an integer in `[0, 100]`;
+- confidence is a JSON integer in `[0, 100]`; fractional or decimal forms such
+  as `0.96` are prohibited, and an intended 96% confidence must be emitted as
+  the integer `96`;
 - reasoning is a UTF-8 string of at most `2,000` Unicode code points, is retained, and is never used by the primary scorer;
 - omitted, duplicated, malformed, or extra decisions invalidate the raw batch.
 
@@ -447,8 +449,8 @@ Passing the primary endpoint while failing any safety gate produces **NO-GO**.
 - Development fixtures: `40`.
 - Final candidate-prompt pilot: at least `80` successful acquisitions, two per fixture.
 - Maximum development provider attempts including prompt iteration and retries: `200`.
-- Per-attempt development token reserve after D2 Resource Amendment 01: `64000`.
-- Maximum development total tokens after D2 Resource Amendment 01: `12800000`.
+- Per-attempt development token reserve after D2 Resource Amendment 02: `128000`.
+- Maximum development total tokens after D2 Resource Amendment 02: `12800000`.
 - Development fixtures and outputs are never included in the confirmatory result.
 
 ### Primary sealed evaluation
@@ -488,7 +490,7 @@ Repeated identical prompts must be genuine independent acquisitions, not prompt-
 - an attempt-1 `nonzero_exit_without_complete_response` is `STOP_PHASE`, because a wrong or unavailable model cannot be distinguished from a transient nonzero exit without spending another call;
 - every other `RETRY_TRANSPORT` may advance once to append-only attempt 2. A second consecutive `RETRY_TRANSPORT` becomes `STOP_PHASE`; attempt 3 is prohibited;
 - the development runner enforces the `200`-attempt cap immediately before each provider call. Reaching the cap is `STOP_PHASE`, creates no new attempt, and produces no replacement fixture or replicate;
-- development attempt and token caps are global across replacement experiment identities. After multiple stopped roots, a replacement run must load an externally hashed aggregate `r01-development-budget-carry-forward-v2` document, start provider ordinals and conservative token charge from that state, bind both it and the D2 resource-amendment hash into `r01-b3-preflight-v3`, and reproduce it in `r01-development-token-budget-summary-v3`; resetting any counter or rewriting a historical `32000` reservation as `64000` is prohibited;
+- development attempt and token caps are global across replacement experiment identities. After multiple stopped roots, a replacement run must load an externally hashed aggregate `r01-development-budget-carry-forward-v3` document, start provider ordinals and conservative token charge from that state, bind both it and the D2 resource-amendment hash into `r01-b3-preflight-v4`, and reproduce it in `r01-development-token-budget-summary-v4`; resetting any counter or rewriting a historical `32000` or `64000` reservation as `128000` is prohibited;
 - replicate ID is part of the artifact identity;
 - perturbation ID is part of invariance-artifact identity;
 - responses are append-only and never overwritten;
@@ -765,12 +767,12 @@ codex_attempt_failure_transport_artifacts_schema_version: r01-codex-attempt-fail
 codex_post_response_stop_artifacts_schema_version: r01-codex-post-response-stop-artifacts-v1
 complete_response_disposition_schema_version: r01-complete-response-disposition-v1
 acquisition_failure_schema_version: r01-acquisition-failure-v3
-token_budget_reservation_schema_version: r01-token-budget-reservation-v2
-provider_token_usage_schema_version: r01-provider-token-usage-v2
-development_budget_carry_forward_schema_version: r01-development-budget-carry-forward-v2
-development_token_budget_summary_schema_version: r01-development-token-budget-summary-v3
+token_budget_reservation_schema_version: r01-token-budget-reservation-v3
+provider_token_usage_schema_version: r01-provider-token-usage-v3
+development_budget_carry_forward_schema_version: r01-development-budget-carry-forward-v3
+development_token_budget_summary_schema_version: r01-development-token-budget-summary-v4
 b3_anchor_manifest_schema_version: r01-b3-anchor-manifest-v1
-b3_preflight_schema_version: r01-b3-preflight-v3
+b3_preflight_schema_version: r01-b3-preflight-v4
 development_run_result_schema_version: r01-development-run-result-v4
 codex_jsonl_parser_schema_version: r01-codex-jsonl-parser-v3
 codex_jsonl_schema_sha256: 33f4b4ceceb67421a9e9f901e45ae2c4cfb42b2442325a68f6d055de7e63af8d
@@ -782,8 +784,8 @@ codex_feature_catalog_definition_sha256: aa86f33bf40be81c79fdcbc6254b8162bf9d081
 codex_source_feature_proof_sha256: 1de5d131356deb6dec8186eb07795e47717d4960937b9142689a5e9cc3554f91
 command_spec_sha256: TBD
 zero_cost_account_attestation_sha256: 94ca690340273e02da7de19e0c1ea5efc8793547f2a87822dc40eb5b630b9746
-d2_resource_amendment_sha256: cb1e39b9c19ece973c6a19d44b59389bcd8bbfeea2638b78c554b3808d050124
-aggregate_budget_carry_forward_sha256: 002cc7b8e726e3d5041bc1d888e2a7da15ea258aa661ff1dd17ecb9de9397953
+d2_resource_amendment_sha256: e165471e03ce199dffb127202dd620f19fb4be2badee48ea07b14e4c6557b0f0
+aggregate_budget_carry_forward_sha256: cea3fd3aa38478d13c23cedb6cb0d41b01bfa16bb2cb781d50e5e27e4a03bbe8
 oracle_solver: TBD
 oracle_solver_version: TBD
 oracle_config_sha256: TBD
@@ -799,7 +801,7 @@ per_acquisition_max_attempts: 2
 max_consecutive_retry_transport: 2
 initial_nonzero_without_complete_response: STOP_PHASE
 live_process_timeout_ms: 900000
-per_attempt_total_token_reserve: 64000
+per_attempt_total_token_reserve: 128000
 max_development_provider_attempts: 200
 max_development_total_tokens: 12800000
 max_primary_evaluation_provider_attempts: 1100
@@ -833,6 +835,25 @@ sealed_by: TBD
 - A replacement experiment cannot reset development budgets. Its preflight must bind the committed carry-forward document for the stopped attempt; the next reservation ordinal is `2`, the starting conservative charge is `32000`, and replay must combine prior and current counts before accepting a token summary.
 - The reviewed transport-v3 replacement B3 on 2026-07-16 completed and scored two responses, then stopped on provider-attempt ordinal `4` because a complete third response used `44652` total tokens against the approved `32000` reserve. The remaining nine acquisitions and all retries were not run. Global state at stop is four attempts, three complete responses, one prior failed or unsettled attempt, `71623` settled actual tokens, and `103623` conservatively charged tokens. The stopped experiment has no run result and cannot support prompt selection. Because the over-reserve check previously raised after token-usage persistence but before failure-record persistence, the live artifact graph lacks an `acquisition_failure.json`; acquisition-failure v3 and post-response-stop artifacts close that path prospectively, while the immutable historical gap remains explicit external incident evidence.
 - On 2026-07-16, D2 Resource Amendment 01 replaced the prospective reserve with `64000` and the development total-token cap with `12800000`, while retaining the 200-attempt and zero-incremental-USD caps. The deterministic one-step doubling is not fitted to the observed `44652`; another excess is immediate `STOP_PHASE` and no automatic increase is allowed. The aggregate carry-forward begins at ordinal `5`, preserves the three complete-response accounting entries and one earlier unsettled attempt, and carries `103623` conservatively charged tokens.
+- The reviewed resource-v2 replacement on 2026-07-17 completed ten scored
+  acquisitions at ordinals `5` through `14`, each as exactly one
+  `schema_invalid / FAIL_CLOSED_SCORE` hold because every emitted confidence was
+  fractional rather than a JSON integer in `[0, 100]`. Ordinal `15` then used
+  `64023` total tokens, exceeded the approved `64000` reserve by `23`, and
+  stopped unscored and without retry. The stopped root has no completed run
+  result and cannot select a prompt or satisfy B3.
+- On 2026-07-17, D2 Resource Amendment 02 replaced only the prospective reserve
+  with the deterministic next doubling, `128000`; the `12800000` development
+  total-token cap, `200`-attempt cap, and zero-incremental-USD cap remain
+  unchanged. A complete response above `128000` is immediate `STOP_PHASE`, and
+  no further automatic increase is allowed. Aggregate carry-forward v3 begins
+  with 15 attempts and `339507` conservatively charged tokens, binds the
+  persisted ordinal-15 failure record and prior carry chain, and makes ordinal
+  `16` the next possible reservation. Prompt v2 explicitly requires every
+  confidence as a JSON integer from `0` through `100` and prohibits fractional
+  forms. The amendment authorizes provider-free implementation and preflight
+  only; another provider call requires independent review of the new code and
+  preflight pair plus a separate explicit user approval.
 - The regret scale, superiority margin, and target-headroom rule are frozen before the first provider call so pilot outcomes cannot select the statistical target.
 - No evaluation-driven clipping or winsorization is allowed.
 - Utility and normalized-regret bounds are certified over each fixture's complete feasible action lattice before seal, so poor policy performance cannot be relabeled INVALID.
@@ -908,3 +929,4 @@ sealed_by: TBD
 | A new experiment artifact root would otherwise initialize attempt and token counters at zero | Add an externally hashed carry-forward contract, bind it into B3 preflight v2, initialize reservations from its ordinal/charge, persist token-summary v2 with the same source state, and make replay verify carry-inclusive ordinals and arithmetic. |
 | A complete over-reserve response stopped after usage persistence without a durable STOP record | Bump acquisition failure to v3 and bind request, raw/metadata response, token usage, and complete transport through `r01-codex-post-response-stop-artifacts-v1` before raising `STOP_PHASE`; preserve the historical live gap as external evidence rather than backfilling it. |
 | A second stopped experiment required a larger prospective reserve without rewriting historical 32K ledgers | Record a one-step D2 amendment to 64K/12.8M, preserve v1/v2 historical reservation, usage, summary, carry, and preflight parsing under legacy constants, and require aggregate carry v2 plus preflight v3 to bind the amendment before another call. |
+| The 64K replacement stopped by 23 tokens and every observed confidence used a forbidden fractional form | Record D2 Resource Amendment 02 at 128K/12.8M with no further automatic increase; preserve 32K v1 and 64K v2 ledgers under their original constants; require reservation/usage/carry v3, summary/preflight v4, aggregate ordinal-15 carry, and prompt v2's explicit JSON-integer confidence rule before any new review. |
