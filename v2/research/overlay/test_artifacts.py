@@ -143,7 +143,7 @@ def test_scripted_run_and_zero_call_replay_are_byte_identical(tmp_path) -> None:
         expected_freeze_sha256=manifest.provider_free_freeze_sha256,
     )
     assert client.provider_calls == 1
-    assert result.schema_version == "r01-development-run-result-v3"
+    assert result.schema_version == "r01-development-run-result-v4"
     acquisition = result.acquisitions[0]
     assert store.read_bytes(acquisition.raw_response) == _hold_raw().encode()
     verification = _anchored_replay(store, result_ref, manifest_ref)

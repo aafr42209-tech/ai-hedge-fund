@@ -1,6 +1,6 @@
 # R01 Phase B2 zero-call preflight
 
-Status: `D2_APPROVED_B3_PREFLIGHT_BLOCKED`
+Status: `D2_APPROVED_B3_PREFLIGHT_IMPLEMENTED_REVIEW_PENDING`
 
 Observation date: `2026-07-14`; D2 approval recorded `2026-07-16` (Asia/Seoul)
 
@@ -13,18 +13,19 @@ Evaluation fixtures generated: `0`
 ## Trust anchors
 
 - Code commit: `fe521fefcaf25475a7bd92c8626f6eccd6ca3033`
-- Research contract SHA-256: `58a53af504de754b1b69d26bcd9aab4360950d5405a562cc3a1e196793f749fc`
-- B3 readiness implementation parent commit: `1b0ef0e`
+- Research contract SHA-256: `f1e46e11397ab1dd41cc1bda3c2f2c20720201733bb2d2e6a192d6cf241c69f3`
+- B3 readiness implementation base commit: `bdc0827`
 - Provider-free freeze SHA-256: `86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2`
 - Provider-free regime-gap summary SHA-256: `0e6e8945f93779a77ffc7687d63062c010efd3aee3d6c8062551e54108fbf886`
 - Exact-tag Codex source feature proof SHA-256: `1de5d131356deb6dec8186eb07795e47717d4960937b9142689a5e9cc3554f91`
 - Source tag/commit: `rust-v0.144.1` / `44918ea10c0f99151c6710411b4322c2f5c96bea`
-- D2 decision package SHA-256: `f605c1cea63b676a012645853cb2984deee1e5c61931050c1f63515a866d1ddc`
+- D2 decision package SHA-256: `bf9597c14460fdebf104fd7ff10789256857f07a3a2d44c086d0afa527099d8e`
 - D2 user approval record SHA-256: `95e55764963cc86e18e6e66348956bcde84082e3f0da28faf1c60145eb4e150c`
+- Zero-cost account attestation SHA-256: `94ca690340273e02da7de19e0c1ea5efc8793547f2a87822dc40eb5b630b9746`
 - Freeze root-seed label: `r01-phase-b-development-fixtures-v1`
 - Freeze fixture count: `40`
 - Root-seed and fixture-count match: `true`
-- Final prompt SHA-256: `TBD_B3_IMPLEMENTATION`
+- Final prompt SHA-256: `TBD_D3_AFTER_B3_CANDIDATE_REVIEW`
 
 ## Local Codex identity
 
@@ -72,10 +73,12 @@ Evaluation fixtures generated: `0`
   explicitly ignores all four config keys and has no behavior consumer outside
   the feature registry, removed-key guards, and tests. The stage label alone was
   not used as evidence.
-- Command-spec SHA-256: absent pending B3 live-path implementation; D2 approved
-  the exact four-entry non-tool allowlist.
+- Six command-spec SHA-256 values: generated only by the one-shot B3 preflight
+  after the implementation commit; the provider-free generator is implemented
+  and covered by the overlay regression suite.
 - Gate result: `D2_APPROVED_NOOP_ALLOWLIST`; provider execution remains blocked
-  by the separate post-D2 operational preflight.
+  until the generated B3 preflight hash and implementation commit pass external
+  review.
 
 `baseline` is the effective value before generated disables.
 
@@ -208,17 +211,14 @@ Evaluation fixtures generated: `0`
   second consecutive `RETRY_TRANSPORT` is converted to `STOP_PHASE` before a
   third call; the global `200`-attempt cap is checked before every call.
 
-D2 resolved all six decision items above on 2026-07-16. Before any B3
-acquisition, the remaining operational preflight must:
+D2 resolved all six decision items above on 2026-07-16. The zero-cost account
+state is attested; live command construction, deterministic six-case anchor
+selection, reservation/actual-usage accounting, bounded retries, and failed-
+attempt transport replay are implemented. The complete provider-free suite is
+`121 passed`; compile, Black, isort, and `git diff --check` also pass.
 
-1. prove that no purchased-credit balance or shared workspace credit pool can
-   be drawn and automatic credit top-up is disabled;
-2. implement and hash the live B3 command spec and deterministic six-case
-   anchor manifest;
-3. wire reservation and actual-usage accounting to the approved attempt and
-   token caps; and
-4. rerun the complete provider-free identity, test, formatting, and review
-   gates against the exact implementation.
-
-No provider call is authorized until those checks pass. Inability to prove the
-zero-cost account state stops the phase.
+No provider call is authorized until the implementation is committed and the
+one-shot B3 preflight generates exact command-spec, anchor-manifest, executable,
+account, feature, timeout, and token-cap hashes for external review. A changed
+account state, executable, sandbox, feature catalog, command spec, or preflight
+hash stops the phase.

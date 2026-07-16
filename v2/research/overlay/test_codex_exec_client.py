@@ -4,6 +4,7 @@ import json
 
 import pytest
 
+from .artifacts import AppendOnlyArtifactStore
 from .canonical import canonical_sha256, sha256_hex
 from .codex_exec_client import (
     build_codex_command_spec,
@@ -136,6 +137,130 @@ def _client(tmp_path, capture: CodexProcessCapture, sink_calls: list[object], pr
         capture_sink=lambda spec, raw: sink_calls.append((spec, raw)),
     )
     return client, runner
+
+
+def test_live_transport_artifacts_are_bound_to_the_exact_attempt(tmp_path) -> None:
+    sandbox = tmp_path / "sandbox"
+    sandbox.mkdir()
+    store = AppendOnlyArtifactStore(tmp_path / "artifacts")
+    capture = _capture()
+    process_runner = FakeRunner(capture)
+    client = CodexExecClient(
+        executable="codex",
+        model_id="mock-model-id",
+        **_command_gate_kwargs(sandbox),
+        disabled_features=("web_search", "shell_tool"),
+        active_feature_allowlist=(),
+        config_overrides=("tools.web_search=false",),
+        working_directory=str(sandbox),
+        timeout_ms=30_000,
+        process_runner=process_runner,
+        transport_store=store,
+    )
+    identity = _identity()
+
+    response = client.complete(system="system", user="fixture", identity=identity)
+    transport = client.transport_artifacts_for(identity)
+
+    assert response.request_id == "thread-b1"
+    assert transport is not None
+    for reference in (
+        transport.command_spec,
+        transport.stdout_jsonl,
+        transport.stderr,
+        transport.process_status,
+        transport.provider_response,
+    ):
+        store.verify(reference)
+    assert store.read_bytes(transport.stdout_jsonl) == capture.stdout
+
+
+def test_reviewed_command_spec_mismatch_stops_before_provider_call(tmp_path) -> None:
+    process_runner = FakeRunner(_capture())
+    client = CodexExecClient(
+        executable="codex",
+        model_id="mock-model-id",
+        **_command_gate_kwargs(tmp_path),
+        disabled_features=("web_search", "shell_tool"),
+        active_feature_allowlist=(),
+        config_overrides=("tools.web_search=false",),
+        working_directory=str(tmp_path),
+        timeout_ms=30_000,
+        process_runner=process_runner,
+        expected_command_spec_sha256_by_prompt={"unreviewed": "0" * 64},
+    )
+
+    with pytest.raises(CodexExecError) as raised:
+        client.complete(system="system", user="fixture", identity=_identity())
+
+    assert raised.value.code == "command_spec_preflight_mismatch"
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
+    assert client.provider_calls == 0
+    assert process_runner.calls == []
+
+
+def test_command_spec_build_failure_is_classified_before_provider_call(tmp_path) -> None:
+    gate_kwargs = _command_gate_kwargs(tmp_path)
+    (tmp_path / "unexpected-file").write_text("sandbox drift", encoding="utf-8")
+    process_runner = FakeRunner(_capture())
+    client = CodexExecClient(
+        executable="codex",
+        model_id="mock-model-id",
+        **gate_kwargs,
+        disabled_features=("web_search", "shell_tool"),
+        active_feature_allowlist=(),
+        config_overrides=("tools.web_search=false",),
+        working_directory=str(tmp_path),
+        timeout_ms=30_000,
+        process_runner=process_runner,
+    )
+
+    with pytest.raises(CodexExecError) as raised:
+        client.complete(system="system", user="fixture", identity=_identity())
+
+    assert raised.value.code == "command_spec_build_failure"
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
+    assert client.provider_calls == 0
+    assert process_runner.calls == []
+
+
+@pytest.mark.parametrize(
+    ("collision_name", "expected_code"),
+    (
+        ("command_spec.json", "transport_artifact_persistence_failure"),
+        ("provider_response.json", "provider_response_artifact_persistence_failure"),
+    ),
+)
+def test_transport_artifact_collisions_are_classified_stop(
+    tmp_path,
+    collision_name,
+    expected_code,
+) -> None:
+    sandbox = tmp_path / "sandbox"
+    sandbox.mkdir()
+    store = AppendOnlyArtifactStore(tmp_path / "artifacts")
+    prefix = "b1-test/acquisitions/development-0000/development/replicate-000/attempt-1/transport"
+    store.write_json(f"{prefix}/{collision_name}", {})
+    process_runner = FakeRunner(_capture())
+    client = CodexExecClient(
+        executable="codex",
+        model_id="mock-model-id",
+        **_command_gate_kwargs(sandbox),
+        disabled_features=("web_search", "shell_tool"),
+        active_feature_allowlist=(),
+        config_overrides=("tools.web_search=false",),
+        working_directory=str(sandbox),
+        timeout_ms=30_000,
+        process_runner=process_runner,
+        transport_store=store,
+    )
+
+    with pytest.raises(CodexExecError) as raised:
+        client.complete(system="system", user="fixture", identity=_identity())
+
+    assert raised.value.code == expected_code
+    assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
+    assert client.provider_calls == 1
 
 
 def test_command_spec_is_shell_free_deterministic_and_hashes_exact_stdin(tmp_path) -> None:

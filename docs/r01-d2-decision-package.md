@@ -1,11 +1,11 @@
 # R01 D2 Decision Package v1
 
-> **D2 APPROVED — B3 EXECUTION REMAINS BLOCKED BY OPERATIONAL PREFLIGHT**
+> **D2 APPROVED — B3 EXECUTION REMAINS BLOCKED PENDING PREFLIGHT HASH REVIEW**
 
 ## Status
 
 - Decision gate: `D2`
-- State: `D2_APPROVED_B3_PREFLIGHT_BLOCKED`
+- State: `D2_APPROVED_B3_PREFLIGHT_IMPLEMENTED_REVIEW_PENDING`
 - Approval date: `2026-07-16` (Asia/Seoul)
 - Implementation parent commit: `6ffc1ce`
 - Provider calls made: `0`
@@ -21,7 +21,7 @@ before the live B3 command, anchor manifest, and token ledger pass review.
 - Provider-free freeze SHA-256:
   `86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2`.
 - Research contract SHA-256:
-  `58a53af504de754b1b69d26bcd9aab4360950d5405a562cc3a1e196793f749fc`.
+  `f1e46e11397ab1dd41cc1bda3c2f2c20720201733bb2d2e6a192d6cf241c69f3`.
 - User approval record: `docs/r01-d2-user-approval.md`, SHA-256
   `95e55764963cc86e18e6e66348956bcde84082e3f0da28faf1c60145eb4e150c`.
 - Provider-free regime-gap summary SHA-256:
@@ -39,7 +39,9 @@ before the live B3 command, anchor manifest, and token ledger pass review.
   `53cbad126a94c757dd26c9e7788a402697bdde04a4d9a6077202e0fdbf6a788b`.
 - Bundled model catalog SHA-256:
   `678a11fa060b6a30573992fd15b25911f4d2f939ce43c016dffb5d08e22a4b08`.
-- Provider-free overlay test result: `109 passed`.
+- Provider-free overlay test result after B3 failure-audit hardening: `121 passed`.
+- Zero-cost account attestation: `docs/r01-b3-zero-cost-account-attestation.md`,
+  SHA-256 `94ca690340273e02da7de19e0c1ea5efc8793547f2a87822dc40eb5b630b9746`.
 
 ## Approved D2 resolution
 
@@ -127,25 +129,32 @@ every bounded transport retry:
   run result, but those blobs never enter scoring or fallback metrics.
 
 The nested run-result contract was version-bumped to
-`r01-development-run-result-v3`; each acquisition binds an
+`r01-development-run-result-v4`; each acquisition binds an
 `r01-complete-response-disposition-v1` artifact and any successful retry binds
-its preceding `r01-acquisition-failure-v1` record.
+its preceding `r01-acquisition-failure-v2` record, token reservation, and
+failed-attempt transport graph for replay.
 
 ## Post-approval execution gate
 
 D2 is approved. Before the first B3 provider process starts:
 
-- prove that no purchased or shared credits can be drawn and automatic credit
-  top-up is disabled, so the approved incremental USD cap remains zero;
+- preserve the recorded personal-Pro balance of `KRW 0`, disabled Auto top-up,
+  and prohibition on purchased/shared credits so the approved incremental USD
+  cap remains zero; this is attested in the zero-cost record above;
 - implement and hash the live B3 command spec and deterministic six-case anchor
   manifest;
 - wire the `32000` per-attempt reservation, actual token-usage ledger, `6400000`
   development cap, and `200`-attempt cap into the live path;
-- rerun provider-free tests and review the exact implementation and identities.
+- rerun provider-free tests and review the exact implementation and identities;
+  the first B3 preflight hash must still be generated and externally frozen.
 
-Until all four checks pass, no Codex provider process may start and provider
+The zero-cost attestation, live command construction, deterministic anchor
+selection, token ledger, bounded failure audit, and provider-free regression
+suite are implemented. The remaining gate is one-shot generation and external
+review of the exact B3 preflight hash against the committed implementation.
+Until that review passes, no Codex provider process may start and provider
 calls, attempts, and consumed tokens remain zero. B3 execution, B4, and later
-phases remain blocked; provider-free B3 implementation work is permitted.
+phases remain blocked.
 
 ## Requested cross-review
 

@@ -18,20 +18,32 @@ from .contracts import (
     AcquisitionFailureRecord,
     AcquisitionIdentity,
     ArtifactReference,
+    B3_MAX_PROVIDER_ATTEMPTS,
+    B3AnchorManifest,
+    CodexAttemptFailureTransportArtifacts,
+    CodexProcessStatus,
     CompleteResponseDispositionRecord,
+    DEVELOPMENT_ATTEMPT_CAP,
+    DEVELOPMENT_TOKEN_CAP,
     DevelopmentManifest,
     DevelopmentRunPlan,
     DevelopmentRunResult,
+    DevelopmentTokenBudgetSummary,
     EpisodeScore,
     FixtureManifestEntry,
     GeneratorConfig,
+    MAX_CONSECUTIVE_RETRY_TRANSPORT,
     normalize_artifact_relative_path,
     OracleResult,
+    PER_ATTEMPT_TOKEN_RESERVE,
     ProviderFreeFreeze,
     ProviderResponse,
+    ProviderTokenUsage,
+    REGIMES,
     ReplayVerification,
     RunPlanEntry,
     SyntheticEpisode,
+    TokenBudgetReservation,
     ValidationReport,
 )
 from .fixtures import generate_development_episodes
@@ -64,8 +76,73 @@ from .specs import (
     scoring_spec_sha256,
 )
 
-MAX_CONSECUTIVE_RETRY_TRANSPORT = 2
-DEVELOPMENT_ATTEMPT_CAP = 200
+
+@dataclass
+class _TokenBudgetState:
+    provider_attempts: int = 0
+    successful_responses: int = 0
+    failed_or_unsettled_attempts: int = 0
+    actual_total_tokens: int = 0
+    conservatively_charged_total_tokens: int = 0
+
+    def reserve(self, identity: AcquisitionIdentity) -> TokenBudgetReservation:
+        if self.provider_attempts >= DEVELOPMENT_ATTEMPT_CAP:
+            raise CodexExecError(
+                "development_attempt_cap_reached",
+                "development provider-attempt cap reached before token reservation",
+                disposition=AcquisitionDisposition.STOP_PHASE,
+            )
+        before = self.conservatively_charged_total_tokens
+        after = before + PER_ATTEMPT_TOKEN_RESERVE
+        if after > DEVELOPMENT_TOKEN_CAP:
+            raise CodexExecError(
+                "development_token_cap_reached",
+                "development token cap cannot reserve the next provider attempt",
+                disposition=AcquisitionDisposition.STOP_PHASE,
+            )
+        self.provider_attempts += 1
+        self.failed_or_unsettled_attempts += 1
+        self.conservatively_charged_total_tokens = after
+        return TokenBudgetReservation(
+            identity=identity,
+            provider_attempt_ordinal=self.provider_attempts,
+            charged_total_tokens_before=before,
+            charged_total_tokens_after_reservation=after,
+        )
+
+    def settle(
+        self,
+        identity: AcquisitionIdentity,
+        response: ProviderResponse,
+        reservation: TokenBudgetReservation,
+    ) -> ProviderTokenUsage:
+        actual = response.input_tokens + response.output_tokens
+        after = reservation.charged_total_tokens_after_reservation - reservation.reserve_total_tokens + actual
+        usage = ProviderTokenUsage(
+            identity=identity,
+            provider_attempt_ordinal=reservation.provider_attempt_ordinal,
+            input_tokens=response.input_tokens,
+            cached_input_tokens=response.cached_input_tokens,
+            output_tokens=response.output_tokens,
+            reasoning_output_tokens=response.reasoning_output_tokens,
+            accounting_total_tokens=actual,
+            charged_total_tokens_before=reservation.charged_total_tokens_after_reservation,
+            charged_total_tokens_after_settlement=after,
+        )
+        self.successful_responses += 1
+        self.failed_or_unsettled_attempts -= 1
+        self.actual_total_tokens += actual
+        self.conservatively_charged_total_tokens = after
+        return usage
+
+    def summary(self) -> DevelopmentTokenBudgetSummary:
+        return DevelopmentTokenBudgetSummary(
+            provider_attempts=self.provider_attempts,
+            successful_responses=self.successful_responses,
+            failed_or_unsettled_attempts=self.failed_or_unsettled_attempts,
+            actual_total_tokens=self.actual_total_tokens,
+            conservatively_charged_total_tokens=self.conservatively_charged_total_tokens,
+        )
 
 
 def generate_development_manifest(
@@ -190,6 +267,7 @@ class _RequestArtifacts:
     system_prompt: ArtifactReference
     user_prompt_artifact: ArtifactReference
     provider_request: ArtifactReference
+    token_reservation: ArtifactReference
 
 
 @dataclass(frozen=True)
@@ -200,13 +278,24 @@ class _AcquisitionOutcome:
     score: EpisodeScore
 
 
+def _identity_with_attempt(
+    identity: AcquisitionIdentity,
+    attempt: int,
+) -> AcquisitionIdentity:
+    payload = identity.model_dump(mode="python")
+    payload["attempt"] = attempt
+    return AcquisitionIdentity.model_validate(payload)
+
+
 def _initial_attempt_identity(identity: AcquisitionIdentity) -> AcquisitionIdentity:
-    return identity.model_copy(update={"attempt": 1})
+    return _identity_with_attempt(identity, 1)
 
 
 def _failure_record(
     identity: AcquisitionIdentity,
     error: CodexExecError,
+    token_reservation: ArtifactReference,
+    transport_artifacts: CodexAttemptFailureTransportArtifacts | None,
 ) -> AcquisitionFailureRecord:
     return AcquisitionFailureRecord(
         identity=identity,
@@ -214,6 +303,8 @@ def _failure_record(
         disposition=error.disposition,
         origin_code=error.origin_code,
         origin_disposition=error.origin_disposition,
+        token_reservation=token_reservation,
+        transport_artifacts=transport_artifacts,
     )
 
 
@@ -234,7 +325,7 @@ def _bounded_retry_failure(
             ),
             None,
         )
-    return error, identity.model_copy(update={"attempt": identity.attempt + 1})
+    return error, _identity_with_attempt(identity, identity.attempt + 1)
 
 
 def development_acquisition_identities(
@@ -253,6 +344,49 @@ def development_acquisition_identities(
         )
         for fixture in manifest.fixtures
         for replicate in range(replicates)
+    )
+
+
+def build_b3_anchor_manifest(
+    store: AppendOnlyArtifactStore,
+    *,
+    manifest_reference: ArtifactReference,
+    manifest: DevelopmentManifest,
+) -> tuple[ArtifactReference, B3AnchorManifest]:
+    selected: list[FixtureManifestEntry] = []
+    for regime in REGIMES:
+        candidates = sorted(
+            (fixture for fixture in manifest.fixtures if fixture.regime == regime),
+            key=lambda fixture: fixture.case_id,
+        )
+        if not candidates:
+            raise RuntimeError(f"development manifest has no fixture for regime: {regime}")
+        selected.append(candidates[0])
+    anchor_manifest = B3AnchorManifest(
+        experiment_id=manifest.experiment_id,
+        source_manifest=manifest_reference,
+        anchors=tuple(selected),
+    )
+    reference = store.write_json(
+        f"{manifest.experiment_id}/b3_anchor_manifest.json",
+        anchor_manifest,
+    )
+    return reference, anchor_manifest
+
+
+def b3_acquisition_identities(
+    anchor_manifest: B3AnchorManifest,
+) -> tuple[AcquisitionIdentity, ...]:
+    return tuple(
+        AcquisitionIdentity(
+            experiment_id=anchor_manifest.experiment_id,
+            case_id=anchor.case_id,
+            channel="development",
+            replicate_id=replicate,
+            attempt=1,
+        )
+        for anchor in anchor_manifest.anchors
+        for replicate in range(anchor_manifest.replicates_per_anchor)
     )
 
 
@@ -284,6 +418,17 @@ def _build_development_plan(
     )
 
 
+def _build_b3_plan(
+    anchor_manifest: B3AnchorManifest,
+) -> DevelopmentRunPlan:
+    fixtures = {anchor.case_id: anchor.fixture for anchor in anchor_manifest.anchors}
+    return DevelopmentRunPlan(
+        experiment_id=anchor_manifest.experiment_id,
+        manifest=anchor_manifest.source_manifest,
+        entries=tuple(RunPlanEntry(identity=identity, fixture=fixtures[identity.case_id]) for identity in b3_acquisition_identities(anchor_manifest)),
+    )
+
+
 def _cached_oracle(
     cache: dict[str, OracleResult],
     episode: SyntheticEpisode,
@@ -299,6 +444,7 @@ def _write_request_artifacts(
     identity: AcquisitionIdentity,
     episode: SyntheticEpisode,
     client: AcquisitionClient,
+    token_reservation: ArtifactReference,
 ) -> _RequestArtifacts:
     prefix = _acquisition_prefix(identity)
     policy_input = build_policy_input(episode.public)
@@ -315,6 +461,7 @@ def _write_request_artifacts(
             "user_prompt_sha256": user_ref.sha256,
             "client_type": type(client).__name__,
             "phase": "DEVELOPMENT_ONLY_NOT_SEALED",
+            "token_reservation_sha256": token_reservation.sha256,
         },
     )
     return _RequestArtifacts(
@@ -323,6 +470,7 @@ def _write_request_artifacts(
         system_prompt=system_ref,
         user_prompt_artifact=user_ref,
         provider_request=request_ref,
+        token_reservation=token_reservation,
     )
 
 
@@ -378,8 +526,10 @@ def _complete_acquisition(
     episode: SyntheticEpisode,
     client: AcquisitionClient,
     oracle: OracleResult,
+    token_budget: _TokenBudgetState | None = None,
     provider_call_ceiling: int | None = None,
 ) -> _AcquisitionOutcome:
+    token_budget = token_budget or _TokenBudgetState()
     identity = entry.identity
     prior_attempt_failures: list[ArtifactReference] = []
     while True:
@@ -390,11 +540,17 @@ def _complete_acquisition(
                 disposition=AcquisitionDisposition.STOP_PHASE,
             )
         prefix = _acquisition_prefix(identity)
+        reservation = token_budget.reserve(identity)
+        reservation_ref = store.write_json(
+            f"{prefix}/token_reservation.json",
+            reservation,
+        )
         request = _write_request_artifacts(
             store,
             identity=identity,
             episode=episode,
             client=client,
+            token_reservation=reservation_ref,
         )
         try:
             response = client.complete(
@@ -404,9 +560,20 @@ def _complete_acquisition(
             )
         except CodexExecError as error:
             effective_error, retry_identity = _bounded_retry_failure(identity, error)
+            failure_transport_lookup = getattr(
+                client,
+                "failure_transport_artifacts_for",
+                None,
+            )
+            failure_transport = failure_transport_lookup(identity) if callable(failure_transport_lookup) else None
             failure_ref = store.write_json(
                 f"{prefix}/acquisition_failure.json",
-                _failure_record(identity, effective_error),
+                _failure_record(
+                    identity,
+                    effective_error,
+                    reservation_ref,
+                    failure_transport,
+                ),
             )
             if retry_identity is None:
                 raise effective_error from error
@@ -422,6 +589,17 @@ def _complete_acquisition(
         f"{prefix}/provider_response_metadata.json",
         response_metadata,
     )
+    token_usage = token_budget.settle(identity, response, reservation)
+    token_usage_ref = store.write_json(
+        f"{prefix}/token_usage.json",
+        token_usage,
+    )
+    if token_usage.accounting_total_tokens > token_usage.reserve_total_tokens:
+        raise CodexExecError(
+            "per_attempt_token_reserve_exceeded",
+            "provider response exceeded the approved per-attempt token reserve",
+            disposition=AcquisitionDisposition.STOP_PHASE,
+        )
     outcome, disposition = _consume_complete_response(episode, response)
     score = score_episode(episode, outcome.validation)
     assert_oracle_bound("llm", score.utility_e12, oracle)
@@ -436,6 +614,8 @@ def _complete_acquisition(
     cost_ref = store.write_json(f"{prefix}/cost_ledger.json", outcome.validation.cost_ledger)
     score_ref = store.write_json(f"{prefix}/episode_score.json", score)
     oracle_ref = store.write_json(f"{prefix}/oracle_certificate.json", oracle.certificate)
+    transport_lookup = getattr(client, "transport_artifacts_for", None)
+    transport_artifacts = transport_lookup(identity) if callable(transport_lookup) else None
     artifacts = AcquisitionArtifacts(
         identity=identity,
         fixture=entry.fixture,
@@ -444,6 +624,9 @@ def _complete_acquisition(
         system_prompt=request.system_prompt,
         user_prompt=request.user_prompt_artifact,
         provider_request=request.provider_request,
+        token_reservation=request.token_reservation,
+        token_usage=token_usage_ref,
+        transport_artifacts=transport_artifacts,
         raw_response=raw_ref,
         provider_response_metadata=response_metadata_ref,
         response_disposition=disposition_ref,
@@ -487,14 +670,20 @@ def _write_development_result(
     plan_reference: ArtifactReference,
     acquisitions: list[AcquisitionArtifacts],
     report_cases: list[dict[str, Any]],
+    token_budget: _TokenBudgetState,
 ) -> tuple[ArtifactReference, DevelopmentRunResult]:
     report_json, report_markdown = build_report(report_cases)
     report_json_ref = store.write_json(f"{experiment_id}/development_report.json", report_json)
     report_markdown_ref = store.write_text(f"{experiment_id}/development_report.md", report_markdown)
+    token_budget_ref = store.write_json(
+        f"{experiment_id}/development_token_budget_summary.json",
+        token_budget.summary(),
+    )
     result = DevelopmentRunResult(
         experiment_id=experiment_id,
         run_plan=plan_reference,
         acquisitions=tuple(acquisitions),
+        token_budget_summary=token_budget_ref,
         report_json=report_json_ref,
         report_markdown=report_markdown_ref,
     )
@@ -521,34 +710,20 @@ def _reconstruct_provider_response(
     return ProviderResponse.model_validate_json(canonical_json_bytes({"raw_text": raw_text, **metadata}))
 
 
-def run_scripted_acquisition(
+def _execute_development_plan(
     store: AppendOnlyArtifactStore,
     *,
-    manifest_reference: ArtifactReference,
+    manifest: DevelopmentManifest,
+    plan: DevelopmentRunPlan,
     client: AcquisitionClient,
-    expected_freeze_sha256: str,
-    replicates: int = 1,
-    max_provider_attempts: int = DEVELOPMENT_ATTEMPT_CAP,
+    max_provider_attempts: int,
 ) -> tuple[ArtifactReference, DevelopmentRunResult]:
-    if max_provider_attempts <= 0 or max_provider_attempts > DEVELOPMENT_ATTEMPT_CAP:
-        raise ValueError(f"development provider-attempt cap must be in [1, {DEVELOPMENT_ATTEMPT_CAP}]")
-    manifest = DevelopmentManifest.model_validate_json(store.read_bytes(manifest_reference))
-    _verify_manifest_specs(
-        store,
-        manifest,
-        expected_freeze_sha256=expected_freeze_sha256,
-    )
-    plan = _build_development_plan(
-        manifest_reference,
-        manifest,
-        replicates,
-    )
     plan_reference = store.write_json(f"{manifest.experiment_id}/run_plan.json", plan)
-
     acquisitions: list[AcquisitionArtifacts] = []
     report_cases: list[dict[str, Any]] = []
     baseline_cache: dict[str, dict[str, int]] = {}
     oracle_cache: dict[str, OracleResult] = {}
+    token_budget = _TokenBudgetState()
     provider_call_ceiling = client.provider_calls + max_provider_attempts
     for entry in plan.entries:
         identity = entry.identity
@@ -560,6 +735,7 @@ def run_scripted_acquisition(
             episode=episode,
             client=client,
             oracle=oracle,
+            token_budget=token_budget,
             provider_call_ceiling=provider_call_ceiling,
         )
         acquisitions.append(outcome.artifacts)
@@ -585,6 +761,82 @@ def run_scripted_acquisition(
         plan_reference=plan_reference,
         acquisitions=acquisitions,
         report_cases=report_cases,
+        token_budget=token_budget,
+    )
+
+
+def run_scripted_acquisition(
+    store: AppendOnlyArtifactStore,
+    *,
+    manifest_reference: ArtifactReference,
+    client: AcquisitionClient,
+    expected_freeze_sha256: str,
+    replicates: int = 1,
+    max_provider_attempts: int = DEVELOPMENT_ATTEMPT_CAP,
+) -> tuple[ArtifactReference, DevelopmentRunResult]:
+    if max_provider_attempts <= 0 or max_provider_attempts > DEVELOPMENT_ATTEMPT_CAP:
+        raise ValueError(f"development provider-attempt cap must be in [1, {DEVELOPMENT_ATTEMPT_CAP}]")
+    manifest = DevelopmentManifest.model_validate_json(store.read_bytes(manifest_reference))
+    _verify_manifest_specs(
+        store,
+        manifest,
+        expected_freeze_sha256=expected_freeze_sha256,
+    )
+    plan = _build_development_plan(
+        manifest_reference,
+        manifest,
+        replicates,
+    )
+    return _execute_development_plan(
+        store,
+        manifest=manifest,
+        plan=plan,
+        client=client,
+        max_provider_attempts=max_provider_attempts,
+    )
+
+
+def run_b3_micro_pilot(
+    store: AppendOnlyArtifactStore,
+    *,
+    manifest_reference: ArtifactReference,
+    anchor_manifest_reference: ArtifactReference,
+    client: AcquisitionClient,
+    expected_freeze_sha256: str,
+    expected_anchor_manifest_sha256: str,
+    max_provider_attempts: int = B3_MAX_PROVIDER_ATTEMPTS,
+) -> tuple[ArtifactReference, DevelopmentRunResult]:
+    if max_provider_attempts <= 0 or max_provider_attempts > DEVELOPMENT_ATTEMPT_CAP:
+        raise ValueError(f"development provider-attempt cap must be in [1, {DEVELOPMENT_ATTEMPT_CAP}]")
+    if anchor_manifest_reference.sha256 != expected_anchor_manifest_sha256:
+        raise RuntimeError("B3 anchor manifest differs from the external trust anchor")
+    manifest = DevelopmentManifest.model_validate_json(store.read_bytes(manifest_reference))
+    _verify_manifest_specs(
+        store,
+        manifest,
+        expected_freeze_sha256=expected_freeze_sha256,
+    )
+    anchors = B3AnchorManifest.model_validate_json(store.read_bytes(anchor_manifest_reference))
+    if anchors.source_manifest != manifest_reference or anchors.experiment_id != manifest.experiment_id:
+        raise RuntimeError("B3 anchor manifest is not bound to the development manifest")
+    expected_anchors = tuple(
+        min(
+            (fixture for fixture in manifest.fixtures if fixture.regime == regime),
+            key=lambda fixture: fixture.case_id,
+        )
+        for regime in REGIMES
+    )
+    if anchors.anchors != expected_anchors:
+        raise RuntimeError("B3 anchor selection differs from the frozen rule")
+    plan = _build_b3_plan(anchors)
+    if len(plan.entries) != 12:
+        raise RuntimeError("B3 micro-pilot must contain exactly twelve planned acquisitions")
+    return _execute_development_plan(
+        store,
+        manifest=manifest,
+        plan=plan,
+        client=client,
+        max_provider_attempts=max_provider_attempts,
     )
 
 
@@ -593,6 +845,31 @@ def _assert_json_bytes(store: AppendOnlyArtifactStore, reference: ArtifactRefere
     actual = store.read_bytes(reference)
     if actual != expected:
         raise RuntimeError(f"replay byte mismatch: {reference.relative_path}")
+
+
+def _verify_failure_transport_artifacts(
+    store: AppendOnlyArtifactStore,
+    transport: CodexAttemptFailureTransportArtifacts,
+) -> None:
+    for reference in (
+        transport.command_spec,
+        transport.stdout_jsonl,
+        transport.stderr,
+        transport.process_status,
+    ):
+        store.verify(reference)
+    process_status = CodexProcessStatus.model_validate_json(store.read_bytes(transport.process_status))
+    if transport.stdout_jsonl.sha256 != process_status.stdout_sha256:
+        raise RuntimeError("failed-attempt stdout hash differs from process status")
+    if transport.stderr.sha256 != process_status.stderr_sha256:
+        raise RuntimeError("failed-attempt stderr hash differs from process status")
+    if transport.provider_response is not None:
+        store.verify(transport.provider_response)
+        response = ProviderResponse.model_validate_json(store.read_bytes(transport.provider_response))
+        if response.process_status != process_status:
+            raise RuntimeError("failed-attempt provider response differs from process status")
+        if response.transport_sha256 != transport.stdout_jsonl.sha256:
+            raise RuntimeError("failed-attempt provider response differs from stdout")
 
 
 def replay(
@@ -623,6 +900,8 @@ def replay(
         raise RuntimeError("run plan and acquisition result counts differ")
 
     oracle_cache: dict[str, OracleResult] = {}
+    replay_reservations: list[TokenBudgetReservation] = []
+    replay_usages: list[ProviderTokenUsage] = []
     for acquisition in result.acquisitions:
         key = acquisition_key(_initial_attempt_identity(acquisition.identity))
         if key not in planned:
@@ -634,16 +913,26 @@ def replay(
             start=1,
         ):
             failure = AcquisitionFailureRecord.model_validate_json(store.read_bytes(failure_reference))
-            if failure.identity != acquisition.identity.model_copy(update={"attempt": expected_attempt}):
+            if failure.identity != _identity_with_attempt(acquisition.identity, expected_attempt):
                 raise RuntimeError("retry failure identity does not match the final acquisition")
             if failure.disposition is not AcquisitionDisposition.RETRY_TRANSPORT:
                 raise RuntimeError("a completed retry chain may bind only RETRY_TRANSPORT failures")
+            if failure.token_reservation is None:
+                raise RuntimeError("retry failure is missing its token reservation")
+            failure_reservation = TokenBudgetReservation.model_validate_json(store.read_bytes(failure.token_reservation))
+            if failure_reservation.identity != failure.identity:
+                raise RuntimeError("retry failure token reservation identity mismatch")
+            replay_reservations.append(failure_reservation)
+            if failure.transport_artifacts is not None:
+                _verify_failure_transport_artifacts(store, failure.transport_artifacts)
         for reference in (
             acquisition.policy_input,
             acquisition.system_prompt,
             acquisition.user_prompt,
             acquisition.provider_request,
             acquisition.provider_response_metadata,
+            acquisition.token_reservation,
+            acquisition.token_usage,
         ):
             store.verify(reference)
         episode = _load_episode(store, acquisition.fixture)
@@ -651,6 +940,34 @@ def replay(
             store.read_bytes(acquisition.raw_response),
             store.read_bytes(acquisition.provider_response_metadata),
         )
+        reservation = TokenBudgetReservation.model_validate_json(store.read_bytes(acquisition.token_reservation))
+        usage = ProviderTokenUsage.model_validate_json(store.read_bytes(acquisition.token_usage))
+        if reservation.identity != acquisition.identity or usage.identity != acquisition.identity:
+            raise RuntimeError("token ledger identity differs from the acquisition")
+        if reservation.provider_attempt_ordinal != usage.provider_attempt_ordinal:
+            raise RuntimeError("token reservation and usage attempt ordinals differ")
+        if usage.input_tokens != response.input_tokens or usage.cached_input_tokens != response.cached_input_tokens or usage.output_tokens != response.output_tokens or usage.reasoning_output_tokens != response.reasoning_output_tokens:
+            raise RuntimeError("token ledger differs from the provider response")
+        replay_reservations.append(reservation)
+        replay_usages.append(usage)
+        if acquisition.transport_artifacts is not None:
+            transport = acquisition.transport_artifacts
+            for reference in (
+                transport.command_spec,
+                transport.stdout_jsonl,
+                transport.stderr,
+                transport.process_status,
+                transport.provider_response,
+            ):
+                store.verify(reference)
+            process_status = CodexProcessStatus.model_validate_json(store.read_bytes(transport.process_status))
+            persisted_response = ProviderResponse.model_validate_json(store.read_bytes(transport.provider_response))
+            if persisted_response != response or process_status != response.process_status:
+                raise RuntimeError("transport artifacts differ from the reconstructed response")
+            if transport.stdout_jsonl.sha256 != response.transport_sha256:
+                raise RuntimeError("transport stdout hash differs from the provider response")
+            if transport.stderr.sha256 != response.process_status.stderr_sha256:
+                raise RuntimeError("transport stderr hash differs from process status")
         outcome, disposition = _consume_complete_response(episode, response)
         score = score_episode(episode, outcome.validation)
         oracle = _cached_oracle(oracle_cache, episode)
@@ -664,6 +981,18 @@ def replay(
         _assert_json_bytes(store, acquisition.oracle_certificate, oracle.certificate)
     store.verify(result.report_json)
     store.verify(result.report_markdown)
+    store.verify(result.token_budget_summary)
+    ordinals = sorted(reservation.provider_attempt_ordinal for reservation in replay_reservations)
+    if ordinals != list(range(1, len(replay_reservations) + 1)):
+        raise RuntimeError("token reservation ordinals are not contiguous")
+    replay_summary = DevelopmentTokenBudgetSummary(
+        provider_attempts=len(replay_reservations),
+        successful_responses=len(replay_usages),
+        failed_or_unsettled_attempts=len(replay_reservations) - len(replay_usages),
+        actual_total_tokens=sum(usage.accounting_total_tokens for usage in replay_usages),
+        conservatively_charged_total_tokens=(sum(usage.accounting_total_tokens for usage in replay_usages) + (len(replay_reservations) - len(replay_usages)) * PER_ATTEMPT_TOKEN_RESERVE),
+    )
+    _assert_json_bytes(store, result.token_budget_summary, replay_summary)
     verification = ReplayVerification(
         experiment_id=result.experiment_id,
         verified_acquisitions=len(result.acquisitions),
@@ -717,6 +1046,30 @@ def main(argv: list[str] | None = None) -> int:
     dry_run.add_argument("--responses", required=True, help="JSON acquisition-key to raw-text map")
     dry_run.add_argument("--replicates", type=int, default=1)
     dry_run.add_argument("--freeze-sha256", required=True)
+
+    b3_preflight = subparsers.add_parser("b3-preflight")
+    b3_preflight.add_argument("--manifest", required=True, help="artifact-root relative path")
+    b3_preflight.add_argument("--freeze-sha256", required=True)
+    b3_preflight.add_argument("--executable", required=True)
+    b3_preflight.add_argument("--expected-executable-sha256", required=True)
+    b3_preflight.add_argument("--sandbox-directory", required=True)
+    b3_preflight.add_argument("--account-attestation", required=True)
+    b3_preflight.add_argument("--expected-account-attestation-sha256", required=True)
+    b3_preflight.add_argument(
+        "--committed-zero-call-capture",
+        default="docs/r01-b2-zero-call-capture.json",
+    )
+
+    b3_run = subparsers.add_parser("b3-run")
+    b3_run.add_argument("--preflight", required=True, help="artifact-root relative path")
+    b3_run.add_argument("--expected-preflight-sha256", required=True)
+    b3_run.add_argument("--freeze-sha256", required=True)
+    b3_run.add_argument("--sandbox-directory", required=True)
+    b3_run.add_argument("--account-attestation", required=True)
+    b3_run.add_argument(
+        "--committed-zero-call-capture",
+        default="docs/r01-b2-zero-call-capture.json",
+    )
 
     replay_parser = subparsers.add_parser("replay")
     replay_parser.add_argument("--result", required=True, help="artifact-root relative path")
@@ -805,6 +1158,46 @@ def main(argv: list[str] | None = None) -> int:
             client=ScriptedAcquisitionClient(responses_payload),
             expected_freeze_sha256=args.freeze_sha256,
             replicates=args.replicates,
+        )
+        _print_reference(result_reference)
+        return 0
+    if args.command == "b3-preflight":
+        from .b3 import prepare_b3_preflight
+
+        manifest_reference = store.reference_for_existing(args.manifest)
+        preflight_reference, _preflight = prepare_b3_preflight(
+            store,
+            manifest_reference=manifest_reference,
+            expected_freeze_sha256=args.freeze_sha256,
+            executable=args.executable,
+            expected_executable_sha256=args.expected_executable_sha256,
+            sandbox_directory=args.sandbox_directory,
+            account_attestation_path=args.account_attestation,
+            expected_account_attestation_sha256=args.expected_account_attestation_sha256,
+            committed_capture_path=args.committed_zero_call_capture,
+        )
+        _print_reference(preflight_reference)
+        return 0
+    if args.command == "b3-run":
+        from .b3 import build_live_b3_client
+
+        preflight_reference = store.reference_for_existing(args.preflight)
+        client, preflight = build_live_b3_client(
+            store,
+            preflight_reference=preflight_reference,
+            expected_preflight_sha256=args.expected_preflight_sha256,
+            sandbox_directory=args.sandbox_directory,
+            account_attestation_path=args.account_attestation,
+            committed_capture_path=args.committed_zero_call_capture,
+        )
+        result_reference, _result = run_b3_micro_pilot(
+            store,
+            manifest_reference=preflight.manifest,
+            anchor_manifest_reference=preflight.anchor_manifest,
+            client=client,
+            expected_freeze_sha256=args.freeze_sha256,
+            expected_anchor_manifest_sha256=preflight.anchor_manifest.sha256,
+            max_provider_attempts=preflight.b3_max_provider_attempts,
         )
         _print_reference(result_reference)
         return 0

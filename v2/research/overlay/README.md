@@ -4,11 +4,11 @@
 It implements deterministic fixture generation, strict validation, exact integer
 scoring, complete-enumeration oracle and baselines, append-only artifacts, replay,
 bootstrap analysis, nuisance transforms, the Codex command/JSONL contract, and
-the provider-free B2 feature/catalog/isolation gates, and the B3 complete-response
-disposition consumer.
+the provider-free B2 feature/catalog/isolation gates, and the reviewed B3
+preflight/live boundary.
 
-The provider-capable Codex adapter requires an injected process runner and
-raw-capture sink; this package provides no default acquisition subprocess and
+The provider-capable Codex adapter uses a shell-free subprocess runner with a
+secret-bearing environment denylist and append-only raw transport storage. It
 cannot generate evaluation fixtures. Its B2 local subprocess runner accepts
 only version, login-status, feature-list, and `exec --help` preflight commands;
 plain `codex exec` is rejected before launch. Every report is marked:
@@ -118,7 +118,44 @@ fixed B0 freeze hash shown above, the manifest hash printed by
 mismatched external anchor fails closed before scoring. Manifest generation also
 rejects any root seed or fixture count that differs from the committed B0 freeze.
 
-The executable runner remains scripted-only. Provider-free hardening uses explicit
+For B3, generate the development manifest first, create a new empty sandbox
+outside the repository, and run the provider-free preflight. The account,
+executable, freeze, manifest, feature catalog, six deterministic regime anchors,
+rendered command specs, timeout, and token caps are all hashed before any model
+process starts:
+
+```powershell
+$b3Sandbox = "C:\tmp\r01-b3-sandbox-20260716"
+New-Item -ItemType Directory -Path $b3Sandbox
+
+python -m v2.research.overlay `
+  --artifact-root .research_artifacts/r01 `
+  generate-development `
+  --experiment-id r01-b3-prompt-v1-20260716 `
+  --root-seed r01-phase-b-development-fixtures-v1 `
+  --count 40 `
+  --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
+  --contract docs/research-contract-01-llm-overlay.md
+
+python -m v2.research.overlay `
+  --artifact-root .research_artifacts/r01 `
+  b3-preflight `
+  --manifest r01-b3-prompt-v1-20260716/development_manifest.json `
+  --freeze-sha256 86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2 `
+  --executable $codexNative `
+  --expected-executable-sha256 cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4 `
+  --sandbox-directory $b3Sandbox `
+  --account-attestation docs/r01-b3-zero-cost-account-attestation.md `
+  --expected-account-attestation-sha256 94ca690340273e02da7de19e0c1ea5efc8793547f2a87822dc40eb5b630b9746
+```
+
+`b3-preflight` makes zero provider calls. Do not run `b3-run` until the printed
+preflight SHA-256 and its code commit have been independently reviewed and
+copied into the B3 readiness report. `b3-run` is the live 12-acquisition command;
+it refuses command-spec, account-attestation, executable, feature, sandbox, or
+preflight hash drift before launching the next process.
+
+Provider-free hardening uses explicit
 `RETRY_TRANSPORT` / `FAIL_CLOSED_SCORE` / `STOP_PHASE` dispositions, verifies any
 transport model echo, stops on unknown JSONL item or field shapes, binds the full
 feature catalog into command-spec v2, and requires an externally anchored empty
@@ -128,10 +165,13 @@ parse/validation failures persist one disposition artifact and score one hold.
 Retry-eligible failures advance only to append-only attempt 2; the second
 consecutive transport failure, an initial nonzero exit without a complete
 response, or the global development-attempt cap stops before another call.
-Successful retries bind prior failure records. Replay reconsumes the response,
-verifies final-agent text separately from JSONL stdout, and verifies the same
-disposition artifact. Stopped attempts may intentionally leave immutable raw
-evidence outside a completed run result. Local `codex features list`
+Successful retries bind prior failure records, their raw transport graphs, and
+token reservations. Replay reconsumes the response, verifies final-agent text
+separately from JSONL stdout, and verifies both successful and failed transport
+hashes. Stopped attempts may intentionally leave immutable raw evidence outside
+a completed run result. Local `codex features list`
 inspection and exact-tag source verification make no provider call. D2 user
-approval, provider acquisition, prompt pilot work, evaluation generation,
-sealing, and GO/NO-GO verdicts remain unavailable until their contract gates.
+approval is recorded; provider acquisition remains blocked until the B3
+preflight identity is generated and independently reviewed. Evaluation
+generation, sealing, and GO/NO-GO verdicts remain unavailable until their later
+contract gates.

@@ -233,7 +233,10 @@ def test_second_consecutive_transport_failure_stops_before_third_call(tmp_path) 
     assert client.attempts == [1, 2]
     assert raised.value.code == "retry_transport_limit_reached"
     assert raised.value.disposition is AcquisitionDisposition.STOP_PHASE
-    final_failure_ref = store.reference_for_existing(runner._acquisition_prefix(identity.model_copy(update={"attempt": 2})) + "/acquisition_failure.json")
+    retry_identity_payload = identity.model_dump(mode="python")
+    retry_identity_payload["attempt"] = 2
+    retry_identity = AcquisitionIdentity.model_validate(retry_identity_payload)
+    final_failure_ref = store.reference_for_existing(runner._acquisition_prefix(retry_identity) + "/acquisition_failure.json")
     final_failure = AcquisitionFailureRecord.model_validate_json(store.read_bytes(final_failure_ref))
     assert final_failure.disposition is AcquisitionDisposition.STOP_PHASE
     assert final_failure.origin_code == "timeout_without_complete_response"

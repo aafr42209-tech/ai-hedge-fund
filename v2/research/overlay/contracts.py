@@ -15,6 +15,20 @@ from .canonical import canonical_sha256
 ASSET_IDS = tuple(f"A{i}" for i in range(6))
 SIGNAL_IDS = tuple(f"S{i}" for i in range(5))
 MAX_REASONING_CODEPOINTS = 2_000
+MAX_CONSECUTIVE_RETRY_TRANSPORT = 2
+DEVELOPMENT_ATTEMPT_CAP = 200
+PER_ATTEMPT_TOKEN_RESERVE = 32_000
+DEVELOPMENT_TOKEN_CAP = 6_400_000
+B3_MAX_PROVIDER_ATTEMPTS = 24
+LIVE_PROCESS_TIMEOUT_MS = 900_000
+REGIMES = (
+    "signal_consensus",
+    "signal_conflict",
+    "high_transaction_cost",
+    "concentration_pressure",
+    "existing_position_asymmetry",
+    "noisy_confidence",
+)
 Regime = Literal[
     "signal_consensus",
     "signal_conflict",
@@ -454,7 +468,7 @@ class AcquisitionIdentity(StrictModel):
     channel: Literal["development", "primary", "invariance"]
     replicate_id: int | None = None
     perturbation_id: str | None = None
-    attempt: int = Field(ge=1, le=2)
+    attempt: int = Field(ge=1, le=MAX_CONSECUTIVE_RETRY_TRANSPORT)
 
     @model_validator(mode="after")
     def validate_identity(self) -> "AcquisitionIdentity":
@@ -714,6 +728,93 @@ class ArtifactReference(StrictModel):
         return normalize_artifact_relative_path(value)
 
 
+class TokenBudgetReservation(StrictModel):
+    schema_version: Literal["r01-token-budget-reservation-v1"] = "r01-token-budget-reservation-v1"
+    identity: AcquisitionIdentity
+    provider_attempt_ordinal: int = Field(ge=1, le=DEVELOPMENT_ATTEMPT_CAP)
+    reserve_total_tokens: int = PER_ATTEMPT_TOKEN_RESERVE
+    charged_total_tokens_before: int = Field(ge=0, le=DEVELOPMENT_TOKEN_CAP)
+    charged_total_tokens_after_reservation: int = Field(ge=0, le=DEVELOPMENT_TOKEN_CAP)
+    development_total_token_cap: int = DEVELOPMENT_TOKEN_CAP
+    development_provider_attempt_cap: int = DEVELOPMENT_ATTEMPT_CAP
+
+    @model_validator(mode="after")
+    def validate_reservation(self) -> "TokenBudgetReservation":
+        if self.reserve_total_tokens != PER_ATTEMPT_TOKEN_RESERVE:
+            raise ValueError("token reservation differs from the contract constant")
+        if self.development_total_token_cap != DEVELOPMENT_TOKEN_CAP:
+            raise ValueError("development token cap differs from the contract constant")
+        if self.development_provider_attempt_cap != DEVELOPMENT_ATTEMPT_CAP:
+            raise ValueError("development attempt cap differs from the contract constant")
+        if self.charged_total_tokens_after_reservation != self.charged_total_tokens_before + self.reserve_total_tokens:
+            raise ValueError("token reservation arithmetic mismatch")
+        return self
+
+
+class ProviderTokenUsage(StrictModel):
+    schema_version: Literal["r01-provider-token-usage-v1"] = "r01-provider-token-usage-v1"
+    identity: AcquisitionIdentity
+    provider_attempt_ordinal: int = Field(ge=1, le=DEVELOPMENT_ATTEMPT_CAP)
+    input_tokens: int = Field(ge=0)
+    cached_input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    reasoning_output_tokens: int = Field(ge=0)
+    accounting_total_tokens: int = Field(ge=0)
+    reserve_total_tokens: int = PER_ATTEMPT_TOKEN_RESERVE
+    charged_total_tokens_before: int = Field(ge=0, le=DEVELOPMENT_TOKEN_CAP)
+    charged_total_tokens_after_settlement: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_usage(self) -> "ProviderTokenUsage":
+        if self.reserve_total_tokens != PER_ATTEMPT_TOKEN_RESERVE:
+            raise ValueError("token usage reserve differs from the contract constant")
+        if self.cached_input_tokens > self.input_tokens:
+            raise ValueError("cached input tokens cannot exceed input tokens")
+        if self.reasoning_output_tokens > self.output_tokens:
+            raise ValueError("reasoning output tokens cannot exceed output tokens")
+        if self.accounting_total_tokens != self.input_tokens + self.output_tokens:
+            raise ValueError("accounting total must count input plus output exactly once")
+        expected_after = self.charged_total_tokens_before - self.reserve_total_tokens + self.accounting_total_tokens
+        if self.charged_total_tokens_after_settlement != expected_after:
+            raise ValueError("token settlement arithmetic mismatch")
+        return self
+
+
+class DevelopmentTokenBudgetSummary(StrictModel):
+    schema_version: Literal["r01-development-token-budget-summary-v1"] = "r01-development-token-budget-summary-v1"
+    provider_attempts: int = Field(ge=0, le=DEVELOPMENT_ATTEMPT_CAP)
+    successful_responses: int = Field(ge=0, le=DEVELOPMENT_ATTEMPT_CAP)
+    failed_or_unsettled_attempts: int = Field(ge=0, le=DEVELOPMENT_ATTEMPT_CAP)
+    actual_total_tokens: int = Field(ge=0, le=DEVELOPMENT_TOKEN_CAP)
+    conservatively_charged_total_tokens: int = Field(ge=0, le=DEVELOPMENT_TOKEN_CAP)
+    per_attempt_reserve: int = PER_ATTEMPT_TOKEN_RESERVE
+    development_total_token_cap: int = DEVELOPMENT_TOKEN_CAP
+    development_provider_attempt_cap: int = DEVELOPMENT_ATTEMPT_CAP
+
+    @model_validator(mode="after")
+    def validate_summary(self) -> "DevelopmentTokenBudgetSummary":
+        if self.per_attempt_reserve != PER_ATTEMPT_TOKEN_RESERVE:
+            raise ValueError("summary reserve differs from the contract constant")
+        if self.development_total_token_cap != DEVELOPMENT_TOKEN_CAP:
+            raise ValueError("summary token cap differs from the contract constant")
+        if self.development_provider_attempt_cap != DEVELOPMENT_ATTEMPT_CAP:
+            raise ValueError("summary attempt cap differs from the contract constant")
+        if self.successful_responses + self.failed_or_unsettled_attempts != self.provider_attempts:
+            raise ValueError("token summary attempt counts do not reconcile")
+        if self.actual_total_tokens > self.conservatively_charged_total_tokens:
+            raise ValueError("actual token total cannot exceed conservative charge")
+        return self
+
+
+class CodexAttemptFailureTransportArtifacts(StrictModel):
+    schema_version: Literal["r01-codex-attempt-failure-transport-artifacts-v1"] = "r01-codex-attempt-failure-transport-artifacts-v1"
+    command_spec: ArtifactReference
+    stdout_jsonl: ArtifactReference
+    stderr: ArtifactReference
+    process_status: ArtifactReference
+    provider_response: ArtifactReference | None = None
+
+
 class CodexAttemptTransportArtifacts(StrictModel):
     schema_version: Literal["r01-codex-attempt-transport-artifacts-v1"] = "r01-codex-attempt-transport-artifacts-v1"
     command_spec: ArtifactReference
@@ -728,6 +829,67 @@ class FixtureManifestEntry(StrictModel):
     regime: Regime
     content_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     fixture: ArtifactReference
+
+
+class B3AnchorManifest(StrictModel):
+    schema_version: Literal["r01-b3-anchor-manifest-v1"] = "r01-b3-anchor-manifest-v1"
+    experiment_id: str
+    source_manifest: ArtifactReference
+    selection_rule: Literal["lexicographically_first_case_id_per_regime"] = "lexicographically_first_case_id_per_regime"
+    replicates_per_anchor: Literal[2] = 2
+    anchors: tuple[FixtureManifestEntry, ...]
+
+    @model_validator(mode="after")
+    def validate_anchors(self) -> "B3AnchorManifest":
+        regimes = tuple(anchor.regime for anchor in self.anchors)
+        if regimes != REGIMES:
+            raise ValueError("B3 anchors must contain exactly one fixture per regime in frozen order")
+        if len({anchor.case_id for anchor in self.anchors}) != len(self.anchors):
+            raise ValueError("B3 anchor case ids must be unique")
+        return self
+
+
+class B3Preflight(StrictModel):
+    schema_version: Literal["r01-b3-preflight-v1"] = "r01-b3-preflight-v1"
+    status: Literal["READY_FOR_REVIEW_PROVIDER_CALLS_ZERO"] = "READY_FOR_REVIEW_PROVIDER_CALLS_ZERO"
+    experiment_id: str
+    manifest: ArtifactReference
+    anchor_manifest: ArtifactReference
+    feature_gate: ArtifactReference
+    command_specs: tuple[ArtifactReference, ...]
+    account_attestation_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    executable: str = Field(min_length=1)
+    executable_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    codex_cli_version: str = Field(min_length=1)
+    authentication_mode: Literal["ChatGPT"] = "ChatGPT"
+    model_id: Literal["gpt-5.6-sol"] = "gpt-5.6-sol"
+    reasoning_effort: Literal["high"] = "high"
+    service_tier: Literal["provider_default"] = "provider_default"
+    timeout_ms: int = LIVE_PROCESS_TIMEOUT_MS
+    per_attempt_token_reserve: int = PER_ATTEMPT_TOKEN_RESERVE
+    development_total_token_cap: int = DEVELOPMENT_TOKEN_CAP
+    development_provider_attempt_cap: int = DEVELOPMENT_ATTEMPT_CAP
+    b3_planned_acquisitions: Literal[12] = 12
+    b3_max_provider_attempts: int = B3_MAX_PROVIDER_ATTEMPTS
+    provider_calls: Literal[0] = 0
+
+    @model_validator(mode="after")
+    def validate_preflight(self) -> "B3Preflight":
+        if self.timeout_ms != LIVE_PROCESS_TIMEOUT_MS:
+            raise ValueError("B3 timeout differs from the contract constant")
+        if self.per_attempt_token_reserve != PER_ATTEMPT_TOKEN_RESERVE:
+            raise ValueError("B3 reserve differs from the contract constant")
+        if self.development_total_token_cap != DEVELOPMENT_TOKEN_CAP:
+            raise ValueError("B3 token cap differs from the contract constant")
+        if self.development_provider_attempt_cap != DEVELOPMENT_ATTEMPT_CAP:
+            raise ValueError("B3 attempt cap differs from the contract constant")
+        if self.b3_max_provider_attempts != B3_MAX_PROVIDER_ATTEMPTS:
+            raise ValueError("B3 micro-pilot attempt cap differs from the contract constant")
+        if len(self.command_specs) != len(REGIMES):
+            raise ValueError("B3 preflight must bind one command spec per regime anchor")
+        if len({reference.sha256 for reference in self.command_specs}) != len(self.command_specs):
+            raise ValueError("B3 command specs must be distinct across anchor prompts")
+        return self
 
 
 class DevelopmentManifest(StrictModel):
@@ -785,12 +947,14 @@ class CompleteResponseDispositionRecord(StrictModel):
 
 
 class AcquisitionFailureRecord(StrictModel):
-    schema_version: Literal["r01-acquisition-failure-v1"] = "r01-acquisition-failure-v1"
+    schema_version: Literal["r01-acquisition-failure-v2"] = "r01-acquisition-failure-v2"
     identity: AcquisitionIdentity
     code: str = Field(min_length=1)
     disposition: AcquisitionDisposition
     origin_code: str | None = None
     origin_disposition: AcquisitionDisposition | None = None
+    token_reservation: ArtifactReference | None = None
+    transport_artifacts: CodexAttemptFailureTransportArtifacts | None = None
 
     @model_validator(mode="after")
     def validate_failure_record(self) -> "AcquisitionFailureRecord":
@@ -809,6 +973,9 @@ class AcquisitionArtifacts(StrictModel):
     system_prompt: ArtifactReference
     user_prompt: ArtifactReference
     provider_request: ArtifactReference
+    token_reservation: ArtifactReference
+    token_usage: ArtifactReference
+    transport_artifacts: CodexAttemptTransportArtifacts | None = None
     raw_response: ArtifactReference
     provider_response_metadata: ArtifactReference
     response_disposition: ArtifactReference
@@ -821,11 +988,12 @@ class AcquisitionArtifacts(StrictModel):
 
 
 class DevelopmentRunResult(StrictModel):
-    schema_version: Literal["r01-development-run-result-v3"] = "r01-development-run-result-v3"
+    schema_version: Literal["r01-development-run-result-v4"] = "r01-development-run-result-v4"
     experiment_id: str
     status: Literal["DEVELOPMENT_ONLY_NOT_SEALED"] = "DEVELOPMENT_ONLY_NOT_SEALED"
     run_plan: ArtifactReference
     acquisitions: tuple[AcquisitionArtifacts, ...]
+    token_budget_summary: ArtifactReference
     report_json: ArtifactReference
     report_markdown: ArtifactReference
 

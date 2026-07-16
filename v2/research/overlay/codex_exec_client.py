@@ -3,20 +3,26 @@
 from __future__ import annotations
 
 import json
+import os
 import re
 import subprocess
+import time
 from collections.abc import Callable
 from dataclasses import dataclass
 from pathlib import Path
-from typing import Any, Protocol
+from typing import Any, Mapping, Protocol
 
+from .artifacts import AppendOnlyArtifactStore, ArtifactError
 from .canonical import canonical_sha256, sha256_hex
 from .codex_preflight import pilot_sandbox_identity_sha256
 from .contracts import (
     AcquisitionDisposition,
     AcquisitionIdentity,
+    ArtifactReference,
     codex_feature_catalog_definition_sha256,
     codex_feature_catalog_snapshot_sha256,
+    CodexAttemptFailureTransportArtifacts,
+    CodexAttemptTransportArtifacts,
     CodexCommandSpec,
     CodexFeatureCatalogEntry,
     CodexProcessStatus,
@@ -192,6 +198,66 @@ class CodexProcessRunner(Protocol):
 
 
 CaptureSink = Callable[[CodexCommandSpec, CodexProcessCapture], None]
+
+
+class SubprocessCodexProcessRunner:
+    """Shell-free Codex runner with a secret-bearing environment denylist."""
+
+    def __init__(self, environment: Mapping[str, str] | None = None) -> None:
+        source = dict(os.environ if environment is None else environment)
+        self.environment = {key: value for key, value in source.items() if not config_key_may_contain_secret(key)}
+        self.removed_environment_keys = tuple(sorted(set(source) - set(self.environment)))
+
+    def run(
+        self,
+        *,
+        argv: tuple[str, ...],
+        stdin_bytes: bytes,
+        working_directory: str,
+        timeout_ms: int,
+    ) -> CodexProcessCapture:
+        started_ns = time.monotonic_ns()
+        try:
+            completed = subprocess.run(
+                argv,
+                input=stdin_bytes,
+                stdout=subprocess.PIPE,
+                stderr=subprocess.PIPE,
+                cwd=working_directory,
+                env=self.environment,
+                check=False,
+                shell=False,
+                timeout=timeout_ms / 1_000,
+            )
+        except subprocess.TimeoutExpired as exc:
+            duration_ms = (time.monotonic_ns() - started_ns) // 1_000_000
+            return CodexProcessCapture(
+                stdout=exc.stdout if isinstance(exc.stdout, bytes) else b"",
+                stderr=exc.stderr if isinstance(exc.stderr, bytes) else b"",
+                exit_code=None,
+                duration_ms=duration_ms,
+                timed_out=True,
+            )
+        duration_ms = (time.monotonic_ns() - started_ns) // 1_000_000
+        return CodexProcessCapture(
+            stdout=completed.stdout,
+            stderr=completed.stderr,
+            exit_code=completed.returncode,
+            duration_ms=duration_ms,
+        )
+
+
+@dataclass(frozen=True)
+class _RawTransportArtifacts:
+    command_spec: ArtifactReference
+    stdout_jsonl: ArtifactReference
+    stderr: ArtifactReference
+    process_status: ArtifactReference
+
+
+def _transport_artifact_prefix(identity: AcquisitionIdentity) -> str:
+    discriminator = f"replicate-{identity.replicate_id:03d}" if identity.replicate_id is not None else f"perturbation-{identity.perturbation_id}"
+    return f"{identity.experiment_id}/acquisitions/{identity.case_id}/" f"{identity.channel}/{discriminator}/attempt-{identity.attempt}/transport"
 
 
 def compose_stdin_bytes(policy_instruction: str, fixture_prompt: str) -> bytes:
@@ -624,7 +690,9 @@ class CodexExecClient:
         expected_transport_shape_spec_sha256: str,
         timeout_ms: int,
         process_runner: CodexProcessRunner,
-        capture_sink: CaptureSink,
+        capture_sink: CaptureSink | None = None,
+        transport_store: AppendOnlyArtifactStore | None = None,
+        expected_command_spec_sha256_by_prompt: Mapping[str, str] | None = None,
     ) -> None:
         self._executable = executable
         self._model_id = model_id
@@ -640,7 +708,45 @@ class CodexExecClient:
         self._timeout_ms = timeout_ms
         self._process_runner = process_runner
         self._capture_sink = capture_sink
+        self._transport_store = transport_store
+        self._transport_artifacts: dict[str, CodexAttemptTransportArtifacts] = {}
+        self._failure_transport_artifacts: dict[
+            str,
+            CodexAttemptFailureTransportArtifacts,
+        ] = {}
+        self._expected_command_specs = dict(expected_command_spec_sha256_by_prompt or {})
         self.provider_calls = 0
+
+    def _persist_capture(
+        self,
+        identity: AcquisitionIdentity,
+        spec: CodexCommandSpec,
+        capture: CodexProcessCapture,
+    ) -> _RawTransportArtifacts | None:
+        if self._transport_store is None:
+            return None
+        prefix = _transport_artifact_prefix(identity)
+        return _RawTransportArtifacts(
+            command_spec=self._transport_store.write_json(f"{prefix}/command_spec.json", spec),
+            stdout_jsonl=self._transport_store.write_bytes(f"{prefix}/stdout.jsonl", capture.stdout),
+            stderr=self._transport_store.write_bytes(f"{prefix}/stderr.bin", capture.stderr),
+            process_status=self._transport_store.write_json(
+                f"{prefix}/process_status.json",
+                capture.process_status(),
+            ),
+        )
+
+    def transport_artifacts_for(
+        self,
+        identity: AcquisitionIdentity,
+    ) -> CodexAttemptTransportArtifacts | None:
+        return self._transport_artifacts.get(canonical_sha256(identity))
+
+    def failure_transport_artifacts_for(
+        self,
+        identity: AcquisitionIdentity,
+    ) -> CodexAttemptFailureTransportArtifacts | None:
+        return self._failure_transport_artifacts.get(canonical_sha256(identity))
 
     def complete(
         self,
@@ -655,22 +761,37 @@ class CodexExecClient:
                 "B1 Codex adapter accepts development acquisitions only",
                 disposition=AcquisitionDisposition.STOP_PHASE,
             )
-        spec, stdin_bytes = build_codex_command_spec(
-            executable=self._executable,
-            model_id=self._model_id,
-            feature_catalog=self._feature_catalog,
-            expected_feature_catalog_sha256=self._expected_feature_catalog_sha256,
-            disabled_features=self._disabled_features,
-            active_feature_allowlist=self._active_feature_allowlist,
-            post_disable_effective_true_features=(self._post_disable_effective_true_features),
-            config_overrides=self._config_overrides,
-            working_directory=self._working_directory,
-            expected_pilot_sandbox_sha256=self._expected_pilot_sandbox_sha256,
-            expected_transport_shape_spec_sha256=(self._expected_transport_shape_spec_sha256),
-            timeout_ms=self._timeout_ms,
-            policy_instruction=system,
-            fixture_prompt=user,
-        )
+        try:
+            spec, stdin_bytes = build_codex_command_spec(
+                executable=self._executable,
+                model_id=self._model_id,
+                feature_catalog=self._feature_catalog,
+                expected_feature_catalog_sha256=self._expected_feature_catalog_sha256,
+                disabled_features=self._disabled_features,
+                active_feature_allowlist=self._active_feature_allowlist,
+                post_disable_effective_true_features=(self._post_disable_effective_true_features),
+                config_overrides=self._config_overrides,
+                working_directory=self._working_directory,
+                expected_pilot_sandbox_sha256=self._expected_pilot_sandbox_sha256,
+                expected_transport_shape_spec_sha256=(self._expected_transport_shape_spec_sha256),
+                timeout_ms=self._timeout_ms,
+                policy_instruction=system,
+                fixture_prompt=user,
+            )
+        except (ValueError, RuntimeError) as exc:
+            raise CodexExecError(
+                "command_spec_build_failure",
+                "Codex command spec failed its reviewed pre-call validation",
+                disposition=AcquisitionDisposition.STOP_PHASE,
+            ) from exc
+        if self._expected_command_specs:
+            expected = self._expected_command_specs.get(spec.fixture_prompt_sha256)
+            if expected is None or canonical_sha256(spec) != expected:
+                raise CodexExecError(
+                    "command_spec_preflight_mismatch",
+                    "live command spec differs from the reviewed B3 preflight",
+                    disposition=AcquisitionDisposition.STOP_PHASE,
+                )
         self.provider_calls += 1
         try:
             capture = self._process_runner.run(
@@ -688,7 +809,23 @@ class CodexExecClient:
                 disposition=AcquisitionDisposition.RETRY_TRANSPORT,
             ) from exc
         try:
-            self._capture_sink(spec, capture)
+            raw_transport = self._persist_capture(identity, spec, capture)
+        except ArtifactError as exc:
+            raise CodexExecError(
+                "transport_artifact_persistence_failure",
+                "raw Codex transport artifacts could not be persisted completely",
+                disposition=AcquisitionDisposition.STOP_PHASE,
+            ) from exc
+        if raw_transport is not None:
+            self._failure_transport_artifacts[canonical_sha256(identity)] = CodexAttemptFailureTransportArtifacts(
+                command_spec=raw_transport.command_spec,
+                stdout_jsonl=raw_transport.stdout_jsonl,
+                stderr=raw_transport.stderr,
+                process_status=raw_transport.process_status,
+            )
+        try:
+            if self._capture_sink is not None:
+                self._capture_sink(spec, capture)
         except Exception as exc:
             raise CodexExecError(
                 "artifact_sink_failure",
@@ -703,6 +840,39 @@ class CodexExecClient:
             )
         try:
             response = parse_codex_jsonl(capture, requested_model_id=self._model_id)
+            if raw_transport is not None:
+                if self._transport_store is None:  # pragma: no cover - guarded by _persist_capture
+                    raise CodexExecError(
+                        "transport_store_unavailable",
+                        "transport store disappeared after raw capture persistence",
+                        disposition=AcquisitionDisposition.STOP_PHASE,
+                    )
+                prefix = _transport_artifact_prefix(identity)
+                try:
+                    provider_response = self._transport_store.write_json(
+                        f"{prefix}/provider_response.json",
+                        response,
+                    )
+                except ArtifactError as exc:
+                    raise CodexExecError(
+                        "provider_response_artifact_persistence_failure",
+                        "parsed provider response could not be persisted",
+                        disposition=AcquisitionDisposition.STOP_PHASE,
+                    ) from exc
+                self._failure_transport_artifacts[canonical_sha256(identity)] = CodexAttemptFailureTransportArtifacts(
+                    command_spec=raw_transport.command_spec,
+                    stdout_jsonl=raw_transport.stdout_jsonl,
+                    stderr=raw_transport.stderr,
+                    process_status=raw_transport.process_status,
+                    provider_response=provider_response,
+                )
+                self._transport_artifacts[canonical_sha256(identity)] = CodexAttemptTransportArtifacts(
+                    command_spec=raw_transport.command_spec,
+                    stdout_jsonl=raw_transport.stdout_jsonl,
+                    stderr=raw_transport.stderr,
+                    process_status=raw_transport.process_status,
+                    provider_response=provider_response,
+                )
             disposition = complete_response_disposition(response)
             if disposition is AcquisitionDisposition.STOP_PHASE:
                 raise CodexExecError(
