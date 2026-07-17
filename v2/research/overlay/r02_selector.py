@@ -10,7 +10,14 @@ from pydantic import ValidationError
 
 from .baselines import primary_deterministic
 from .canonical import canonical_json_bytes, canonical_sha256, sha256_hex
-from .contracts import ASSET_IDS, Decision, DecisionBatch, PolicyResult, SyntheticEpisode
+from .contracts import (
+    ASSET_IDS,
+    Decision,
+    DecisionBatch,
+    PolicyResult,
+    SyntheticEpisode,
+    ValidationReport,
+)
 from .r02_candidates import canonical_candidate_id, selector_safe_payload
 from .r02_contracts import (
     R02AcceptanceGate,
@@ -57,7 +64,7 @@ def _selector_runtime_source_sha256() -> str:
     return sha256_hex(Path(__file__).read_bytes())
 
 
-def _candidate_from_validation(validation) -> R02CandidateBatch:
+def _candidate_from_validation(validation: ValidationReport) -> R02CandidateBatch:
     return R02CandidateBatch(
         decisions={
             asset_id: R02CandidateDecision(
