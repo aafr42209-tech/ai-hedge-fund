@@ -1,0 +1,54 @@
+{
+  "schema_version": "r02-d3-live-gate-manifest-v1",
+  "status": "UNCOMMITTED_REVIEW_CANDIDATE_PROVIDER_FREE",
+  "accepted_d3_commit": "87da1d77d734d4687df40d5b2b561ea2fde7cc18",
+  "accepted_d3_preregistration_sha256": "5e07d88e98e74f67a1377020ca8c19c6fada51756ebddd902706a1680eeb27d4",
+  "accepted_d3_preflight_sha256": "d88b406253f3a1f005b33534a742ee90814d9bc53f88a36ed400e7473a2b38fc",
+  "accepted_d3_manifest_sha256": "5b071e6643d26f49e7fae01f3188644129951a3ccf3095616a2aa202961ee770",
+  "bootstrap_seed_sha256": "319dea85b61187c07089deedb525d4d927ffc03dc7ea2026e4be8022f2df9f68",
+  "authorization_sha256": "01b5b3dbca96f2c8119d092997976452684b7d1da2dfeddc2e662218a8e6acd8",
+  "preflight_id": "r02-d3-live-gate-b650b8379d36",
+  "expected_executable_sha256": "cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4",
+  "source_pins": {
+    "v2/research/overlay/r02_selector.py": "a90cc600ffc772c5fb4b1c964b5efc0a551de84a41eaa5c0a030b6d02b9b20f9",
+    "v2/research/overlay/r02_contracts.py": "64a099560432152da875843d6cddb4d08acd3a402198adb14a5aec65ef0dab05",
+    "v2/research/overlay/codex_exec_client.py": "4b3bb2e5bc9d1f406105bc7fd589bbfcb7541d259ebaf209252cb42ed329a1bd",
+    "v2/research/overlay/r02_d3_contracts.py": "978d4fcf2cb2775a40ac515276a4c0c69899284dc05096360b5a661b2ab2ef47",
+    "v2/research/overlay/r02_d3_preflight.py": "2376c5a4773de506aa577387397e4f59a497e623b7cfc262edbbbf9b1deb32a7",
+    "v2/research/overlay/r02_d3_replay.py": "bff977ef81e8ca8bcd828ab9b39bd2070cd761f9a22eee718adf412c05030850"
+  },
+  "generated_artifacts": {
+    "docs/r02-d3-live-gate-freeze-candidate.json": {
+      "sha256": "b650b8379d36292eaafd1d2df29f0f400df486da94d8c8e74f22348db2cd7b07",
+      "size_bytes": 4587
+    },
+    "docs/r02-d3-live-gate-preflight.json": {
+      "sha256": "b1ec1eba58bedb959279af60067ff2d51610a9faa4c81ed9efb1146fcb73b529",
+      "size_bytes": 565
+    },
+    "docs/r02-d3-live-gate-preflight-anchors.json": {
+      "sha256": "7183a20601912c11b9ec69d88195bbfe54271698f9bbb4d323b26c6d8e71f3ba",
+      "size_bytes": 516
+    },
+    "docs/r02-d3-live-gate-preflight-replay.json": {
+      "sha256": "da84e977d90d57de6bb9647f96e705f98309b5f2cf12f7aa609ba26a34da613c",
+      "size_bytes": 265
+    }
+  },
+  "production_sources": {
+    "v2/research/overlay/r02_d3_live_gate.py": "458468bb861e89d097b6d2da418af0c4ab25d489b25f3844d621fe1e115abd8e",
+    "scripts/r02_d3_live_gate_preflight.py": "5d6fc2d39dfefeb22ac740549c8ab1ce0839adb935abcb33ac5c4bb781c26c01"
+  },
+  "test_sources": {
+    "v2/research/overlay/test_r02_d3_live_gate.py": "4c711306d8603b78b808e712795fc216ea012f961031aad1b0c488d201edc28c"
+  },
+  "local_artifact_tree": {
+    "relative_root": ".research_artifacts/r02-d3-live-gate-b650b8379d36",
+    "file_count": 3,
+    "canonical_tree_sha256": "58228ac0ce9b954dc60e5e371543ee27287d8467f8dd6650c8a0e257ae816870"
+  },
+  "provider_calls": 0,
+  "live_execution": false,
+  "micro_pilot_executed": false,
+  "live_authorization": "NOT_AUTHORIZED"
+}
