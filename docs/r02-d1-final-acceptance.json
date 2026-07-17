@@ -1,0 +1,23 @@
+{
+  "schema_version": "r02-d1-final-acceptance-v1",
+  "status": "R2_D1_FINAL_ACCEPTED",
+  "accepted_at_date": "2026-07-17",
+  "accepted_commit": "2a532c74176f8df93923775482846d3b3448c83e",
+  "freeze_spec_sha256": "2d5961806b5051ff56c874b8b05933df014136bacb98717c4846f2b48f645778",
+  "freeze_manifest_sha256": "81026cdd1ab83fe7f0cea30951cf8cb1351dca6150d9aaecbfa696d932bbdeaf",
+  "authorization": {
+    "r2_d2a_provider_free_production_implementation": true,
+    "offline_tests": true,
+    "provider_calls": false,
+    "live_execution": false,
+    "zero_call_preflight_finalization": false,
+    "statistical_freeze": false,
+    "provider_budget_freeze": false
+  },
+  "immutability": {
+    "r01_artifact_edits": false,
+    "r01_relabeling": false,
+    "r02_d1_freeze_edits": false,
+    "r02_d1_manifest_edits": false
+  }
+}
