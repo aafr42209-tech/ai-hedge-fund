@@ -15,7 +15,7 @@ from typing import Literal
 
 from pydantic import Field, field_validator, model_validator
 
-from .canonical import canonical_sha256
+from .canonical import canonical_json_bytes, canonical_sha256
 from .contracts import (
     ASSET_IDS,
     ArtifactReference,
@@ -581,3 +581,501 @@ class R02ReplayVerification(StrictModel):
     candidates_reproduced: Literal[True] = True
     permutation_reproduced: Literal[True] = True
     no_call_reconciled: Literal[True] = True
+
+
+class R02SelectorReasonCode(StrEnum):
+    FEWER_NON_HOLD_ACTIONS = "FEWER_NON_HOLD_ACTIONS"
+    LOWER_TOTAL_QUANTITY = "LOWER_TOTAL_QUANTITY"
+    ZERO_ACTIVITY_PREFERENCE = "ZERO_ACTIVITY_PREFERENCE"
+    ACTION_DIRECTION_PREFERENCE = "ACTION_DIRECTION_PREFERENCE"
+    TIE_BREAK_PREFERENCE = "TIE_BREAK_PREFERENCE"
+
+
+class R02SelectorResponseStatus(StrEnum):
+    VALID = "VALID"
+    INVALID = "INVALID"
+
+
+class R02AcceptanceStatus(StrEnum):
+    ACCEPTED = "ACCEPTED"
+    REJECTED = "REJECTED"
+
+
+class R02FallbackReason(StrEnum):
+    SELECTOR_SCHEMA_INVALID = "SELECTOR_SCHEMA_INVALID"
+    UNKNOWN_PRESENTED_ID = "UNKNOWN_PRESENTED_ID"
+    ACCEPTANCE_VALIDATION_FAILED = "ACCEPTANCE_VALIDATION_FAILED"
+
+
+class R02SelectorSafePayload(StrictModel):
+    schema_version: Literal["r02-selector-input-v1"] = "r02-selector-input-v1"
+    candidates: tuple[R02PresentedCandidate, ...] = Field(min_length=2, max_length=4)
+
+    @model_validator(mode="after")
+    def validate_presented_ids(self) -> "R02SelectorSafePayload":
+        expected = tuple(f"P{index:02d}" for index in range(len(self.candidates)))
+        if tuple(candidate.presented_id for candidate in self.candidates) != expected:
+            raise ValueError("selector-safe candidates must use contiguous presented IDs")
+        return self
+
+
+class R02SelectorPromptDraft(StrictModel):
+    schema_version: Literal["r02-selector-prompt-draft-v1"] = (
+        "r02-selector-prompt-draft-v1"
+    )
+    status: Literal["DRAFT_NOT_FROZEN"] = "DRAFT_NOT_FROZEN"
+    input_contract: Literal["SELECTOR_SAFE_PAYLOAD_ONLY"] = (
+        "SELECTOR_SAFE_PAYLOAD_ONLY"
+    )
+    selector_payload_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    system_prompt: str = Field(min_length=1)
+    user_prompt: str = Field(min_length=1)
+
+
+class R02ScriptedCommandSpec(StrictModel):
+    schema_version: Literal["r02-scripted-command-spec-v1"] = (
+        "r02-scripted-command-spec-v1"
+    )
+    transport_kind: Literal["SCRIPTED_ONLY"] = "SCRIPTED_ONLY"
+    requested_model: Literal["scripted-r02-selector-v1"] = (
+        "scripted-r02-selector-v1"
+    )
+    selector_runtime_source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    prompt_status: Literal["DRAFT_NOT_FROZEN"] = "DRAFT_NOT_FROZEN"
+    external_provider_enabled: Literal[False] = False
+
+
+class R02SelectorRequest(StrictModel):
+    schema_version: Literal["r02-selector-request-v1"] = "r02-selector-request-v1"
+    identity: R02Identity
+    candidate_permutation_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    selector_payload: R02SelectorSafePayload
+    prompt: R02SelectorPromptDraft
+    command_spec: R02ScriptedCommandSpec
+
+    @model_validator(mode="after")
+    def validate_request_barrier(self) -> "R02SelectorRequest":
+        payload_sha256 = canonical_sha256(self.selector_payload)
+        if self.prompt.selector_payload_sha256 != payload_sha256:
+            raise ValueError("selector prompt payload hash mismatch")
+        rendered_payload = canonical_json_bytes(self.selector_payload).decode("utf-8")
+        if self.prompt.user_prompt.count(rendered_payload) != 1:
+            raise ValueError("selector prompt must contain the safe payload exactly once")
+        rendered_prompt = f"{self.prompt.system_prompt}\n{self.prompt.user_prompt}".lower()
+        forbidden = (
+            "baseline",
+            "no_change",
+            "half_baseline_delta",
+            "drop_max_cost_trade",
+            "canonical_candidate_id",
+            "presented_to_canonical_map",
+            "derived_seed",
+            "oracle",
+            "headroom",
+            "future_returns",
+        )
+        if any(token in rendered_prompt for token in forbidden):
+            raise ValueError("selector prompt crosses the frozen information barrier")
+        return self
+
+
+class R02SelectorResponsePayload(StrictModel):
+    schema_version: Literal["r02-selector-response-v1"] = (
+        "r02-selector-response-v1"
+    )
+    selected_candidate_id: str = Field(pattern=r"^P[0-9]{2}$")
+    confidence: int = Field(ge=0, le=100)
+    reason_codes: tuple[R02SelectorReasonCode, ...] = Field(
+        min_length=1,
+        max_length=3,
+    )
+
+    @field_validator("reason_codes")
+    @classmethod
+    def validate_reason_codes(
+        cls, value: tuple[R02SelectorReasonCode, ...]
+    ) -> tuple[R02SelectorReasonCode, ...]:
+        if len(value) != len(set(value)):
+            raise ValueError("selector reason codes must be unique")
+        return value
+
+
+class R02SelectorTokenLedger(StrictModel):
+    schema_version: Literal["r02-selector-token-ledger-v1"] = (
+        "r02-selector-token-ledger-v1"
+    )
+    identity: R02Identity
+    scripted_attempt_ordinal: int = Field(ge=1)
+    scripted_attempts_before: int = Field(ge=0)
+    scripted_attempts_after: int = Field(ge=1)
+    input_tokens: int = Field(ge=0)
+    cached_input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    reasoning_output_tokens: int = Field(ge=0)
+    accounting_total_tokens: int = Field(ge=0)
+    external_provider_calls: Literal[0] = 0
+
+    @model_validator(mode="after")
+    def validate_ledger(self) -> "R02SelectorTokenLedger":
+        if self.scripted_attempts_after != self.scripted_attempts_before + 1:
+            raise ValueError("scripted selector attempt counter must increment exactly once")
+        if self.scripted_attempt_ordinal != self.scripted_attempts_after:
+            raise ValueError("scripted attempt ordinal mismatch")
+        if self.cached_input_tokens > self.input_tokens:
+            raise ValueError("cached input tokens cannot exceed input tokens")
+        if self.reasoning_output_tokens > self.output_tokens:
+            raise ValueError("reasoning output tokens cannot exceed output tokens")
+        if self.accounting_total_tokens != self.input_tokens + self.output_tokens:
+            raise ValueError("accounting total must count input plus output exactly once")
+        return self
+
+
+class R02ScriptedExchange(StrictModel):
+    schema_version: Literal["r02-scripted-exchange-v1"] = (
+        "r02-scripted-exchange-v1"
+    )
+    raw_response: str
+    input_tokens: int = Field(ge=0)
+    cached_input_tokens: int = Field(ge=0)
+    output_tokens: int = Field(ge=0)
+    reasoning_output_tokens: int = Field(ge=0)
+
+    @model_validator(mode="after")
+    def validate_exchange_usage(self) -> "R02ScriptedExchange":
+        if self.cached_input_tokens > self.input_tokens:
+            raise ValueError("cached input tokens cannot exceed input tokens")
+        if self.reasoning_output_tokens > self.output_tokens:
+            raise ValueError("reasoning output tokens cannot exceed output tokens")
+        return self
+
+
+class R02ScriptedTransportRecord(StrictModel):
+    schema_version: Literal["r02-scripted-transport-v1"] = (
+        "r02-scripted-transport-v1"
+    )
+    identity: R02Identity
+    selector_request_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    command_spec_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    token_ledger_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    raw_response_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    transport_kind: Literal["SCRIPTED_ONLY"] = "SCRIPTED_ONLY"
+    transport_status: Literal["SCRIPTED_RESPONSE"] = "SCRIPTED_RESPONSE"
+    external_provider_calls: Literal[0] = 0
+
+
+class R02ModelIdentityEvidence(StrictModel):
+    schema_version: Literal["r02-model-identity-evidence-v1"] = (
+        "r02-model-identity-evidence-v1"
+    )
+    requested_model: Literal["scripted-r02-selector-v1"] = (
+        "scripted-r02-selector-v1"
+    )
+    command_spec_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    selector_runtime_source_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    provider_model_echo: None = None
+    external_provider_calls: Literal[0] = 0
+
+
+class R02SelectorResponseRecord(StrictModel):
+    schema_version: Literal["r02-selector-response-record-v1"] = (
+        "r02-selector-response-record-v1"
+    )
+    identity: R02Identity
+    selector_request_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    scripted_transport_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    raw_response_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    status: R02SelectorResponseStatus
+    parsed_response: R02SelectorResponsePayload | None = None
+    validation_error_codes: tuple[str, ...] = ()
+    model_identity_evidence: R02ModelIdentityEvidence
+
+    @model_validator(mode="after")
+    def validate_response_status(self) -> "R02SelectorResponseRecord":
+        if self.status is R02SelectorResponseStatus.VALID:
+            if self.parsed_response is None or self.validation_error_codes:
+                raise ValueError("valid selector response requires one parsed payload")
+        elif self.parsed_response is not None or not self.validation_error_codes:
+            raise ValueError("invalid selector response requires typed errors and no payload")
+        if len(self.validation_error_codes) != len(set(self.validation_error_codes)):
+            raise ValueError("selector response error codes must be unique")
+        return self
+
+
+class R02AcceptanceGate(StrictModel):
+    schema_version: Literal["r02-acceptance-gate-v1"] = "r02-acceptance-gate-v1"
+    identity: R02Identity
+    selector_request_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    selector_response_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    candidate_set_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    status: R02AcceptanceStatus
+    selected_presented_id: str | None = Field(default=None, pattern=r"^P[0-9]{2}$")
+    selected_canonical_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    validation_report: ValidationReport | None = None
+    validation_report_sha256: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    error_codes: tuple[str, ...] = ()
+
+    @model_validator(mode="after")
+    def validate_gate(self) -> "R02AcceptanceGate":
+        if self.status is R02AcceptanceStatus.ACCEPTED:
+            if self.selected_presented_id is None or self.selected_canonical_id is None:
+                raise ValueError("accepted selection requires both candidate identities")
+            if self.validation_report is None or self.validation_report_sha256 is None:
+                raise ValueError("accepted selection requires deterministic validation")
+            if self.error_codes:
+                raise ValueError("accepted selection cannot retain error codes")
+            if not self.validation_report.raw_valid or self.validation_report.fell_back:
+                raise ValueError("accepted selection must be raw-valid without fallback")
+            if self.validation_report_sha256 != canonical_sha256(self.validation_report):
+                raise ValueError("acceptance validation-report hash mismatch")
+        else:
+            if not self.error_codes:
+                raise ValueError("rejected selection requires typed error codes")
+            if (self.validation_report is None) != (self.validation_report_sha256 is None):
+                raise ValueError("rejected validation report and hash must be paired")
+            if (
+                self.validation_report is not None
+                and self.validation_report_sha256
+                != canonical_sha256(self.validation_report)
+            ):
+                raise ValueError("rejected validation-report hash mismatch")
+        return self
+
+
+class R02BaselineFallbackRecord(StrictModel):
+    schema_version: Literal["r02-baseline-fallback-v1"] = (
+        "r02-baseline-fallback-v1"
+    )
+    identity: R02Identity
+    acceptance_gate_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    reason_code: R02FallbackReason
+    selected_presented_id: str | None = Field(default=None, pattern=r"^P[0-9]{2}$")
+    selected_canonical_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    baseline_canonical_candidate_id: str = Field(pattern=r"^[0-9a-f]{64}$")
+    baseline_batch: R02CandidateBatch
+
+    @model_validator(mode="after")
+    def validate_baseline_identity(self) -> "R02BaselineFallbackRecord":
+        if self.baseline_canonical_candidate_id != _candidate_id(self.baseline_batch):
+            raise ValueError("fallback baseline candidate identity mismatch")
+        return self
+
+
+class R02TriggeredExecutionDecision(StrictModel):
+    schema_version: Literal["r02-triggered-execution-decision-v1"] = (
+        "r02-triggered-execution-decision-v1"
+    )
+    identity: R02Identity
+    acceptance_gate_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    selected_presented_id: str | None = Field(default=None, pattern=r"^P[0-9]{2}$")
+    selected_canonical_id: str | None = Field(default=None, pattern=r"^[0-9a-f]{64}$")
+    executed_canonical_id: str = Field(pattern=r"^[0-9a-f]{64}$")
+    acceptance_disposition: Literal[
+        "SELECTED_CANDIDATE_ACCEPTED",
+        "BASELINE_FALLBACK",
+    ]
+    baseline_fallback: bool
+    executable_batch: R02CandidateBatch
+    validation_report: ValidationReport
+
+    @model_validator(mode="after")
+    def validate_execution(self) -> "R02TriggeredExecutionDecision":
+        if self.executed_canonical_id != _candidate_id(self.executable_batch):
+            raise ValueError("triggered execution candidate identity mismatch")
+        if not self.validation_report.raw_valid or self.validation_report.fell_back:
+            raise ValueError("triggered execution must use a raw-valid non-fallback batch")
+        if self.baseline_fallback != (
+            self.acceptance_disposition == "BASELINE_FALLBACK"
+        ):
+            raise ValueError("triggered execution fallback disposition mismatch")
+        if not self.baseline_fallback and (
+            self.selected_presented_id is None
+            or self.selected_canonical_id != self.executed_canonical_id
+        ):
+            raise ValueError("accepted execution must preserve selected candidate identity")
+        return self
+
+
+class R02TriggeredEpisodeResult(StrictModel):
+    schema_version: Literal["r02-triggered-episode-result-v1"] = (
+        "r02-triggered-episode-result-v1"
+    )
+    identity: R02Identity
+    execution_decision_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    baseline_score: EpisodeScore
+    executed_score: EpisodeScore
+    paired_utility_delta_e12: int
+    scripted_attempt_count: int = Field(ge=1)
+    external_provider_calls: Literal[0] = 0
+    audit_disposition: Literal["SCRIPTED_SELECTOR_OFFLINE"] = (
+        "SCRIPTED_SELECTOR_OFFLINE"
+    )
+
+    @model_validator(mode="after")
+    def validate_delta(self) -> "R02TriggeredEpisodeResult":
+        expected = self.executed_score.utility_e12 - self.baseline_score.utility_e12
+        if self.paired_utility_delta_e12 != expected:
+            raise ValueError("paired utility delta arithmetic mismatch")
+        return self
+
+
+class R02SelectionRun(StrictModel):
+    schema_version: Literal["r02-scripted-selection-run-v1"] = (
+        "r02-scripted-selection-run-v1"
+    )
+    identity: R02Identity
+    preparation: R02ProviderFreePreparation
+    selector_request: R02SelectorRequest
+    raw_response: str
+    token_ledger: R02SelectorTokenLedger
+    scripted_transport: R02ScriptedTransportRecord
+    selector_response: R02SelectorResponseRecord
+    acceptance_gate: R02AcceptanceGate
+    baseline_fallback: R02BaselineFallbackRecord | None = None
+    execution_decision: R02TriggeredExecutionDecision
+    episode_result: R02TriggeredEpisodeResult
+    external_provider_calls: Literal[0] = 0
+    live_execution: Literal[False] = False
+
+    @model_validator(mode="after")
+    def validate_run_graph(self) -> "R02SelectionRun":
+        if self.preparation.state is not R02PreparationState.SELECTOR_ELIGIBLE_NOT_CALLED:
+            raise ValueError("scripted selection requires an eligible D2a preparation")
+        components = (
+            self.preparation.identity,
+            self.selector_request.identity,
+            self.token_ledger.identity,
+            self.scripted_transport.identity,
+            self.selector_response.identity,
+            self.acceptance_gate.identity,
+            self.execution_decision.identity,
+            self.episode_result.identity,
+        )
+        if any(identity != self.identity for identity in components):
+            raise ValueError("scripted selection component identity mismatch")
+        request_sha256 = canonical_sha256(self.selector_request)
+        ledger_sha256 = canonical_sha256(self.token_ledger)
+        transport_sha256 = canonical_sha256(self.scripted_transport)
+        response_sha256 = canonical_sha256(self.selector_response)
+        acceptance_sha256 = canonical_sha256(self.acceptance_gate)
+        execution_sha256 = canonical_sha256(self.execution_decision)
+        candidate_set_sha256 = canonical_sha256(self.preparation.candidate_set)
+        permutation_sha256 = canonical_sha256(self.preparation.permutation)
+        raw_sha256 = hashlib.sha256(self.raw_response.encode("utf-8")).hexdigest()
+        if self.selector_request.candidate_permutation_sha256 != permutation_sha256:
+            raise ValueError("selector request permutation reference mismatch")
+        if self.scripted_transport.selector_request_sha256 != request_sha256:
+            raise ValueError("transport request reference mismatch")
+        if self.scripted_transport.command_spec_sha256 != canonical_sha256(
+            self.selector_request.command_spec
+        ):
+            raise ValueError("transport command-spec reference mismatch")
+        if self.scripted_transport.token_ledger_sha256 != ledger_sha256:
+            raise ValueError("transport token-ledger reference mismatch")
+        if self.scripted_transport.raw_response_sha256 != raw_sha256:
+            raise ValueError("transport raw-response reference mismatch")
+        if self.selector_response.selector_request_sha256 != request_sha256:
+            raise ValueError("selector response request reference mismatch")
+        if self.selector_response.scripted_transport_sha256 != transport_sha256:
+            raise ValueError("selector response transport reference mismatch")
+        if self.selector_response.raw_response_sha256 != raw_sha256:
+            raise ValueError("selector response raw bytes mismatch")
+        if self.acceptance_gate.selector_request_sha256 != request_sha256:
+            raise ValueError("acceptance request reference mismatch")
+        if self.acceptance_gate.selector_response_sha256 != response_sha256:
+            raise ValueError("acceptance response reference mismatch")
+        if self.acceptance_gate.candidate_set_sha256 != candidate_set_sha256:
+            raise ValueError("acceptance candidate-set reference mismatch")
+        if self.execution_decision.acceptance_gate_sha256 != acceptance_sha256:
+            raise ValueError("execution acceptance reference mismatch")
+        if self.episode_result.execution_decision_sha256 != execution_sha256:
+            raise ValueError("episode result execution reference mismatch")
+        if self.episode_result.scripted_attempt_count != self.token_ledger.scripted_attempts_after:
+            raise ValueError("episode result attempt counter mismatch")
+        fallback_expected = self.acceptance_gate.status is R02AcceptanceStatus.REJECTED
+        if (self.baseline_fallback is not None) != fallback_expected:
+            raise ValueError("fallback node presence mismatch")
+        if self.execution_decision.baseline_fallback != fallback_expected:
+            raise ValueError("execution fallback state mismatch")
+        if self.baseline_fallback is not None:
+            if self.baseline_fallback.identity != self.identity:
+                raise ValueError("fallback identity mismatch")
+            if self.baseline_fallback.acceptance_gate_sha256 != acceptance_sha256:
+                raise ValueError("fallback acceptance reference mismatch")
+            baseline = self.preparation.candidate_set.candidates[0]
+            if (
+                self.baseline_fallback.baseline_canonical_candidate_id
+                != baseline.canonical_candidate_id
+            ):
+                raise ValueError("fallback does not execute frozen BASELINE")
+        return self
+
+
+class R02SelectionAuditGraph(StrictModel):
+    schema_version: Literal["r02-selection-audit-graph-v1"] = (
+        "r02-selection-audit-graph-v1"
+    )
+    identity: R02Identity
+    node_types: tuple[str, ...]
+    nodes: tuple[ArtifactReference, ...]
+    external_provider_calls: Literal[0] = 0
+    live_execution: Literal[False] = False
+    terminal: Literal[True] = True
+
+    @model_validator(mode="after")
+    def validate_selection_graph(self) -> "R02SelectionAuditGraph":
+        if len(self.node_types) != len(self.nodes):
+            raise ValueError("selection graph node types and references must align")
+        if len(set(self.node_types)) != len(self.node_types):
+            raise ValueError("selection graph node types must be unique")
+        base = (
+            "public_fixture",
+            "eligibility_decision",
+            "candidate_set",
+            "candidate_permutation",
+            "preparation",
+            "selector_request",
+            "selector_token_ledger",
+            "selector_transport",
+            "selector_raw_response",
+            "selector_response",
+            "acceptance_gate",
+        )
+        suffix = (
+            "baseline_fallback",
+            "execution_decision",
+            "episode_result",
+            "selection_run",
+        ) if "baseline_fallback" in self.node_types else (
+            "execution_decision",
+            "episode_result",
+            "selection_run",
+        )
+        if self.node_types != (*base, *suffix):
+            raise ValueError("selection graph node order mismatch")
+        if len({node.relative_path for node in self.nodes}) != len(self.nodes):
+            raise ValueError("selection graph paths must be unique")
+        return self
+
+
+class R02PersistedSelectionRun(StrictModel):
+    schema_version: Literal["r02-persisted-selection-run-v1"] = (
+        "r02-persisted-selection-run-v1"
+    )
+    selection_run: ArtifactReference
+    audit_graph: ArtifactReference
+
+
+class R02SelectionReplayVerification(StrictModel):
+    schema_version: Literal["r02-selection-replay-verification-v1"] = (
+        "r02-selection-replay-verification-v1"
+    )
+    identity: R02Identity
+    verified_artifacts: int = Field(ge=1)
+    external_provider_calls: Literal[0] = 0
+    live_execution: Literal[False] = False
+    all_hashes_match: Literal[True] = True
+    selector_request_reproduced: Literal[True] = True
+    selector_response_reproduced: Literal[True] = True
+    acceptance_reproduced: Literal[True] = True
+    execution_reproduced: Literal[True] = True
+    paired_delta_reproduced: Literal[True] = True
