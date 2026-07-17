@@ -159,6 +159,12 @@ copied into the B3 readiness report. `b3-run` is the live 12-acquisition command
 it refuses command-spec, account-attestation, executable, feature, sandbox, or
 preflight hash drift before launching the next process.
 
+The exact `r01-b3-prompt-v2-resource-v3-20260717` example above was reviewed,
+approved, and consumed once on 2026-07-17. It must not be run again. Its sealed
+development-only result is recorded in
+`docs/r01-b3-prompt-v2-resource-v3-live-result.md`; any later provider work
+requires a new explicit contract gate and authorization.
+
 Provider-free hardening uses explicit
 `RETRY_TRANSPORT` / `FAIL_CLOSED_SCORE` / `STOP_PHASE` dispositions, verifies any
 transport model echo, stops on unknown JSONL item or field shapes, binds the full

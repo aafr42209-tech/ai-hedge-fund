@@ -1030,6 +1030,46 @@ run result; this is expected evidence preservation and never a scored result.
 - the exact `1f65106` + `5937161a...8353e` pair now requires independent
   cross-review and a separate explicit user execution approval.
 
+#### B3 prompt-v2/resource-v3 completion — 2026-07-17
+
+- independent cross-review passed all seven preflight questions and directly
+  recomputed the exact approved pair `1f65106` +
+  `5937161ac9c2bb9c22172d0be27a5a730cc2a3dc1c8bf51044270b65ee68353e`;
+- the user then explicitly approved `b3-run`; immutable approval:
+  `docs/r01-b3-prompt-v2-resource-v3-user-approval.md`, SHA-256
+  `690f54031f1c4eb25a4cc0c37a7a3a64bf35555d8ae0321c0614e6794d1d9587`;
+- execution HEAD `dd52092` differs from approved implementation `1f65106` only
+  by documentation and the overlay README; Python execution code is unchanged;
+- all 12 planned acquisitions completed at provider ordinals `16..27`, each on
+  attempt 1, with zero retry, failure, tool event, timeout, nonzero exit,
+  constraint violation, fail-closed score, or phase stop;
+- all 12 responses were raw-valid, all 72 confidence values were JSON integers,
+  fallback count was zero, and repeated action-plus-quantity agreement was
+  `36/36` across all six fixture pairs;
+- current-run accounting was `150234` input, `57856` cached input, `21407`
+  output, `18519` reasoning output, and `171641` total tokens. The largest
+  attempt used `15750`, leaving `112250` headroom under the 128K reserve;
+- global state is now 27 attempts, 26 successful settled responses, one earlier
+  failed or unsettled attempt, `479148` actual tokens, and `511148`
+  conservatively charged tokens;
+- run result SHA-256:
+  `c262fac9efd5b725138e9b89b92f9043f17ee5398012348957ecf6331fd6c349`;
+- both replay and verify checked all 12 acquisitions with
+  `all_hashes_match: true` and zero provider calls. The completed three-root
+  graph has 299 files/references, no missing, unreferenced, mismatched, or
+  escaping item, and canonical tree SHA-256
+  `6ecbab78625ced153cb4b446fc8e911890476c144f361769e2073c142fd5c30e`;
+- machine evidence:
+  `docs/r01-b3-prompt-v2-resource-v3-live-evidence.json`, SHA-256
+  `423bc4833ff39aa0e6b771c628ba3770b955b4a05c1686048e1c979b8a24836c`;
+- result report: `docs/r01-b3-prompt-v2-resource-v3-live-result.md`, SHA-256
+  `eb6bb0ed9d67038eee7b24003a962062c5b36c1f58e892a9eb99973ac2908150`;
+- descriptive development utility was below the deterministic baseline in 10 of
+  12 acquisitions. This observation is recorded but prohibited from entering
+  the frozen structural prompt-selection rule and supports no investment claim;
+- no further provider call is authorized. Independent result review and an
+  explicit D3/final-prompt or provider-free closeout decision are required.
+
 ### B4 — bounded prompt iteration
 
 - permit at most three total prompt versions in the 36-attempt candidate block;
