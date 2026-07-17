@@ -1,0 +1,198 @@
+{
+  "schema_version": "r01-confidence-calibration-exploratory-v1",
+  "research_id": "R01-llm-overlay-synthetic-v1",
+  "status": "EXPLORATORY_DESCRIPTIVE_ONLY",
+  "as_of_date": "2026-07-17",
+  "provider_calls": 0,
+  "source": {
+    "execution_code_commit": "1f65106",
+    "result_commit": "24a0277774c01a745a058bde58d4d308eade51fe",
+    "experiment_id": "r01-b3-prompt-v2-resource-v3-20260717",
+    "artifact_store_root": ".research_artifacts/r01-b3-1f65106",
+    "run_result": {
+      "relative_path": "r01-b3-prompt-v2-resource-v3-20260717/run_result.json",
+      "sha256": "c262fac9efd5b725138e9b89b92f9043f17ee5398012348957ecf6331fd6c349"
+    },
+    "replay_verification": {
+      "relative_path": "r01-b3-prompt-v2-resource-v3-20260717/replay_verification.json",
+      "sha256": "a915ffbbd75e74aaa545cf91ea8ee7a904903609f04b03b1bd954c6fe3b31339"
+    },
+    "artifact_file_count": 299,
+    "artifact_tree_sha256": "6ecbab78625ced153cb4b446fc8e911890476c144f361769e2073c142fd5c30e"
+  },
+  "method": {
+    "raw_decisions": 72,
+    "provider_responses": 12,
+    "fixture_pairs": 6,
+    "pair_collapsed_asset_observations": 36,
+    "inferential_unit": "fixture_pair",
+    "pair_collapse": "For each case_id and asset, average confidence across replicate 0 and replicate 1. Action, quantity, and correctness outcomes must be identical before collapse.",
+    "action_correctness": "LLM action equals the exact-oracle action for the same asset.",
+    "exact_correctness": "LLM action and quantity both equal the exact-oracle decision for the same asset.",
+    "confidence_scale": "JSON integer 0 through 100 in each raw response; pair-collapsed means may be fractional.",
+    "brier_probability": "confidence / 100",
+    "threshold_policy": "Threshold rows are descriptive sensitivity summaries only. No threshold is selected or authorized for R02."
+  },
+  "integrity_checks": {
+    "oracle_certificates_recomputed_match": true,
+    "action_quantity_replicate_pairs_identical": true,
+    "action_quantity_identical_asset_pairs": 36,
+    "confidence_identical_asset_pairs": 3,
+    "confidence_nonidentical_asset_pairs": 33,
+    "confidence_range_raw": [
+      58,
+      99
+    ]
+  },
+  "overall": {
+    "raw": {
+      "n": 72,
+      "mean_confidence": 89.139,
+      "action_accuracy": 0.583333,
+      "exact_accuracy": 0.5,
+      "action_brier": 0.312461,
+      "exact_brier": 0.384961
+    },
+    "pair_collapsed": {
+      "n": 36,
+      "mean_confidence": 89.139,
+      "action_accuracy": 0.583333,
+      "exact_accuracy": 0.5,
+      "action_brier": 0.310633,
+      "exact_brier": 0.383133
+    }
+  },
+  "pair_collapsed_bins": [
+    {
+      "range": "0-49",
+      "n": 0
+    },
+    {
+      "range": "50-59",
+      "n": 0
+    },
+    {
+      "range": "60-69",
+      "n": 3,
+      "mean_confidence": 65.333,
+      "action_accuracy": 0.0,
+      "exact_accuracy": 0.0,
+      "action_brier": 0.42695,
+      "exact_brier": 0.42695
+    },
+    {
+      "range": "70-79",
+      "n": 1,
+      "mean_confidence": 76.0,
+      "action_accuracy": 0.0,
+      "exact_accuracy": 0.0,
+      "action_brier": 0.5776,
+      "exact_brier": 0.5776
+    },
+    {
+      "range": "80-89",
+      "n": 10,
+      "mean_confidence": 85.55,
+      "action_accuracy": 0.6,
+      "exact_accuracy": 0.6,
+      "action_brier": 0.292717,
+      "exact_brier": 0.292717
+    },
+    {
+      "range": "90-100",
+      "n": 22,
+      "mean_confidence": 94.614,
+      "action_accuracy": 0.681818,
+      "exact_accuracy": 0.545455,
+      "action_brier": 0.290781,
+      "exact_brier": 0.409417
+    }
+  ],
+  "pair_collapsed_threshold_sensitivity": [
+    {
+      "threshold": 50,
+      "n": 36,
+      "action_accuracy": 0.583333,
+      "exact_accuracy": 0.5
+    },
+    {
+      "threshold": 60,
+      "n": 36,
+      "action_accuracy": 0.583333,
+      "exact_accuracy": 0.5
+    },
+    {
+      "threshold": 70,
+      "n": 33,
+      "action_accuracy": 0.636364,
+      "exact_accuracy": 0.545455
+    },
+    {
+      "threshold": 80,
+      "n": 32,
+      "action_accuracy": 0.65625,
+      "exact_accuracy": 0.5625
+    },
+    {
+      "threshold": 90,
+      "n": 22,
+      "action_accuracy": 0.681818,
+      "exact_accuracy": 0.545455
+    }
+  ],
+  "fixture_pair_detail": [
+    {
+      "case_id": "development-0000",
+      "regime": "high_transaction_cost",
+      "n_assets": 6,
+      "mean_confidence": 95.167,
+      "action_accuracy": 0.166667,
+      "exact_accuracy": 0.166667
+    },
+    {
+      "case_id": "development-0001",
+      "regime": "signal_conflict",
+      "n_assets": 6,
+      "mean_confidence": 82.5,
+      "action_accuracy": 0.333333,
+      "exact_accuracy": 0.333333
+    },
+    {
+      "case_id": "development-0002",
+      "regime": "existing_position_asymmetry",
+      "n_assets": 6,
+      "mean_confidence": 85.083,
+      "action_accuracy": 0.833333,
+      "exact_accuracy": 0.833333
+    },
+    {
+      "case_id": "development-0003",
+      "regime": "noisy_confidence",
+      "n_assets": 6,
+      "mean_confidence": 90.583,
+      "action_accuracy": 0.833333,
+      "exact_accuracy": 0.666667
+    },
+    {
+      "case_id": "development-0004",
+      "regime": "concentration_pressure",
+      "n_assets": 6,
+      "mean_confidence": 91.0,
+      "action_accuracy": 0.5,
+      "exact_accuracy": 0.333333
+    },
+    {
+      "case_id": "development-0005",
+      "regime": "signal_consensus",
+      "n_assets": 6,
+      "mean_confidence": 90.5,
+      "action_accuracy": 0.833333,
+      "exact_accuracy": 0.666667
+    }
+  ],
+  "conclusion": {
+    "label": "NO_THRESHOLD_JUSTIFIED",
+    "text": "The development sample is too small and clustered to estimate or optimize an acceptance threshold. High reported confidence did not eliminate large regime-level errors.",
+    "r02_use": "May motivate prespecified threshold candidates or new-data calibration, but may not select a production or confirmatory threshold from R01."
+  }
+}

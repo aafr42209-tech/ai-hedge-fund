@@ -1,0 +1,252 @@
+{
+  "schema_version": "r02-audit-schema-catalog-v0-draft",
+  "status": "PROVIDER_FREE_DRAFT_NOT_IMPLEMENTED",
+  "provider_calls_authorized": false,
+  "common_identity": {
+    "required": [
+      "contract_id",
+      "experiment_id",
+      "fixture_id",
+      "fixture_content_sha256",
+      "channel",
+      "replicate_id"
+    ],
+    "hash_reference_fields": [
+      "relative_path",
+      "sha256",
+      "size_bytes"
+    ]
+  },
+  "seed_derivation": {
+    "label": "r02-candidate-order-v1",
+    "inputs": [
+      "root_seed",
+      "fixture_content_sha256",
+      "overlay_spec_sha256"
+    ],
+    "expression": "derive_seed(root_seed, label, fixture_content_sha256, overlay_spec_sha256)"
+  },
+  "artifact_types": {
+    "eligibility_decision": {
+      "schema_version": "r02-eligibility-decision-v1",
+      "required": [
+        "identity",
+        "fixture",
+        "overlay_spec",
+        "trigger_rule_sha256",
+        "trigger_input_sha256",
+        "triggered",
+        "reason_codes"
+      ],
+      "forbidden": [
+        "oracle",
+        "oracle_utility",
+        "headroom_value",
+        "future_returns"
+      ],
+      "invariants": [
+        "triggered and reason_codes are reproducible from frozen observable input",
+        "trigger evaluation occurs before candidate generation and before any provider call"
+      ]
+    },
+    "candidate_set": {
+      "schema_version": "r02-candidate-set-v1",
+      "required": [
+        "identity",
+        "eligibility_decision",
+        "generator_source_sha256",
+        "generator_config_sha256",
+        "baseline_batch",
+        "candidates",
+        "canonical_candidate_set_sha256",
+        "deduplication_report",
+        "validation_reports"
+      ],
+      "candidate_required": [
+        "canonical_candidate_id",
+        "role",
+        "transform_id",
+        "parent_candidate_id",
+        "executable_batch",
+        "executable_batch_sha256"
+      ],
+      "forbidden": [
+        "oracle",
+        "oracle_rank",
+        "oracle_utility",
+        "future_returns"
+      ],
+      "invariants": [
+        "one candidate role is BASELINE and exactly matches the deterministic baseline",
+        "NO_CHANGE is present when its executable batch differs from BASELINE",
+        "all quantities are integer lots and all candidates validate before deduplication",
+        "canonical executable batches are unique after deduplication",
+        "candidate count obeys frozen lower and upper bounds"
+      ]
+    },
+    "candidate_permutation": {
+      "schema_version": "r02-candidate-permutation-v1",
+      "required": [
+        "identity",
+        "candidate_set",
+        "seed_label",
+        "seed_input_sha256",
+        "derived_seed_hex",
+        "original_canonical_order",
+        "presented_order",
+        "presented_to_canonical_map",
+        "permutation_sha256"
+      ],
+      "invariants": [
+        "every canonical candidate appears exactly once",
+        "presented IDs reveal no semantic role",
+        "permutation is reproducible from frozen seed inputs"
+      ]
+    },
+    "selector_request": {
+      "schema_version": "r02-selector-request-v1",
+      "required": [
+        "identity",
+        "public_fixture",
+        "overlay_policy_instruction",
+        "candidate_permutation",
+        "presented_candidates",
+        "command_spec"
+      ],
+      "forbidden": [
+        "canonical_candidate_roles",
+        "presented_to_canonical_map",
+        "oracle",
+        "headroom_value",
+        "future_returns"
+      ],
+      "invariants": [
+        "presented candidates match candidate_permutation byte-for-byte",
+        "request contains no unblinded role or oracle data"
+      ]
+    },
+    "selector_response": {
+      "schema_version": "r02-selector-response-v1",
+      "required": [
+        "identity",
+        "selector_request",
+        "selected_candidate_id",
+        "confidence",
+        "reason_codes",
+        "validation_report",
+        "transport_artifacts",
+        "model_identity_evidence"
+      ],
+      "model_identity_evidence": {
+        "required": [
+          "requested_model",
+          "command_spec_sha256",
+          "executable_sha256"
+        ],
+        "reserved_nullable": [
+          "provider_model_echo"
+        ]
+      },
+      "invariants": [
+        "selected_candidate_id is a presented opaque ID",
+        "confidence is a JSON integer from 0 through 100",
+        "reason_codes contains only frozen enum values",
+        "schema failure produces typed fail-closed baseline fallback"
+      ]
+    },
+    "execution_decision": {
+      "schema_version": "r02-execution-decision-v1",
+      "required": [
+        "identity",
+        "eligibility_decision",
+        "candidate_set",
+        "selected_presented_id",
+        "selected_canonical_id",
+        "executed_canonical_id",
+        "acceptance_disposition",
+        "baseline_fallback",
+        "executable_batch"
+      ],
+      "invariants": [
+        "executed batch is exactly one candidate from candidate_set",
+        "invalid or unavailable selection executes BASELINE",
+        "no post-selection portfolio edits are permitted"
+      ]
+    },
+    "no_call_record": {
+      "schema_version": "r02-no-call-record-v1",
+      "required": [
+        "identity",
+        "eligibility_decision",
+        "reason_code",
+        "provider_attempts_before",
+        "provider_attempts_after",
+        "baseline_batch",
+        "executed_batch",
+        "absence_assertions"
+      ],
+      "absence_assertions_required": [
+        "selector_request_absent",
+        "selector_response_absent",
+        "transport_artifacts_absent"
+      ],
+      "invariants": [
+        "provider_attempts_before equals provider_attempts_after",
+        "executed batch equals BASELINE",
+        "all absence assertions are true"
+      ]
+    },
+    "episode_result": {
+      "schema_version": "r02-episode-result-v1",
+      "required": [
+        "identity",
+        "stratum",
+        "eligibility_decision",
+        "execution_decision_or_no_call",
+        "baseline_score",
+        "executed_score",
+        "paired_utility_delta_e12",
+        "provider_attempt_count",
+        "audit_disposition"
+      ],
+      "post_selection_optional": [
+        "oracle_score",
+        "oracle_baseline_headroom_e12"
+      ],
+      "invariants": [
+        "paired utility delta equals executed utility minus baseline utility",
+        "no-call baseline execution has paired utility delta zero",
+        "oracle fields are created only after selection or no-call is final"
+      ]
+    },
+    "run_summary": {
+      "schema_version": "r02-run-summary-v1",
+      "required": [
+        "experiment_id",
+        "statistical_freeze",
+        "episode_results",
+        "trigger_counts_by_stratum",
+        "eligible_counts_by_stratum",
+        "no_call_counts_by_reason",
+        "provider_attempt_ledger",
+        "token_budget_summary",
+        "primary_estimate",
+        "futility_disposition",
+        "integrity_disposition"
+      ],
+      "invariants": [
+        "every frozen fixture has exactly one episode_result",
+        "provider attempts reconcile with selector responses and no-call records",
+        "primary estimate includes zero deltas for baseline executions",
+        "low-trigger disposition is evaluated before utility success"
+      ]
+    }
+  },
+  "graph_rules": [
+    "trigger false: eligibility_decision -> no_call_record -> episode_result",
+    "trigger true but candidate count below minimum: eligibility_decision -> candidate_set -> no_call_record -> episode_result",
+    "provider path: eligibility_decision -> candidate_set -> candidate_permutation -> selector_request -> selector_response -> execution_decision -> episode_result",
+    "oracle scoring may attach only after execution_decision or no_call_record is immutable",
+    "run_summary references every episode_result and all aggregate ledgers"
+  ]
+}

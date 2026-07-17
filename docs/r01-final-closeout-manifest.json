@@ -1,0 +1,91 @@
+{
+  "schema_version": "r01-final-closeout-manifest-v1",
+  "research_id": "R01-llm-overlay-synthetic-v1",
+  "closeout_status": "SEALED_PROVIDER_FREE",
+  "closeout_date": "2026-07-17",
+  "provider_calls_during_closeout": 0,
+  "execution_identity": {
+    "approved_implementation_commit": "1f65106",
+    "live_authorization_commit": "dd52092",
+    "sealed_result_commit": "24a0277774c01a745a058bde58d4d308eade51fe",
+    "experiment_id": "r01-b3-prompt-v2-resource-v3-20260717",
+    "preflight_sha256": "5937161ac9c2bb9c22172d0be27a5a730cc2a3dc1c8bf51044270b65ee68353e"
+  },
+  "sealed_sources": [
+    {
+      "path": "docs/research-contract-01-llm-overlay.md",
+      "sha256": "90f57724223e283cc41a4ec4b1a48b63b70350177f1f2fcd51cb46550ca2e448"
+    },
+    {
+      "path": "docs/r01-phase-b-implementation-plan.md",
+      "sha256": "ab48c3f833857b109153b802787f3884283896cd85db734e6a80a3c0c315e5a2"
+    },
+    {
+      "path": "docs/r01-b3-prompt-v2-resource-v3-user-approval.md",
+      "sha256": "690f54031f1c4eb25a4cc0c37a7a3a64bf35555d8ae0321c0614e6794d1d9587"
+    },
+    {
+      "path": "docs/r01-b3-prompt-v2-resource-v3-live-evidence.json",
+      "sha256": "423bc4833ff39aa0e6b771c628ba3770b955b4a05c1686048e1c979b8a24836c"
+    },
+    {
+      "path": "docs/r01-b3-prompt-v2-resource-v3-live-result.md",
+      "sha256": "eb6bb0ed9d67038eee7b24003a962062c5b36c1f58e892a9eb99973ac2908150"
+    },
+    {
+      "path": "docs/r01-confidence-calibration-exploratory.json",
+      "sha256": "41904983538677f4b1bc33c1c467dd7a0689fa9e8470de745ec1a82b4f728df1"
+    },
+    {
+      "path": "docs/r01-confidence-calibration-technical-report.md",
+      "sha256": "16188f2dcd09fa905a0502f33ad6dc8953b21268ec2e32c4d594488e5e64586b"
+    }
+  ],
+  "artifact_graph": {
+    "store_root": ".research_artifacts/r01-b3-1f65106",
+    "experiment_root": "r01-b3-prompt-v2-resource-v3-20260717",
+    "file_count": 299,
+    "canonical_tree_algorithm": "SHA-256 over sorted relative_path NUL size NUL file_sha256 records joined by newline; paths are relative to the store root",
+    "canonical_tree_sha256": "6ecbab78625ced153cb4b446fc8e911890476c144f361769e2073c142fd5c30e",
+    "run_result_sha256": "c262fac9efd5b725138e9b89b92f9043f17ee5398012348957ecf6331fd6c349",
+    "replay_verification_sha256": "a915ffbbd75e74aaa545cf91ea8ee7a904903609f04b03b1bd954c6fe3b31339",
+    "token_budget_summary_sha256": "2c942c46a2bf73a02b089c8358be36266b4ef1580f28c1f8948e91dd5111508c"
+  },
+  "resource_ledger": {
+    "provider_attempts": 27,
+    "settled_responses": 26,
+    "unsettled_attempts": 1,
+    "conservative_tokens": 511148,
+    "development_attempt_cap": 200,
+    "development_token_cap": 12800000,
+    "additional_cost_condition_usd": 0
+  },
+  "final_labels": {
+    "audit_and_execution_infrastructure": "PASS",
+    "direct_generation_structural_stability": "PASS",
+    "utility_improvement_hypothesis": "NOT_TESTED",
+    "utility_improvement_note": "Confirmatory test was not run; development technical evidence was unfavorable in 10 of 12 acquisitions relative to the deterministic baseline.",
+    "investment_claim": "NONE",
+    "exploratory_reuse": "ALLOWED_WITH_PROVENANCE",
+    "relabeling_or_confirmatory_reuse": "PROHIBITED"
+  },
+  "seal_rules": {
+    "r01_provider_calls_authorized": false,
+    "d3_authorized": false,
+    "r01_artifact_mutation_authorized": false,
+    "r01_result_relabeling_authorized": false,
+    "new_research_must_use_new_contract_identity": true,
+    "permitted_reuse": [
+      "immutable evidence",
+      "exploratory design motivation",
+      "provider-free audit infrastructure patterns",
+      "source data with explicit R01 provenance"
+    ],
+    "prohibited_reuse": [
+      "R01 confirmatory evidence",
+      "post-hoc R01 hypothesis replacement",
+      "R01-derived confidence threshold presented as validated",
+      "modification or backfill of sealed R01 artifacts"
+    ]
+  }
+}
