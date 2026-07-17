@@ -1,0 +1,100 @@
+{
+  "schema_version": "r02-d1-freeze-manifest-v1",
+  "contract_id": "R02-baseline-anchored-candidate-selection-v0-draft",
+  "status": "PENDING_INDEPENDENT_REVIEW_AND_USER_ACCEPTANCE",
+  "as_of_date": "2026-07-17",
+  "design_base_commit": "253b777afb03df4b8944621ce32f2100da9d4016",
+  "provider_calls": 0,
+  "r01_artifacts_modified": 0,
+  "documents": [
+    {
+      "path": "docs/r01-confidence-calibration-erratum-01.md",
+      "sha256": "a314578748d51adaae319b568253ace064cd6e28afa11acf1f2d22ad072b655b",
+      "size_bytes": 1166
+    },
+    {
+      "path": "docs/r02-d1-candidate-trigger-freeze.json",
+      "sha256": "2d5961806b5051ff56c874b8b05933df014136bacb98717c4846f2b48f645778",
+      "size_bytes": 6540
+    },
+    {
+      "path": "docs/r02-d1-candidate-trigger-freeze.md",
+      "sha256": "bcbe368b13d66cbade1f89c9b34699b8c72365934b3abd1d2e7a638f95aa5590",
+      "size_bytes": 3444
+    },
+    {
+      "path": "docs/r02-d1-test-vectors.json",
+      "sha256": "2ce211673d11b3acd7865d42e2fcba012bef2e3d0099abc61b5cfa9c7279efd3",
+      "size_bytes": 11092
+    },
+    {
+      "path": "docs/r02-d1-provider-free-design-analysis.json",
+      "sha256": "12ad836d66adb095145d7337efbfdb76b86812ac3d88cd7edfd9c514e8b29765",
+      "size_bytes": 4540
+    },
+    {
+      "path": "docs/r02-d1-provider-free-design-analysis.md",
+      "sha256": "a2e9e726c5d3b6b146ec8c4edee3dd7d7f7406fcadbeafc1ddb538a11998e33e",
+      "size_bytes": 3455
+    }
+  ],
+  "d0_inputs": [
+    {
+      "path": "docs/research-contract-02-candidate-selection-draft.md",
+      "sha256": "3c08c1c8131c110a96794a20d9ab41ba65b7f67c1b45cb602a26542449c44421"
+    },
+    {
+      "path": "docs/r02-candidate-generator-options.md",
+      "sha256": "e360db59e7d852d0d661360ec8871f629afa24961fdee946048c31d177ebbfe3"
+    },
+    {
+      "path": "docs/r02-statistical-design-draft.md",
+      "sha256": "50fee05114678e645ee3f3ebb30c6dc62cd7a50980864d4020b267ab88b914a5"
+    },
+    {
+      "path": "docs/r02-audit-schema-draft.json",
+      "sha256": "1a987172d14b371348fb39dd44c4268dc534c1438b08b563b5b5a5fe8c9c13b6"
+    }
+  ],
+  "provider_free_design_source": {
+    "store_root": ".research_artifacts/r01-b3-1f65106",
+    "experiment": "r01-b3-prompt-v2-resource-v3-20260717",
+    "provider_free_freeze": {
+      "relative_path": "r01-b3-prompt-v2-resource-v3-20260717/provider_free_freeze.json",
+      "sha256": "86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2",
+      "size_bytes": 19323
+    },
+    "development_manifest": {
+      "relative_path": "r01-b3-prompt-v2-resource-v3-20260717/development_manifest.json",
+      "sha256": "d9ef5150073717a802212cafbb1b9182b10c4ab329ca01ea57e16fb0baaa26ba",
+      "size_bytes": 15073
+    },
+    "fixture_count": 40,
+    "reuse_classification": "EXPLORATORY_DESIGN_INPUT_ONLY"
+  },
+  "frozen_candidate_fields": {
+    "trigger_id": "R02-TRIGGER-EFFECTIVE-COST-50BPS-v1",
+    "generator_id": "R02-CANDIDATE-GENERATOR-A-COST-v1",
+    "candidate_role_count_before_deduplication": 4,
+    "candidate_count_after_deduplication_min": 1,
+    "candidate_count_after_deduplication_max": 4,
+    "test_vector_count": 6,
+    "permutation_root_seed": "r02-candidate-order-root-v1-20260717"
+  },
+  "not_frozen": {
+    "sample_size_recommendation": 160,
+    "m_min_recommendation": 46,
+    "reason": "N and M_min remain recommendations until utility-unit delta_min, final estimator simulation, and provider budget are frozen.",
+    "model_and_transport_identity": "not selected",
+    "provider_attempt_and_token_budget": "not selected",
+    "selector_prompt": "not implemented",
+    "production_schema_and_replay": "not implemented"
+  },
+  "gate_state": {
+    "r2_d0": "APPROVED",
+    "r2_d1": "PENDING_INDEPENDENT_REVIEW_AND_USER_ACCEPTANCE",
+    "r2_d2": "NOT_AUTHORIZED",
+    "r2_d3": "NOT_AUTHORIZED",
+    "r2_d4": "NOT_AUTHORIZED"
+  }
+}

@@ -1,0 +1,273 @@
+{
+  "schema_version": "r02-d1-test-vectors-v1",
+  "status": "PROVIDER_FREE_FREEZE_TEST_VECTORS",
+  "provider_calls": 0,
+  "freeze_spec_sha256": "2d5961806b5051ff56c874b8b05933df014136bacb98717c4846f2b48f645778",
+  "source_store_root": ".research_artifacts/r01-b3-1f65106",
+  "source_experiment": "r01-b3-prompt-v2-resource-v3-20260717",
+  "order_encoding": "asset_id:action:quantity in A0 through A5 order",
+  "vectors": [
+    {
+      "case_id": "development-0000",
+      "fixture": {
+        "relative_path": "r01-b3-prompt-v2-resource-v3-20260717/fixtures/development-0000.json",
+        "sha256": "626f33844a8d9bb6854336d7a2318c571b34608e02c08aa85424ae349000ece1",
+        "size_bytes": 2841,
+        "content_sha256": "882c682eaac90551aa1684a19d6f51e793a3dc08283a6d4ea84d245a084f4bce"
+      },
+      "trigger": {
+        "trade_count": 1,
+        "max_traded_effective_cost_bps": 119,
+        "triggered": true,
+        "reason_codes": [
+          "MAX_TRADED_EFFECTIVE_COST_BPS_GE_50"
+        ]
+      },
+      "candidates": [
+        {
+          "role": "BASELINE",
+          "aliases": [],
+          "canonical_candidate_id": "39dcc299263381a2346eee53d8c7fd4b16cc2dc5a1976ac439588497a034c021",
+          "orders": "A0:hold:0|A1:hold:0|A2:sell:129|A3:hold:0|A4:hold:0|A5:hold:0"
+        },
+        {
+          "role": "NO_CHANGE",
+          "aliases": [
+            "HALF_BASELINE_DELTA",
+            "DROP_MAX_COST_TRADE"
+          ],
+          "canonical_candidate_id": "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11",
+          "orders": "A0:hold:0|A1:hold:0|A2:hold:0|A3:hold:0|A4:hold:0|A5:hold:0"
+        }
+      ],
+      "permutation_seed": "8a58857c9f20c3e91141b8d01256a9785301748c1506b5e8bb096d2b1eb3df91",
+      "presented_order": [
+        "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11",
+        "39dcc299263381a2346eee53d8c7fd4b16cc2dc5a1976ac439588497a034c021"
+      ]
+    },
+    {
+      "case_id": "development-0003",
+      "fixture": {
+        "relative_path": "r01-b3-prompt-v2-resource-v3-20260717/fixtures/development-0003.json",
+        "sha256": "15726c153cfa55eb60f8e60c3896fe541b2ac8d8a0c02553b6ac8bd9da9cb044",
+        "size_bytes": 2846,
+        "content_sha256": "f333ff0bfc3cd0b6ce141895afab0a415a3d0124a7c7ebd5cd299037582d2071"
+      },
+      "trigger": {
+        "trade_count": 5,
+        "max_traded_effective_cost_bps": 15,
+        "triggered": false,
+        "reason_codes": [
+          "MAX_TRADED_EFFECTIVE_COST_BPS_LT_50_OR_NO_TRADE"
+        ]
+      },
+      "candidates": [
+        {
+          "role": "BASELINE",
+          "aliases": [],
+          "canonical_candidate_id": "3b4156452a7b89fb45e517c08064cd57f78751fa43ba02e53e830aa82a2fd5e1",
+          "orders": "A0:sell:532|A1:sell:21|A2:sell:194|A3:buy:132|A4:hold:0|A5:sell:222"
+        },
+        {
+          "role": "NO_CHANGE",
+          "aliases": [],
+          "canonical_candidate_id": "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11",
+          "orders": "A0:hold:0|A1:hold:0|A2:hold:0|A3:hold:0|A4:hold:0|A5:hold:0"
+        },
+        {
+          "role": "HALF_BASELINE_DELTA",
+          "aliases": [],
+          "canonical_candidate_id": "def817fb293badaf6865ee5ceb87e22cb2001008369538f461660fe37c1f20fe",
+          "orders": "A0:sell:266|A1:hold:0|A2:sell:97|A3:buy:66|A4:hold:0|A5:sell:111"
+        },
+        {
+          "role": "DROP_MAX_COST_TRADE",
+          "aliases": [],
+          "canonical_candidate_id": "b78c586a32955e73b6887416f8593e7c1e68b9df92ac238d745427e9c4205d25",
+          "orders": "A0:sell:532|A1:sell:21|A2:hold:0|A3:buy:132|A4:hold:0|A5:sell:222"
+        }
+      ],
+      "permutation_seed": "1030c4c50aabfdaa74924d3ef72bf4a9c54d67893fcabdae9155f5ad521e290d",
+      "presented_order": [
+        "def817fb293badaf6865ee5ceb87e22cb2001008369538f461660fe37c1f20fe",
+        "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11",
+        "3b4156452a7b89fb45e517c08064cd57f78751fa43ba02e53e830aa82a2fd5e1",
+        "b78c586a32955e73b6887416f8593e7c1e68b9df92ac238d745427e9c4205d25"
+      ]
+    },
+    {
+      "case_id": "development-0004",
+      "fixture": {
+        "relative_path": "r01-b3-prompt-v2-resource-v3-20260717/fixtures/development-0004.json",
+        "sha256": "b001578cde72058f5e333929e2371e22c330914351396e78397fb6eb5c54332c",
+        "size_bytes": 2831,
+        "content_sha256": "2f71394fe8eb302481f67d426d895808bc799fd39fa0e51c98ccbdb5641cf23e"
+      },
+      "trigger": {
+        "trade_count": 1,
+        "max_traded_effective_cost_bps": 19,
+        "triggered": false,
+        "reason_codes": [
+          "MAX_TRADED_EFFECTIVE_COST_BPS_LT_50_OR_NO_TRADE"
+        ]
+      },
+      "candidates": [
+        {
+          "role": "BASELINE",
+          "aliases": [],
+          "canonical_candidate_id": "37e8f0763a60d2c7afc36c7062f45963ce489a076b5a8fad2e1ce61ae7748078",
+          "orders": "A0:hold:0|A1:hold:0|A2:buy:54|A3:hold:0|A4:hold:0|A5:hold:0"
+        },
+        {
+          "role": "NO_CHANGE",
+          "aliases": [
+            "DROP_MAX_COST_TRADE"
+          ],
+          "canonical_candidate_id": "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11",
+          "orders": "A0:hold:0|A1:hold:0|A2:hold:0|A3:hold:0|A4:hold:0|A5:hold:0"
+        },
+        {
+          "role": "HALF_BASELINE_DELTA",
+          "aliases": [],
+          "canonical_candidate_id": "911485992715de2a3f526265254cb0d6e8be7075608f9a14223ac4e3c08094a6",
+          "orders": "A0:hold:0|A1:hold:0|A2:buy:27|A3:hold:0|A4:hold:0|A5:hold:0"
+        }
+      ],
+      "permutation_seed": "02800c3ed8a092c45f322dcf132dc8c07bab1cbc5e40f6b3e3dc241e6e0adda8",
+      "presented_order": [
+        "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11",
+        "911485992715de2a3f526265254cb0d6e8be7075608f9a14223ac4e3c08094a6",
+        "37e8f0763a60d2c7afc36c7062f45963ce489a076b5a8fad2e1ce61ae7748078"
+      ]
+    },
+    {
+      "case_id": "development-0012",
+      "fixture": {
+        "relative_path": "r01-b3-prompt-v2-resource-v3-20260717/fixtures/development-0012.json",
+        "sha256": "2855953e7ccda98bc372c76c9cc3e5bc7ccd7c4bee30f39576ab8356ded27393",
+        "size_bytes": 2842,
+        "content_sha256": "2dc2ca78cb708f1c9340137e98ff487e9f13369abdd9ed2d8f8b81c34374b314"
+      },
+      "trigger": {
+        "trade_count": 2,
+        "max_traded_effective_cost_bps": 119,
+        "triggered": true,
+        "reason_codes": [
+          "MAX_TRADED_EFFECTIVE_COST_BPS_GE_50"
+        ]
+      },
+      "candidates": [
+        {
+          "role": "BASELINE",
+          "aliases": [],
+          "canonical_candidate_id": "2812280002ce7b0fb33347e054390aed0f92dff9ebe17780169486753bc09b8e",
+          "orders": "A0:sell:275|A1:hold:0|A2:sell:120|A3:hold:0|A4:hold:0|A5:hold:0"
+        },
+        {
+          "role": "NO_CHANGE",
+          "aliases": [],
+          "canonical_candidate_id": "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11",
+          "orders": "A0:hold:0|A1:hold:0|A2:hold:0|A3:hold:0|A4:hold:0|A5:hold:0"
+        },
+        {
+          "role": "HALF_BASELINE_DELTA",
+          "aliases": [],
+          "canonical_candidate_id": "26ceee1e9398fa030a7fc390972ff551652fc27be96f29c08575df64c7556b41",
+          "orders": "A0:hold:0|A1:hold:0|A2:sell:60|A3:hold:0|A4:hold:0|A5:hold:0"
+        },
+        {
+          "role": "DROP_MAX_COST_TRADE",
+          "aliases": [],
+          "canonical_candidate_id": "a193f3fd53e78412e6302ca8940b23589c5d2c96c18e4591365d58385578e873",
+          "orders": "A0:sell:275|A1:hold:0|A2:hold:0|A3:hold:0|A4:hold:0|A5:hold:0"
+        }
+      ],
+      "permutation_seed": "0292618523228fe0ea241f8005dc1629f6fc44d89d8143278a9abb8afed3256e",
+      "presented_order": [
+        "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11",
+        "26ceee1e9398fa030a7fc390972ff551652fc27be96f29c08575df64c7556b41",
+        "a193f3fd53e78412e6302ca8940b23589c5d2c96c18e4591365d58385578e873",
+        "2812280002ce7b0fb33347e054390aed0f92dff9ebe17780169486753bc09b8e"
+      ]
+    },
+    {
+      "case_id": "development-0018",
+      "fixture": {
+        "relative_path": "r01-b3-prompt-v2-resource-v3-20260717/fixtures/development-0018.json",
+        "sha256": "3c66a9b4bc94bb64c107dad4c4b5f647c57d10156c1245d48a6e6f80af837bf7",
+        "size_bytes": 2837,
+        "content_sha256": "73add476ce015fc5071ff8eb9de44068600c1a60038da2e4dcd3d72043506b64"
+      },
+      "trigger": {
+        "trade_count": 1,
+        "max_traded_effective_cost_bps": 107,
+        "triggered": true,
+        "reason_codes": [
+          "MAX_TRADED_EFFECTIVE_COST_BPS_GE_50"
+        ]
+      },
+      "candidates": [
+        {
+          "role": "BASELINE",
+          "aliases": [],
+          "canonical_candidate_id": "a7a3711821abeb16389a8954882c3ecd427029d3b6c5a766088a149013d27c00",
+          "orders": "A0:sell:126|A1:hold:0|A2:hold:0|A3:hold:0|A4:hold:0|A5:hold:0"
+        },
+        {
+          "role": "NO_CHANGE",
+          "aliases": [
+            "DROP_MAX_COST_TRADE"
+          ],
+          "canonical_candidate_id": "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11",
+          "orders": "A0:hold:0|A1:hold:0|A2:hold:0|A3:hold:0|A4:hold:0|A5:hold:0"
+        },
+        {
+          "role": "HALF_BASELINE_DELTA",
+          "aliases": [],
+          "canonical_candidate_id": "fe70cbbcc544ee6a9ce301591a9648a7c7495115f4f0c2374437d6d34d884609",
+          "orders": "A0:sell:63|A1:hold:0|A2:hold:0|A3:hold:0|A4:hold:0|A5:hold:0"
+        }
+      ],
+      "permutation_seed": "243be700e52cb324f8d23a6e9ee87a1ffaa1e637b892f8b42bf9b32a07eeca94",
+      "presented_order": [
+        "fe70cbbcc544ee6a9ce301591a9648a7c7495115f4f0c2374437d6d34d884609",
+        "a7a3711821abeb16389a8954882c3ecd427029d3b6c5a766088a149013d27c00",
+        "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11"
+      ]
+    },
+    {
+      "case_id": "development-0024",
+      "fixture": {
+        "relative_path": "r01-b3-prompt-v2-resource-v3-20260717/fixtures/development-0024.json",
+        "sha256": "8a47be95adaf18bb424a0e5cb604f780e002d2656d37531e419bb62f2cb1931f",
+        "size_bytes": 2827,
+        "content_sha256": "8f08a31ba1f74d43c1067a66f88ebb42365ae26a8a38b9df435191a90fb18503"
+      },
+      "trigger": {
+        "trade_count": 0,
+        "max_traded_effective_cost_bps": 0,
+        "triggered": false,
+        "reason_codes": [
+          "MAX_TRADED_EFFECTIVE_COST_BPS_LT_50_OR_NO_TRADE"
+        ]
+      },
+      "candidates": [
+        {
+          "role": "BASELINE",
+          "aliases": [
+            "NO_CHANGE",
+            "HALF_BASELINE_DELTA",
+            "DROP_MAX_COST_TRADE"
+          ],
+          "canonical_candidate_id": "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11",
+          "orders": "A0:hold:0|A1:hold:0|A2:hold:0|A3:hold:0|A4:hold:0|A5:hold:0"
+        }
+      ],
+      "permutation_seed": "ca4151accad7cf7a8f812036fd2b79a6767478891c59a308e636a279f9c8bff9",
+      "presented_order": [
+        "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11"
+      ]
+    }
+  ]
+}

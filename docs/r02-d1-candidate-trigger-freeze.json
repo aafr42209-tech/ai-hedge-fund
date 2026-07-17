@@ -1,0 +1,115 @@
+{
+  "schema_version": "r02-d1-candidate-trigger-freeze-v1",
+  "contract_id": "R02-baseline-anchored-candidate-selection-v0-draft",
+  "status": "FREEZE_CANDIDATE_PENDING_INDEPENDENT_REVIEW",
+  "as_of_date": "2026-07-17",
+  "provider_calls": 0,
+  "production_implementation_authorized": false,
+  "r02_execution_authorized": false,
+  "source_identity": {
+    "design_base_commit": "253b777afb03df4b8944621ce32f2100da9d4016",
+    "primary_baseline": "primary_deterministic",
+    "primary_baseline_source_sha256": "6f490aa3458856213c7cd6a859065d49d6383de00416ab523a52f2f4f5bc412f",
+    "validator_source_sha256": "f3e1bd71162f7ce01a0b55bab5b33eaa45867ba119271f53819635c5f0b7bc99",
+    "contracts_source_sha256": "21891628954f535231e3e8b9132ab86c4770bb07d49b1e6da1e640fead59cfd7",
+    "scoring_source_sha256": "c86b7ee61a0cc7a92557adda6826ab9f75e411f3bda9ec0219c5c1d6c96d8aff",
+    "lattice_source_sha256": "179df107c69c664d6ad80a5b1d04d3e611ff4a7e22af597a0db664b883026dd1"
+  },
+  "trigger": {
+    "trigger_id": "R02-TRIGGER-EFFECTIVE-COST-50BPS-v1",
+    "allowed_inputs": [
+      "public fixture",
+      "primary deterministic baseline validation",
+      "primary deterministic baseline cost ledger"
+    ],
+    "line_effective_cost_bps": "ceil(total_cost_cents * 10000 / notional_cents)",
+    "aggregate": "maximum line_effective_cost_bps across baseline cost-ledger lines; empty maximum is 0",
+    "threshold_bps": 50,
+    "decision": "triggered is true iff the baseline cost ledger has at least one line and aggregate >= 50",
+    "true_reason_code": "MAX_TRADED_EFFECTIVE_COST_BPS_GE_50",
+    "false_reason_code": "MAX_TRADED_EFFECTIVE_COST_BPS_LT_50_OR_NO_TRADE",
+    "integer_arithmetic": "ceil_ratio with positive integer numerator and denominator",
+    "forbidden_inputs": [
+      "hidden expected returns",
+      "oracle decision",
+      "oracle utility",
+      "oracle-baseline headroom",
+      "candidate utility",
+      "provider output"
+    ]
+  },
+  "candidate_generator": {
+    "generator_id": "R02-CANDIDATE-GENERATOR-A-COST-v1",
+    "role_order_before_deduplication": [
+      "BASELINE",
+      "NO_CHANGE",
+      "HALF_BASELINE_DELTA",
+      "DROP_MAX_COST_TRADE"
+    ],
+    "roles": {
+      "BASELINE": "Exact primary_deterministic action and quantity for every asset.",
+      "NO_CHANGE": "hold with quantity 0 for every asset.",
+      "HALF_BASELINE_DELTA": "For each non-hold baseline decision, compute lots = quantity / lot_size_shares and scaled_lots = floor(lots / 2). Preserve action with quantity scaled_lots * lot_size_shares when scaled_lots > 0; otherwise use hold quantity 0.",
+      "DROP_MAX_COST_TRADE": "Copy BASELINE. If the baseline cost ledger is nonempty, choose the line with greatest total_cost_cents, breaking ties by lexicographically smallest asset_id, and replace that asset decision with hold quantity 0."
+    },
+    "integer_lot_rule": "Every non-hold quantity must be an exact positive multiple of lot_size_shares.",
+    "validation_rule": "Validate all four generated raw batches before deduplication. Any raw-invalid, fallback, or executable mismatch produces PRE_PROVIDER_INTEGRITY_STOP; do not repair or drop the invalid candidate.",
+    "deduplication_rule": "Deduplicate by canonical_candidate_id in role_order_before_deduplication order. Retain the first role and record later duplicate roles as aliases.",
+    "candidate_count_after_deduplication": {
+      "minimum": 1,
+      "maximum": 4
+    },
+    "provider_call_eligibility": "A provider call is eligible only when trigger is true and candidate count after deduplication is at least 2. Trigger false or K=1 executes BASELINE with a no-call artifact.",
+    "forbidden_inputs": [
+      "hidden expected returns",
+      "oracle decision",
+      "oracle utility",
+      "oracle-baseline headroom",
+      "future returns",
+      "provider output"
+    ]
+  },
+  "candidate_canonicalization": {
+    "payload_schema_version": "r02-candidate-decision-v1",
+    "payload_shape": {
+      "schema_version": "r02-candidate-decision-v1",
+      "decisions": "object keyed by A0 through A5; each value contains only action and quantity"
+    },
+    "serialization": "UTF-8 JSON, keys sorted recursively, separators comma and colon with no whitespace, ASCII escaping enabled, no trailing newline",
+    "canonical_candidate_id": "lowercase hex SHA-256 of serialized payload bytes"
+  },
+  "presentation_permutation": {
+    "root_seed_utf8": "r02-candidate-order-root-v1-20260717",
+    "seed_label_ascii": "r02-candidate-order-v1",
+    "overlay_spec_sha256": "SHA-256 of the exact bytes of this freeze JSON file",
+    "seed_message": "seed_label_ascii || NUL || fixture_content_sha256_ascii || NUL || overlay_spec_sha256_ascii",
+    "permutation_seed": "HMAC-SHA256 with root_seed_utf8 bytes as key and seed_message bytes as message",
+    "candidate_order_key": "HMAC-SHA256 with permutation_seed raw bytes as key and canonical_candidate_id ASCII bytes as message",
+    "ordering": "ascending tuple of candidate_order_key lowercase hex and canonical_candidate_id",
+    "presented_ids": "Assign P00, P01, ... in ordered position",
+    "selector_visibility": "The selector sees presented IDs and candidate contents but not canonical roles, aliases, canonical IDs, seed inputs, or permutation map."
+  },
+  "challenge_stratum_admission": {
+    "status": "DESIGN_RULE_FROZEN_FRAME_NOT_GENERATED",
+    "requirements": [
+      "trigger is true",
+      "candidate count after deduplication is at least 2",
+      "max true utility among generated candidates minus BASELINE true utility is greater than 0"
+    ],
+    "oracle_barrier": "Challenge admission is provider-free frame classification after trigger and candidate bytes are immutable. Admission fields are not available to trigger, generator, permutation, or selector request."
+  },
+  "replay_requirements": [
+    "Recompute baseline, cost ledger, trigger inputs, and trigger decision.",
+    "Recompute all four candidate roles, validation reports, aliases, and canonical IDs.",
+    "Recompute permutation and presented ID map from frozen hashes.",
+    "Prove no oracle or hidden field entered any pre-selection artifact.",
+    "Prove no-call episodes leave provider-attempt count unchanged."
+  ],
+  "gate_state": {
+    "r2_d0_draft_review": "APPROVED_BY_INDEPENDENT_REVIEW",
+    "r2_d1_exact_freeze": "PENDING_INDEPENDENT_REVIEW_AND_USER_ACCEPTANCE",
+    "r2_d2_implementation_and_preflight": "NOT_AUTHORIZED",
+    "r2_d3_live_micro_pilot": "NOT_AUTHORIZED",
+    "r2_d4_sealed_evaluation": "NOT_AUTHORIZED"
+  }
+}

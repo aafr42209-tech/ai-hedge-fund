@@ -1,0 +1,124 @@
+{
+  "schema_version": "r02-d1-provider-free-design-analysis-v1",
+  "status": "EXPLORATORY_DESIGN_INPUT_NOT_R02_EVIDENCE",
+  "provider_calls": 0,
+  "source": {
+    "store_root": ".research_artifacts/r01-b3-1f65106",
+    "experiment": "r01-b3-prompt-v2-resource-v3-20260717",
+    "provider_free_freeze_sha256": "86096c395922d179d4d047b2c7934a221a376c948e5d7d9b5c7e41c332b630f2",
+    "development_manifest_sha256": "d9ef5150073717a802212cafbb1b9182b10c4ab329ca01ea57e16fb0baaa26ba",
+    "fixture_count": 40,
+    "root_seed_label": "r01-phase-b-development-fixtures-v1"
+  },
+  "candidate_generator_replay": {
+    "all_four_raw_candidates_valid": true,
+    "candidate_count_after_deduplication": {
+      "1": 2,
+      "2": 3,
+      "3": 7,
+      "4": 28
+    },
+    "half_candidate_distinct_from_baseline_and_no_change": 31,
+    "drop_candidate_distinct_from_prior_roles": 32
+  },
+  "trigger_observation": {
+    "rule": "baseline has a cost line and max ceil(line.total_cost_cents * 10000 / line.notional_cents) >= 50",
+    "triggered": 5,
+    "total": 40,
+    "rate": 0.125,
+    "triggered_regime": {
+      "high_transaction_cost": 5
+    },
+    "triggered_effective_cost_bps_range": [
+      62,
+      119
+    ],
+    "nontrigger_traded_effective_cost_bps_max": 23,
+    "threshold_selection_provenance": "Post-hoc exploratory R01 design choice. Every integer threshold from 24 through 62 selects the same five observed cases; 50 is a round interior value and requires new-frame validation without retuning.",
+    "triggered_candidate_count": {
+      "2": 3,
+      "3": 1,
+      "4": 1
+    }
+  },
+  "candidate_headroom_diagnostic": {
+    "definition": "max true utility among generated candidates minus BASELINE true utility, computed only after trigger and candidate bytes are fixed",
+    "triggered_cases": 5,
+    "positive_cases": 4,
+    "zero_cases": 1,
+    "negative_cases": 0,
+    "mean_e12": 268383759,
+    "sample_sd_e12": 261774908,
+    "standardized_mean": 1.025,
+    "warning": "This is an oracle selector upper bound on five exploratory R01 cases, not an expected LLM effect."
+  },
+  "rejected_trigger_candidate": {
+    "rule": "total baseline cost >= 7 bps OR baseline max cap utilization >= 6500 bps",
+    "triggered": 12,
+    "positive_candidate_headroom_cases": 3,
+    "reason_rejected": "The broader trigger produced nine baseline-optimal opportunities and mixed concentration cases with no matching frozen transform."
+  },
+  "sample_size_recommendation": {
+    "status": "RECOMMENDED_NOT_FROZEN",
+    "total_fixtures": 160,
+    "representative_fixtures": 120,
+    "challenge_fixtures": 40,
+    "target_weights": {
+      "REPRESENTATIVE": 0.75,
+      "CHALLENGE_HEADROOM": 0.25
+    },
+    "m_min": 46,
+    "challenge_assumption": "All admitted challenge fixtures are trigger true, K >= 2, and candidate-headroom positive by frozen frame rule.",
+    "opportunity_probability": [
+      {
+        "representative_trigger_rate": 0.08,
+        "probability_m_ge_46": 0.924744
+      },
+      {
+        "representative_trigger_rate": 0.1,
+        "probability_m_ge_46": 0.98396
+      },
+      {
+        "representative_trigger_rate": 0.125,
+        "probability_m_ge_46": 0.99827
+      },
+      {
+        "representative_trigger_rate": 0.15,
+        "probability_m_ge_46": 0.999856
+      }
+    ],
+    "normal_approximation_power": [
+      {
+        "representative_trigger_rate": 0.08,
+        "conditional_standardized_effect": 0.4,
+        "selector_failure_rate": 0.05,
+        "power": 0.831
+      },
+      {
+        "representative_trigger_rate": 0.08,
+        "conditional_standardized_effect": 0.5,
+        "selector_failure_rate": 0.05,
+        "power": 0.9357
+      },
+      {
+        "representative_trigger_rate": 0.1,
+        "conditional_standardized_effect": 0.4,
+        "selector_failure_rate": 0.05,
+        "power": 0.8468
+      },
+      {
+        "representative_trigger_rate": 0.125,
+        "conditional_standardized_effect": 0.4,
+        "selector_failure_rate": 0.05,
+        "power": 0.8648
+      }
+    ],
+    "power_model": "Trigger indicator is Bernoulli; nontrigger and failed-selector deltas are zero; triggered successful deltas have unit variance and stated standardized mean; one-sided normal lower-bound approximation at alpha 0.05.",
+    "blocking_before_statistical_freeze": [
+      "utility-unit delta_min",
+      "stratified bootstrap simulation matching the final estimator",
+      "provider attempt and token budget",
+      "new-frame trigger-rate verification without threshold changes"
+    ]
+  }
+}
