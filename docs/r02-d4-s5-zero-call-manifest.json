@@ -1,0 +1,98 @@
+{
+  "authorization_boundary": {
+    "approved": "PROVIDER_FREE_EXECUTION_PREFLIGHT_AND_LIVE_GATE_FREEZE_AUTHORING_ONLY",
+    "codex_exec_authorized": false,
+    "live_authorization_created": false,
+    "live_execution_authorized": false,
+    "provider_calls_authorized": false,
+    "retry_or_replacement_authorized": false,
+    "s4_commit_push_completed": true,
+    "s5_commit_push_authorized": false
+  },
+  "base_commit": "f81909f82f3641da4b89d1e04bc0705b178f5a59",
+  "capability_accounting": {
+    "codex_exec_help_invocations": 1,
+    "codex_exec_invocations": 0,
+    "commit_created_for_s5": false,
+    "frame_generation": false,
+    "frame_scan": false,
+    "live_execution": false,
+    "local_identity_command_invocations": 5,
+    "micro_pilot_executed": false,
+    "provider_calls": 0,
+    "push_performed_for_s5": false,
+    "replacement_count": 0,
+    "retry_count": 0
+  },
+  "date": "2026-07-18",
+  "evidence_identity": {
+    "d3_posthoc_sha256": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "d3_verdict": "SUPPORTED",
+    "d3_verdict_modified_or_reclassified": false,
+    "s2a_frame_tree_sha256": "65c0acc67c2987997d3dfac8ce4fb861ddf4f439e7a4ce59c1eab79ac5d6ea29",
+    "s3_statistical_freeze_sha256": "3538c09ffedd95f946a448ae298e04cad1cf933a99ff767b58472c4285c6b449",
+    "s4_provider_budget_sha256": "722eb1aee9e115c76990387f7baf8a19dbfd66226ebaae4060acf29f1bf74e70"
+  },
+  "execution_contract": {
+    "aggregate_token_cap": 2208000,
+    "eligible_attempts": 69,
+    "execution_plan_sha256": "a5e461a74a594a7f54a4751c8cb330ab4032c23ce25bdcbbd0dda6599c6af7d1",
+    "fail_closed_attempt_cap": 6,
+    "fail_closed_rate_cap_ppm": 86956,
+    "live_authorization": "NOT_AUTHORIZED",
+    "micro_pilot_attempts": 0,
+    "per_attempt_timeout_ms": 900000,
+    "replacement_cap": 0,
+    "retry_cap": 0
+  },
+  "focused_tests": {
+    "collected_count": 121,
+    "manifest_sha256": "5252ee06f1f1cb588d703292a2ccb2ffc484d11ab98eb4344fc9b0eaf460a07d",
+    "result": "121 passed in 136.63s",
+    "test_list_and_count_pinned": true,
+    "test_source_hashes_pinned": true
+  },
+  "identity_preflight": {
+    "capture_count": 5,
+    "capture_summary_sha256": "6cb79e5f61d68032a4565a2eec66b6083bd34a4b69a6164c38da07d9f8ae7b23",
+    "identity_matches_d3": true,
+    "identity_snapshot_sha256": "248f3683db276d45f275b5a2c236bc02909f6b7bf1be4ff56f6886573b2df5dc",
+    "provider_free_allowlist_only": true,
+    "status": "PASS_D3_EXECUTION_IDENTITY_REVALIDATED_PROVIDER_FREE"
+  },
+  "outcome_access": {
+    "individual_provider_outputs_accessed": false,
+    "provider_calls_used": 0,
+    "selector_outcomes_accessed": false,
+    "utility_outcomes_accessed": false
+  },
+  "protected_artifact_root_after": {
+    "child_root_count": 11,
+    "file_count": 3687,
+    "total_bytes": 51050083,
+    "tree_hash_method": "r02_d3_preflight._filesystem_tree",
+    "tree_sha256": "692ced9177f71cbe1af45a8f3ce06b7ec1c690fba87a8c7de254a1dfc834f891"
+  },
+  "protected_artifact_root_before": {
+    "child_root_count": 11,
+    "file_count": 3687,
+    "total_bytes": 51050083,
+    "tree_hash_method": "r02_d3_preflight._filesystem_tree",
+    "tree_sha256": "692ced9177f71cbe1af45a8f3ce06b7ec1c690fba87a8c7de254a1dfc834f891"
+  },
+  "protected_child_checks": {
+    "all_11_child_roots_unchanged": true,
+    "d3_successor_tree_sha256": "b3cc74da593975865cd42087bb18bdc3f82d1c5666df5d98c5eb8ff92119dbea",
+    "quarantined_s2_tree_sha256": "2f15d7c9f0ff2e3e2314714a00384e110c45b0c468586c7f567aec0e7524d132",
+    "sealed_s2a_tree_sha256": "65c0acc67c2987997d3dfac8ce4fb861ddf4f439e7a4ce59c1eab79ac5d6ea29"
+  },
+  "schema_version": "r02-d4-s5-zero-call-manifest-v1",
+  "source_hashes": {
+    "execution_identity_snapshot_sha256": "248f3683db276d45f275b5a2c236bc02909f6b7bf1be4ff56f6886573b2df5dc",
+    "focused_test_source_sha256": "0b6b8b6a9487580426b7c1e636a395e84af79053c7d5973bc3aa960b308711af",
+    "live_gate_markdown_sha256": "a13087898bc7177dbdd254c2885d727e5b7873a638ba1300bb6a1b270350a94b",
+    "live_gate_source_sha256": "e22096aa5c8370a0c34dc488cfbc370cd8d425b1da7f2b487865741768942084",
+    "live_gate_verifier_script_sha256": "c467785ec61ab5d8aa8a4ba4e96ebe8e69a449531183ce41abc412eb49e5a267"
+  },
+  "status": "ZERO_CALL_BOUNDARY_CONFIRMED_S5_EXECUTION_PREFLIGHT_LIVE_GATE_DRAFT"
+}

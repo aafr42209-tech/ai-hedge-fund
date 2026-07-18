@@ -1,0 +1,74 @@
+{
+  "base_commit": "f81909f82f3641da4b89d1e04bc0705b178f5a59",
+  "capture_count": 5,
+  "capture_summary_sha256": "6cb79e5f61d68032a4565a2eec66b6083bd34a4b69a6164c38da07d9f8ae7b23",
+  "captures": [
+    {
+      "argv_sha256": "c0d508ab2caf444d1d55d4d746ebbfa59f754e6d08b958ac86995f6bf1615c9d",
+      "exit_code": 0,
+      "label": "version",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "94a47f9404ab2a59e43382c7fb34fcdf97deb3fb10ca762aac23daa699f0db5c"
+    },
+    {
+      "argv_sha256": "612329d2f560e800a7f5a0f77d0bd793973a08f7231fe8ab3605f76c8192a25f",
+      "exit_code": 0,
+      "label": "login_status",
+      "stderr_sha256": "16118df3eb3595e44a4721878cef0f79910e6564e10ff0e78e451e7c4e478947",
+      "stdout_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+    },
+    {
+      "argv_sha256": "7f607c83a5617c7ab6ce88d671d61b0d5559e148a7d82b2241301900595f471f",
+      "exit_code": 0,
+      "label": "baseline_features",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "d3d16f7d0639ce0b8fdce02078b0af7f2b8e9cc1476aa55e91b3ce83c1768afa"
+    },
+    {
+      "argv_sha256": "83ef5528cad3ac51d9d4fbc720c15bdc1492a94dedcbb7bbdbd30409ec6bf0f5",
+      "exit_code": 0,
+      "label": "post_disable_features",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "662c755fa3e6d3edc2b0f9cd616e4bf17517c654c3d930c0159f9f1c41a6d2fa"
+    },
+    {
+      "argv_sha256": "29a6fc3878faaa91bb6f6c46f3108bee6004f89ef2ba19c8645ad701df2c8c3f",
+      "exit_code": 0,
+      "label": "exec_help",
+      "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855",
+      "stdout_sha256": "9f86f0115238ddde2514587e5f95b0ab0aa6b89495e5912878d49ad26038aa19"
+    }
+  ],
+  "codex_exec_invocations": 0,
+  "date": "2026-07-18",
+  "execution_identity": {
+    "authentication_mode": "ChatGPT",
+    "codex_cli_version": "codex-cli 0.144.1",
+    "executable_path": "C:\\Users\\User\\AppData\\Roaming\\npm\\node_modules\\@openai\\codex\\node_modules\\@openai\\codex-win32-x64\\vendor\\x86_64-pc-windows-msvc\\bin\\codex.exe",
+    "executable_sha256": "cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4",
+    "feature_catalog_sha256": "14b554bd29e409dd348878c18ad8b0820a1165772039bb839b538dca03956aad",
+    "feature_definition_sha256": "aa86f33bf40be81c79fdcbc6254b8162bf9d081b5ff1a7634f669223fea1d530",
+    "post_disable_active_features": [
+      "resize_all_images",
+      "terminal_resize_reflow",
+      "tool_search_always_defer_mcp_tools",
+      "tui_app_server"
+    ],
+    "provider": "openai-codex-chatgpt-subscription",
+    "reasoning_effort": "high",
+    "requested_model_id": "gpt-5.6-sol",
+    "response_schema_sha256": "5466a24d3557e28251cb1393dac16e1049824637a27b969f3bea55c80ebc2eca",
+    "system_prompt_sha256": "139d5baa9277fd0095619829a4c8fcaed209ebde6cb18d3d78389619b693b358",
+    "user_prompt_template_sha256": "5011d5dd4bdd25e252c068f70f0ddf9f4dd83ce30f8f3f3130b125b8e91bb9dc",
+    "web_search": false
+  },
+  "identity_matches_d3": true,
+  "live_execution": false,
+  "local_identity_command_invocations": 5,
+  "micro_pilot_executed": false,
+  "provider_calls": 0,
+  "schema_version": "r02-d4-s5-execution-identity-snapshot-v1",
+  "sealed_d3_live_gate_sha256": "b650b8379d36292eaafd1d2df29f0f400df486da94d8c8e74f22348db2cd7b07",
+  "sealed_d3_preregistration_sha256": "5e07d88e98e74f67a1377020ca8c19c6fada51756ebddd902706a1680eeb27d4",
+  "status": "PASS_D3_EXECUTION_IDENTITY_REVALIDATED_PROVIDER_FREE"
+}
