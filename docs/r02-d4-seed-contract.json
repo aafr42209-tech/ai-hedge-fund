@@ -1,0 +1,77 @@
+{
+  "schema_version": "r02-d4-frame-seed-contract-draft-v1",
+  "status": "UNRESOLVED_DRAFT_NO_SEED_CREATED",
+  "date": "2026-07-18",
+  "outcome_independent": true,
+  "provider_calls": 0,
+  "frame_generation": false,
+  "frame_scan": false,
+  "live_execution": false,
+  "algorithm": "SHA256_CANONICAL_JSON_FULL_DIGEST_HEX",
+  "domain": "R02-D4-EXACT-REPLICATION-FRAME-SEED-V1",
+  "seed_slot": 0,
+  "preimage_template": {
+    "domain": "R02-D4-EXACT-REPLICATION-FRAME-SEED-V1",
+    "accepted_design_commit": null,
+    "accepted_design_manifest_sha256": null,
+    "candidate_generator_source_sha256": "29c13547230d1729d8b9cec637ccb13335fbcae52c1360e63718359d993a320e",
+    "fixture_generator_source_sha256": "732ca6ff358590edd856ba68bcb6cefb612246da9d81b97aa08d12db786eabfe",
+    "r02_d1_freeze_sha256": "2d5961806b5051ff56c874b8b05933df014136bacb98717c4846f2b48f645778",
+    "r02_d1_manifest_sha256": "81026cdd1ab83fe7f0cea30951cf8cb1351dca6150d9aaecbfa696d932bbdeaf",
+    "generator_config_sha256": null,
+    "total_n": 200,
+    "representative_n": 150,
+    "challenge_n": 50,
+    "seed_slot": 0,
+    "coordinator_nonce_commitment_sha256": null,
+    "reviewer_nonce_commitment_sha256": null,
+    "coordinator_nonce_reveal_hex": null,
+    "reviewer_nonce_reveal_hex": null
+  },
+  "resolution_protocol": [
+    "INDEPENDENT_REVIEW_ACCEPTS_DESIGN_AND_PINS_DESIGN_COMMIT_AND_MANIFEST",
+    "SEPARATE_USER_AUTHORIZATION_ALLOWS_SEED_RESOLUTION_AND_FRAME_GENERATION",
+    "COORDINATOR_COMMITS_SHA256_OF_32_BYTE_CSPRNG_NONCE_BEFORE_REVIEWER_REVEAL",
+    "REVIEWER_COMMITS_SHA256_OF_INDEPENDENT_32_BYTE_CSPRNG_NONCE",
+    "BOTH_NONCES_REVEALED_EXACTLY_ONCE_AND_MATCH_PRIOR_COMMITMENTS",
+    "CANONICAL_PREIMAGE_HASHED_ONCE_FOR_SEED_SLOT_ZERO",
+    "NO_SCAN_BEFORE_ACCEPTED_SEED_ARTIFACT_IS_SEALED"
+  ],
+  "forbidden_preimage_sources": [
+    "R02_D3_FIXTURE_IDS",
+    "R02_D3_INDIVIDUAL_DELTAS",
+    "R02_D3_UTILITIES",
+    "R02_D3_RANKS_OR_INFLUENCE_ORDER",
+    "R02_D3_PROVIDER_OUTPUTS",
+    "ANY_D4_FRAME_OR_SCAN_RESULT",
+    "ANY_SEED_FITNESS_OR_OUTCOME_SCORE"
+  ],
+  "single_use_rules": {
+    "alternate_seed_slots": 0,
+    "seed_retry_cap": 0,
+    "seed_replacement_cap": 0,
+    "rejected_seed_retention": "ABORT_WITH_NO_FRAME_AND_NEWLY_NAMED_REVIEW_REQUIRED",
+    "scan_before_acceptance": false
+  },
+  "unresolved_fields_are_intentional": true,
+  "resolved_frame_seed_sha256": null,
+  "resolved_frame_id": null,
+  "frame_seed_created": false,
+  "evaluation_seed_templates": {
+    "primary_bootstrap_domain": "R02-D4-PRIMARY-BOOTSTRAP-SEED-V1",
+    "parsimony_bootstrap_domain": "R02-D4-PARSIMONY-BOOTSTRAP-SEED-V1",
+    "incremental_bootstrap_domain": "R02-D4-INCREMENTAL-BOOTSTRAP-SEED-V1",
+    "robustness_bootstrap_domain": "R02-D4-ROBUSTNESS-BOOTSTRAP-SEED-V1",
+    "preimage_fields": [
+      "domain",
+      "accepted_design_commit",
+      "accepted_statistical_freeze_sha256",
+      "sealed_frame_manifest_sha256",
+      "bootstrap_resamples",
+      "bit_generator"
+    ],
+    "outcomes_allowed_in_preimage": false,
+    "resolved_only_after_frame_seal_and_before_live_outcomes": true
+  },
+  "authorization": "DRAFT_CONTRACT_ONLY_NO_SEED_OR_FRAME_AUTHORIZATION"
+}

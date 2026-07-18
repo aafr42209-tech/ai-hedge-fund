@@ -1,0 +1,159 @@
+{
+  "schema_version": "r02-d4-replication-design-draft-v1",
+  "status": "DRAFT_PENDING_INDEPENDENT_REVIEW_AND_USER_ACCEPTANCE",
+  "date": "2026-07-18",
+  "provider_calls": 0,
+  "frame_generation": false,
+  "frame_scan": false,
+  "micro_pilot": false,
+  "live_execution": false,
+  "live_authorization_artifact_created": false,
+  "retry_or_replacement": false,
+  "git": {
+    "repository": "C:\\Users\\User\\Desktop\\ai-hedge-fund-fresh",
+    "branch": "codex/llm-overlay-research-01",
+    "design_base_head": "ad8857b74a2276b9eb4248801b156a8e08d88742",
+    "upstream_sync_at_start": "0/0",
+    "worktree_clean_at_start": true
+  },
+  "precondition_verification": {
+    "posthoc_verify_existing_passed": true,
+    "posthoc_sha256_before": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "posthoc_sha256_after": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "focused_tests_passed": 9,
+    "drift_detected": false
+  },
+  "sealed_r02_d3": {
+    "run_id": "r02-d3-successor-84750652-20260718",
+    "verdict": "SUPPORTED",
+    "verdict_immutable": true,
+    "theta_system_e12": 92928891,
+    "bootstrap_lower_e12": 51470259,
+    "bootstrap_upper_e12": 138094263,
+    "delta_min_e12": 50000000,
+    "lower_margin_e12": 1470259,
+    "eligible_paired_fixtures": 55,
+    "llm_parsimony_agreement": "55/55",
+    "provider_free_posthoc_sha256": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73"
+  },
+  "scientific_priority": {
+    "confirmatory_question": "DOES_THE_ACCEPTED_R02_SYSTEM_VS_BASELINE_EFFECT_REPLICATE_ON_AN_OUTCOME_INDEPENDENT_NEW_FRAME",
+    "secondary_question": "DOES_THE_DETERMINISTIC_PARSIMONY_SELECTOR_OUTPERFORM_THE_SAME_BASELINE",
+    "mechanism_question": "DOES_THE_LLM_ADD_INCREMENTAL_UTILITY_OVER_PARSIMONY",
+    "expectation_management": "EXACT_GENERATOR_REPLICATION_MAY_REPEAT_100_PERCENT_AGREEMENT_AND_NOT_IDENTIFIED_IS_AN_EXPECTED_VALID_MECHANISM_RESULT_NOT_A_FAILED_REPLICATION"
+  },
+  "exact_replication": {
+    "baseline_unchanged": true,
+    "trigger_semantics_unchanged": true,
+    "candidate_generator_unchanged": true,
+    "candidate_generator_source_sha256": "29c13547230d1729d8b9cec637ccb13335fbcae52c1360e63718359d993a320e",
+    "fixture_generator_source_sha256": "732ca6ff358590edd856ba68bcb6cefb612246da9d81b97aa08d12db786eabfe",
+    "opaque_permutation_unchanged": true,
+    "itt_zero_contribution_rule": "TRIGGER_FALSE_NO_CALL_INVALID_RESPONSE_AND_BASELINE_FALLBACK_ALL_D_EQ_0",
+    "representative_weight_numerator": 3,
+    "challenge_weight_numerator": 1,
+    "weight_denominator": 4,
+    "delta_min_e12": 50000000,
+    "delta_target_e12": 100000000
+  },
+  "sizing": {
+    "grid_n": [160, 200, 240],
+    "draft_selected_n": 200,
+    "representative_n": 150,
+    "challenge_n": 50,
+    "m_min": 57,
+    "m_min_exact_probability_ppm": 943424,
+    "estimated_power_target_ppm": 850000,
+    "wilson_lower_power_target_ppm": 800000,
+    "low_snr_bps": 8000,
+    "selection_rule": "SMALLEST_N_GE_200_PASSING_BOTH_RAW_8000_BPS_SIZING_SCENARIOS",
+    "power_report": "docs/r02-d4-prospective-power-sizing.json"
+  },
+  "estimands": [
+    {
+      "id": "PRIMARY_REPLICATION",
+      "contrast": "LLM_SELECTED_SYSTEM_MINUS_DETERMINISTIC_BASELINE",
+      "confirmatory": true
+    },
+    {
+      "id": "DETERMINISTIC_POLICY",
+      "contrast": "PARSIMONY_SELECTED_SYSTEM_MINUS_DETERMINISTIC_BASELINE",
+      "confirmatory": false
+    },
+    {
+      "id": "INCREMENTAL_LLM",
+      "contrast": "LLM_SELECTED_UTILITY_MINUS_PARSIMONY_SELECTED_UTILITY",
+      "confirmatory": false
+    },
+    {
+      "id": "AGREEMENT",
+      "contrast": "CANDIDATE_ID_AGREEMENT_RATE_AND_DISCORDANT_COUNT",
+      "confirmatory": false
+    }
+  ],
+  "replication_label_precedence": [
+    "INVALID_RUN",
+    "INCONCLUSIVE_LOW_INFORMATION",
+    "REPLICATION_NOT_SUPPORTED",
+    "REPLICATION_SUPPORTED_ROBUST",
+    "REPLICATION_SUPPORTED_FRAGILE"
+  ],
+  "robust_requirements": {
+    "unmodified_lower_margin_min_e12": 5000000,
+    "maximum_absolute_single_fixture_theta_shift_ppm_of_absolute_unmodified_theta": 100000,
+    "all_single_fixture_zero_nullifications_lower_gt_delta_min": true,
+    "all_literal_leave_one_out_lower_gt_delta_min": true,
+    "winsor_5_percent_lower_gt_delta_min": true,
+    "winsor_10_percent_lower_gt_delta_min": true
+  },
+  "deterministic_policy_labels": {
+    "m_below_57": "PARSIMONY_POLICY_INCONCLUSIVE_LOW_INFORMATION",
+    "lower_gt_delta_min": "PARSIMONY_POLICY_SUPPORTED",
+    "otherwise": "PARSIMONY_POLICY_NOT_SUPPORTED",
+    "can_replace_primary_label": false
+  },
+  "incremental_labels": {
+    "minimum_discordant_total": 20,
+    "minimum_discordant_per_stratum": 5,
+    "below_minimum": "NOT_IDENTIFIED_REDUNDANT_SELECTOR",
+    "lower_gt_zero": "INCREMENTAL_LLM_SUPPORTED",
+    "upper_lt_zero": "INCREMENTAL_LLM_HARM",
+    "otherwise": "INCREMENTAL_LLM_INCONCLUSIVE"
+  },
+  "parsimony_comparator": {
+    "policy": "MIN_NON_HOLD_ACTION_COUNT_THEN_MIN_TOTAL_ABSOLUTE_QUANTITY_THEN_CANONICAL_ID",
+    "source": "v2/research/overlay/r02_d4_design.py",
+    "test_vectors": "docs/r02-d4-parsimony-test-vectors.json",
+    "outcome_blind": true,
+    "role_blind": true,
+    "presentation_order_blind": true
+  },
+  "seed_contract": {
+    "path": "docs/r02-d4-seed-contract.json",
+    "status": "UNRESOLVED_DRAFT_NO_SEED_CREATED",
+    "outcome_independent": true,
+    "uses_r02_d3_individual_outcomes": false
+  },
+  "provider_budget_formula_for_later_review": {
+    "numeric_cap_finalized": false,
+    "provider_attempt_cap": "SEALED_ELIGIBLE_EPISODE_COUNT",
+    "per_episode_attempt_cap": 1,
+    "retry_attempt_cap": 0,
+    "replacement_cap": 0,
+    "per_attempt_token_reserve": 32000,
+    "token_cap": "SEALED_ELIGIBLE_EPISODE_COUNT_TIMES_32000"
+  },
+  "deferred_mechanism_study": {
+    "separate_future_study": true,
+    "ambiguity_engineered_candidates_allowed_in_d4": false,
+    "shares_d4_verdict": false
+  },
+  "authorization": {
+    "frame_generation_authorized": false,
+    "provider_calls_authorized": false,
+    "micro_pilot_authorized": false,
+    "live_execution_authorized": false,
+    "live_authorization_artifact_authorized": false,
+    "commit_or_push_authorized": false
+  }
+}

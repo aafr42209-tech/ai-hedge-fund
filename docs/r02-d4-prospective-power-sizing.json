@@ -1,0 +1,96 @@
+{
+  "schema_version": "r02-d4-prospective-power-sizing-draft-v1",
+  "status": "DRAFT_PENDING_INDEPENDENT_REVIEW_AND_USER_ACCEPTANCE",
+  "date": "2026-07-18",
+  "provider_calls": 0,
+  "frame_generation": false,
+  "frame_scan": false,
+  "live_execution": false,
+  "calculation_source": "v2/research/overlay/r02_d4_design.py",
+  "calculation_source_sha256": "56cfb806c79baa768524c76c655907bc55934d421c0566740ee0f9c75e9ea4d6",
+  "simulation_seed_sha256": "c8657b4b17650dff88c96f9695aa3ca69623817c04b876413e77d96347f9d25e",
+  "outer_trials": 1000,
+  "bootstrap_resamples_per_trial": 2000,
+  "bit_generator": "PCG64",
+  "targets": {
+    "estimated_power_ppm": 850000,
+    "wilson_lower_power_ppm": 800000,
+    "opportunity_probability_ppm": 900000,
+    "low_snr_bps": 8000
+  },
+  "accepted_frozen_reference": {
+    "source": "docs/r02-d2c-statistical-freeze.json",
+    "source_sha256": "45a68aacde0135a4f5e446f1022406d35e24346b23df1bc7e4db78889c6e12b9",
+    "scenarios": [
+      {
+        "scenario_id": "n160-design-worst",
+        "estimated_power_ppm": 857000,
+        "wilson_lower_power_ppm": 833935
+      },
+      {
+        "scenario_id": "n160-low-snr-sensitivity",
+        "estimated_power_ppm": 790000,
+        "wilson_lower_power_ppm": 763669
+      },
+      {
+        "scenario_id": "n200-low-snr-sensitivity",
+        "estimated_power_ppm": 874000,
+        "wilson_lower_power_ppm": 851990
+      }
+    ]
+  },
+  "aggregate_motivation_only": {
+    "posthoc_source_sha256": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "individual_d3_deltas_replayed": false,
+    "challenge_bias_corrected_skew_decimal": "1.4713429511457332",
+    "challenge_excess_kurtosis_decimal": "3.1961198790942857",
+    "gamma_shape_decimal": "1.85",
+    "d3_narrow_lower_margin_e12": 1470259,
+    "d3_most_influential_fixture_not_used_for_sampling": "development-0189",
+    "d3_5_percent_winsor_supported": true,
+    "d3_10_percent_winsor_supported": false
+  },
+  "opportunity_grid": [
+    {
+      "total_n": 160,
+      "representative_n": 120,
+      "challenge_n": 40,
+      "m_min": 46,
+      "exact_probability_ppm": 900568
+    },
+    {
+      "total_n": 200,
+      "representative_n": 150,
+      "challenge_n": 50,
+      "m_min": 57,
+      "exact_probability_ppm": 943424
+    },
+    {
+      "total_n": 240,
+      "representative_n": 180,
+      "challenge_n": 60,
+      "m_min": 69,
+      "exact_probability_ppm": 935090
+    }
+  ],
+  "scenario_results": [
+    {"scenario_id":"n160-bounded-low-snr","total_n":160,"distribution":"BOUNDED_TWO_POINT_ZERO_OR_HIGH","winsor_fraction_ppm":0,"supported_trials":768,"estimated_power_ppm":768000,"wilson_lower_power_ppm":740842,"wilson_upper_power_ppm":793107,"sizing_gate":true,"passes_targets":false},
+    {"scenario_id":"n160-gamma-heavy-tail-low-snr","total_n":160,"distribution":"CENTERED_GAMMA_HEAVY_RIGHT_TAIL","winsor_fraction_ppm":0,"supported_trials":799,"estimated_power_ppm":799000,"wilson_lower_power_ppm":773039,"wilson_upper_power_ppm":822673,"sizing_gate":true,"passes_targets":false},
+    {"scenario_id":"n160-gamma-heavy-tail-low-snr-winsor-05pct","total_n":160,"distribution":"CENTERED_GAMMA_HEAVY_RIGHT_TAIL","winsor_fraction_ppm":50000,"supported_trials":568,"estimated_power_ppm":568000,"wilson_lower_power_ppm":537096,"wilson_upper_power_ppm":598384,"sizing_gate":false,"passes_targets":false},
+    {"scenario_id":"n160-gamma-heavy-tail-low-snr-winsor-10pct","total_n":160,"distribution":"CENTERED_GAMMA_HEAVY_RIGHT_TAIL","winsor_fraction_ppm":100000,"supported_trials":433,"estimated_power_ppm":433000,"wilson_lower_power_ppm":402604,"wilson_upper_power_ppm":463909,"sizing_gate":false,"passes_targets":false},
+    {"scenario_id":"n200-bounded-low-snr","total_n":200,"distribution":"BOUNDED_TWO_POINT_ZERO_OR_HIGH","winsor_fraction_ppm":0,"supported_trials":871,"estimated_power_ppm":871000,"wilson_lower_power_ppm":848796,"wilson_upper_power_ppm":890365,"sizing_gate":true,"passes_targets":true},
+    {"scenario_id":"n200-gamma-heavy-tail-low-snr","total_n":200,"distribution":"CENTERED_GAMMA_HEAVY_RIGHT_TAIL","winsor_fraction_ppm":0,"supported_trials":890,"estimated_power_ppm":890000,"wilson_lower_power_ppm":869095,"wilson_upper_power_ppm":907921,"sizing_gate":true,"passes_targets":true},
+    {"scenario_id":"n200-gamma-heavy-tail-low-snr-winsor-05pct","total_n":200,"distribution":"CENTERED_GAMMA_HEAVY_RIGHT_TAIL","winsor_fraction_ppm":50000,"supported_trials":652,"estimated_power_ppm":652000,"wilson_lower_power_ppm":621946,"wilson_upper_power_ppm":680891,"sizing_gate":false,"passes_targets":false},
+    {"scenario_id":"n200-gamma-heavy-tail-low-snr-winsor-10pct","total_n":200,"distribution":"CENTERED_GAMMA_HEAVY_RIGHT_TAIL","winsor_fraction_ppm":100000,"supported_trials":548,"estimated_power_ppm":548000,"wilson_lower_power_ppm":517028,"wilson_upper_power_ppm":578604,"sizing_gate":false,"passes_targets":false},
+    {"scenario_id":"n240-bounded-low-snr","total_n":240,"distribution":"BOUNDED_TWO_POINT_ZERO_OR_HIGH","winsor_fraction_ppm":0,"supported_trials":919,"estimated_power_ppm":919000,"wilson_lower_power_ppm":900443,"wilson_upper_power_ppm":934350,"sizing_gate":true,"passes_targets":true},
+    {"scenario_id":"n240-gamma-heavy-tail-low-snr","total_n":240,"distribution":"CENTERED_GAMMA_HEAVY_RIGHT_TAIL","winsor_fraction_ppm":0,"supported_trials":944,"estimated_power_ppm":944000,"wilson_lower_power_ppm":927977,"wilson_upper_power_ppm":956625,"sizing_gate":true,"passes_targets":true},
+    {"scenario_id":"n240-gamma-heavy-tail-low-snr-winsor-05pct","total_n":240,"distribution":"CENTERED_GAMMA_HEAVY_RIGHT_TAIL","winsor_fraction_ppm":50000,"supported_trials":712,"estimated_power_ppm":712000,"wilson_lower_power_ppm":683164,"wilson_upper_power_ppm":739213,"sizing_gate":false,"passes_targets":false},
+    {"scenario_id":"n240-gamma-heavy-tail-low-snr-winsor-10pct","total_n":240,"distribution":"CENTERED_GAMMA_HEAVY_RIGHT_TAIL","winsor_fraction_ppm":100000,"supported_trials":609,"estimated_power_ppm":609000,"wilson_lower_power_ppm":578394,"wilson_upper_power_ppm":638772,"sizing_gate":false,"passes_targets":false}
+  ],
+  "sizing_gate_pass_by_n": {"160":false,"200":true,"240":true},
+  "selection_rule": "SMALLEST_N_GE_200_PASSING_ESTIMATED_POWER_850000_AND_WILSON_LOWER_800000_IN_BOTH_8000_BPS_RAW_SIZING_SCENARIOS",
+  "draft_selected_n": 200,
+  "draft_selected_m_min": 57,
+  "winsor_scenarios_are_diagnostic_not_primary": true,
+  "interpretation": "N200_IS_THE_SMALLEST_PASSING_RAW_LOW_SNR_SIZE; LOW_WINSORIZED_POWER_ANTICIPATES_FRAGILITY_AND_DOES_NOT_REPLACE_THE_PRIMARY_TEST"
+}

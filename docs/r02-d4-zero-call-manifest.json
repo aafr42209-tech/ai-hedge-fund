@@ -1,0 +1,100 @@
+{
+  "schema_version": "r02-d4-zero-call-design-manifest-v1",
+  "status": "PROVIDER_FREE_DRAFT_COMPLETE_PENDING_INDEPENDENT_REVIEW",
+  "date": "2026-07-18",
+  "scope": "DESIGN_ONLY_NO_FRAME_NO_PROVIDER_NO_LIVE",
+  "git": {
+    "repository": "C:\\Users\\User\\Desktop\\ai-hedge-fund-fresh",
+    "branch": "codex/llm-overlay-research-01",
+    "design_base_head": "ad8857b74a2276b9eb4248801b156a8e08d88742",
+    "upstream_sync_at_start": "0/0",
+    "worktree_clean_before_drafting": true,
+    "commit_created": false,
+    "push_performed": false
+  },
+  "assertions": {
+    "provider_calls": 0,
+    "codex_exec_invocations": 0,
+    "frame_seed_created": false,
+    "frame_generation": false,
+    "frame_scan": false,
+    "micro_pilot_executed": false,
+    "live_execution": false,
+    "live_authorization_artifact_created": false,
+    "retry_or_replacement": false,
+    "new_audit_root_created": false,
+    "r02_d3_sealed_evidence_modified": false,
+    "r02_d3_supported_verdict_modified": false,
+    "ambiguity_engineered_mechanism_study_started": false
+  },
+  "precondition_gates": {
+    "posthoc_verify_existing_passed": true,
+    "posthoc_sha256_before": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "posthoc_sha256_after": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "original_focused_tests_passed": 9,
+    "drift_detected": false
+  },
+  "protected_artifact_root_before": {
+    "captured_utc": "2026-07-18T05:32:10.275Z",
+    "file_count": 3284,
+    "total_bytes": 49269991,
+    "tree_sha256": "3a7ed6ede78176affb13a2b49590ecfe49d5a7156a0c2467d4302021345c7279",
+    "tree_hash_method": "v2.research.overlay.r02_d3_preflight._filesystem_tree",
+    "direct_child_directories": [
+      "r01-b3-1f65106",
+      "r01-b3-af8381f",
+      "r01-b3-bcc3dbc",
+      "r01-b3-f403e1a",
+      "r02-d2c-frame-53be0c4bb060",
+      "r02-d3-live-a779a6b7-20260718",
+      "r02-d3-live-gate-b650b8379d36",
+      "r02-d3-preflight-5e07d88e98e7",
+      "r02-d3-successor-84750652-20260718"
+    ]
+  },
+  "protected_artifact_root_after": {
+    "captured_utc": "2026-07-18T05:46:32.801Z",
+    "file_count": 3284,
+    "total_bytes": 49269991,
+    "tree_sha256": "3a7ed6ede78176affb13a2b49590ecfe49d5a7156a0c2467d4302021345c7279",
+    "tree_hash_method": "v2.research.overlay.r02_d3_preflight._filesystem_tree",
+    "direct_child_directories": [
+      "r01-b3-1f65106",
+      "r01-b3-af8381f",
+      "r01-b3-bcc3dbc",
+      "r01-b3-f403e1a",
+      "r02-d2c-frame-53be0c4bb060",
+      "r02-d3-live-a779a6b7-20260718",
+      "r02-d3-live-gate-b650b8379d36",
+      "r02-d3-preflight-5e07d88e98e7",
+      "r02-d3-successor-84750652-20260718"
+    ]
+  },
+  "protected_artifact_root_unchanged": true,
+  "design_artifacts": [
+    {"path":"docs/r02-d4-replication-design.md","sha256":"b8356c70f35ae2a6663acad57a5a346b5d5dfbe2b237433d38578b41b86b935c"},
+    {"path":"docs/r02-d4-replication-design.json","sha256":"784f47a8fa19a679f1048269810604a9164081a1676ffe4c04ccb4d959e0a900"},
+    {"path":"docs/r02-d4-seed-contract.json","sha256":"7b670cc9613a16e6f170b613a3b05a24529699c379bad14cad911736e34792fa"},
+    {"path":"docs/r02-d4-prospective-power-sizing.json","sha256":"9df82bc59865de6856cf2417925e771a4afc2142baaae912a853b0ad0f01be17"},
+    {"path":"docs/r02-d4-parsimony-test-vectors.json","sha256":"a304d36b31b570e7ae28a0a9ec89d4e8c7e2ef1ec0eda5b8c854b40e85f4ea77"},
+    {"path":"v2/research/overlay/r02_d4_design.py","sha256":"56cfb806c79baa768524c76c655907bc55934d421c0566740ee0f9c75e9ea4d6"},
+    {"path":"v2/research/overlay/test_r02_d4_design.py","sha256":"d82f1839a53d9f7a17aa81c002cf7422a83ce4c4b689cd29e83eac6f66905d15"},
+    {"path":"scripts/r02_d4_design_verify.py","sha256":"0c6ca2915b5885d1c6a1c2b32c1c7618af95de8e628de11dd17f3ace1ee1c86b"}
+  ],
+  "validation": {
+    "d4_focused_tests_passed": 12,
+    "read_only_design_verifier": "PASS_PROVIDER_FREE_DRAFT_REPRODUCED",
+    "power_scenarios_reproduced": 12,
+    "parsimony_positive_vectors_reproduced": 8,
+    "power_draft_selected_n": 200,
+    "power_draft_selected_m_min": 57,
+    "frame_seed_status": "UNRESOLVED_DRAFT_NO_SEED_CREATED",
+    "source_capability_audit": "NO_PROVIDER_NETWORK_PROCESS_OR_FRAME_IMPORTS"
+  },
+  "review_handoff": {
+    "path": "docs/r02-d4-replication-design-review-handoff.md",
+    "included_in_manifest_self_hash_set": false,
+    "reason": "HANDOFF_HASHES_THIS_MANIFEST_AND_IS_INTENTIONALLY_NOT_SELF_HASHED"
+  },
+  "authorization": "NO_FRAME_NO_PROVIDER_NO_LIVE_NO_COMMIT_NO_PUSH"
+}

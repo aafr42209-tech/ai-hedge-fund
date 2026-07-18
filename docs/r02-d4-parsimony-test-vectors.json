@@ -1,0 +1,29 @@
+{
+  "schema_version": "r02-d4-parsimony-test-vectors-v1",
+  "status": "DRAFT_PENDING_INDEPENDENT_REVIEW_AND_USER_ACCEPTANCE",
+  "provider_calls": 0,
+  "frame_generation": false,
+  "live_execution": false,
+  "policy": "MIN_NON_HOLD_ACTION_COUNT_THEN_MIN_TOTAL_ABSOLUTE_QUANTITY_THEN_CANONICAL_ID",
+  "forbidden_inputs": ["candidate_role","alias","presented_id","presented_position","fixture_id","regime","cost","headroom","utility","provider_output","outcome"],
+  "vectors": [
+    {"vector_id":"unique-zero-activity-wins","candidates":[{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","decisions":{"A0":{"action":"buy","quantity":3},"A1":{"action":"hold","quantity":0}}},{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","decisions":{"A0":{"action":"hold","quantity":0},"A1":{"action":"hold","quantity":0}}}],"expected":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+    {"vector_id":"fewer-non-hold-actions-wins","candidates":[{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","decisions":{"A0":{"action":"buy","quantity":1},"A1":{"action":"sell","quantity":-1}}},{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","decisions":{"A0":{"action":"buy","quantity":100},"A1":{"action":"hold","quantity":0}}}],"expected":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+    {"vector_id":"lower-total-absolute-quantity-wins","candidates":[{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","decisions":{"A0":{"action":"buy","quantity":9}}},{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","decisions":{"A0":{"action":"sell","quantity":-3}}}],"expected":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+    {"vector_id":"canonical-id-breaks-feature-tie","candidates":[{"id":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","decisions":{"A0":{"action":"buy","quantity":4}}},{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","decisions":{"A0":{"action":"sell","quantity":-4}}}],"expected":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+    {"vector_id":"hold-with-nonzero-quantity-is-active","candidates":[{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","decisions":{"A0":{"action":"hold","quantity":2}}},{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","decisions":{"A0":{"action":"hold","quantity":0}}}],"expected":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+    {"vector_id":"non-hold-with-zero-quantity-is-active","candidates":[{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","decisions":{"A0":{"action":"buy","quantity":0}}},{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","decisions":{"A0":{"action":"hold","quantity":0}}}],"expected":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb"},
+    {"vector_id":"permutation-invariant-forward","candidates":[{"id":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","decisions":{"A0":{"action":"buy","quantity":2}}},{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","decisions":{"A0":{"action":"sell","quantity":-2}}},{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","decisions":{"A0":{"action":"buy","quantity":5}}}],"expected":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"},
+    {"vector_id":"permutation-invariant-reverse","candidates":[{"id":"bbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbbb","decisions":{"A0":{"action":"buy","quantity":5}}},{"id":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa","decisions":{"A0":{"action":"sell","quantity":-2}}},{"id":"cccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccccc","decisions":{"A0":{"action":"buy","quantity":2}}}],"expected":"aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa"}
+  ],
+  "negative_vectors": [
+    {"vector_id":"empty-candidate-set","expected_error":"PARSIMONY_CANDIDATE_SET_EMPTY"},
+    {"vector_id":"invalid-canonical-id","expected_error":"PARSIMONY_CANONICAL_ID_INVALID"},
+    {"vector_id":"duplicate-canonical-id","expected_error":"PARSIMONY_CANONICAL_ID_DUPLICATE"},
+    {"vector_id":"boolean-quantity","expected_error":"PARSIMONY_ACTION_OR_QUANTITY_INVALID"}
+  ],
+  "all_positive_vectors_passed": true,
+  "focused_pytest_cases_passed": 12,
+  "source": "v2/research/overlay/r02_d4_design.py",
+  "test_source": "v2/research/overlay/test_r02_d4_design.py"
+}
