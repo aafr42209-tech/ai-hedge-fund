@@ -5,6 +5,7 @@ from __future__ import annotations
 import base64
 from dataclasses import dataclass
 from pathlib import Path
+from typing import Literal, Protocol
 
 from .canonical import canonical_json_bytes, canonical_sha256, sha256_hex
 from .codex_exec_client import (
@@ -20,6 +21,7 @@ from .r02_d3_preflight import R02D3Preregistration, render_frozen_prompt, render
 from .r02_d3_runner_contracts import (
     R02_D3_ACCEPTED_PREREGISTRATION_SHA256,
     R02_D3_EXPECTED_EXECUTABLE_SHA256,
+    R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT,
     R02D3LiveTokenLedger,
     R02D3LiveTransportRecord,
     R02D3PromptIdentity,
@@ -32,6 +34,45 @@ class R02D3SelectorTransportError(RuntimeError):
         super().__init__(message)
         self.code = code
         self.capture = capture
+
+
+class R02D3GuardedProcessRunner(Protocol):
+    r02_d3_execution_capability: Literal["OFFLINE_FAKE", "LIVE_PROVIDER_PROCESS"]
+
+    def run(
+        self,
+        *,
+        argv: tuple[str, ...],
+        stdin_bytes: bytes,
+        working_directory: str,
+        timeout_ms: int,
+    ) -> CodexProcessCapture:
+        ...
+
+
+@dataclass(frozen=True)
+class R02D3LiveProviderProcessRunner:
+    """Explicit LIVE-only wrapper around the reviewed process boundary."""
+
+    delegate: CodexProcessRunner
+    r02_d3_execution_capability: Literal["LIVE_PROVIDER_PROCESS"] = (
+        "LIVE_PROVIDER_PROCESS"
+    )
+
+    def run(
+        self,
+        *,
+        argv: tuple[str, ...],
+        stdin_bytes: bytes,
+        working_directory: str,
+        timeout_ms: int,
+    ) -> CodexProcessCapture:
+        return self.delegate.run(
+            argv=argv,
+            stdin_bytes=stdin_bytes,
+            working_directory=working_directory,
+            timeout_ms=timeout_ms,
+        )
 
 
 @dataclass(frozen=True)
@@ -51,7 +92,7 @@ class R02D3CodexSelectorAdapter:
         preregistration: R02D3Preregistration,
         output_schema_path: str | Path,
         working_directory: str | Path,
-        process_runner: CodexProcessRunner,
+        process_runner: R02D3GuardedProcessRunner,
     ) -> None:
         self.preregistration = preregistration
         self.output_schema_path = Path(output_schema_path).resolve()
@@ -75,6 +116,7 @@ class R02D3CodexSelectorAdapter:
             raise ValueError("selector output schema identity drift")
 
     def bind_attempt(self, bound: R02D3BoundAttempt) -> None:
+        self._require_runner_capability(bound)
         if bound.attempt_id in self._launched_attempt_ids:
             raise R02D3SelectorTransportError(
                 "DUPLICATE_PROVIDER_CALL_BLOCKED",
@@ -115,6 +157,7 @@ class R02D3CodexSelectorAdapter:
         request: R02SelectorRequest,
     ) -> tuple[str, R02D3LiveTokenLedger, R02D3LiveTransportRecord]:
         bound = self._require_bound(request)
+        self._require_runner_capability(bound)
         if bound.attempt_id in self._launched_attempt_ids:
             raise R02D3SelectorTransportError(
                 "DUPLICATE_PROVIDER_CALL_BLOCKED",
@@ -164,6 +207,22 @@ class R02D3CodexSelectorAdapter:
                 capture,
                 "parsed provider identity drift",
             )
+        usage_values = (
+            parsed.input_tokens,
+            parsed.cached_input_tokens,
+            parsed.output_tokens,
+            parsed.reasoning_output_tokens,
+        )
+        accounting_total_tokens = parsed.input_tokens + parsed.output_tokens
+        if (
+            any(value > R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT for value in usage_values)
+            or accounting_total_tokens > R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT
+        ):
+            raise R02D3SelectorTransportError(
+                "USAGE_VALUE_OUT_OF_RANGE",
+                capture,
+                "reported usage exceeds the auditable integer bound",
+            )
         external_provider_calls = 1 if bound.authorization.mode == "LIVE" else 0
         ledger = R02D3LiveTokenLedger(
             run_id=bound.authorization.run_id,
@@ -174,7 +233,7 @@ class R02D3CodexSelectorAdapter:
             cached_input_tokens=parsed.cached_input_tokens,
             output_tokens=parsed.output_tokens,
             reasoning_output_tokens=parsed.reasoning_output_tokens,
-            accounting_total_tokens=parsed.input_tokens + parsed.output_tokens,
+            accounting_total_tokens=accounting_total_tokens,
             external_provider_calls=external_provider_calls,
         )
         transport = R02D3LiveTransportRecord(
@@ -204,3 +263,21 @@ class R02D3CodexSelectorAdapter:
         if request.identity != self._bound.preparation.identity:
             raise ValueError("bound attempt and selector request identities differ")
         return self._bound
+
+    def _require_runner_capability(self, bound: R02D3BoundAttempt) -> None:
+        expected = (
+            "LIVE_PROVIDER_PROCESS" if bound.authorization.mode == "LIVE" else "OFFLINE_FAKE"
+        )
+        actual = getattr(self.process_runner, "r02_d3_execution_capability", None)
+        if actual != expected:
+            raise R02D3SelectorTransportError(
+                "RUNNER_CAPABILITY_MISMATCH",
+                CodexProcessCapture(
+                    stdout=b"",
+                    stderr=b"",
+                    exit_code=None,
+                    duration_ms=0,
+                    launch_error=f"expected {expected}, received {actual!r}",
+                ),
+                "process runner capability does not match authorization mode",
+            )

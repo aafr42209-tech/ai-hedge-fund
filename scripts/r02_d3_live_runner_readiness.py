@@ -24,12 +24,17 @@ def _sha256(path: Path) -> str:
     return hashlib.sha256(path.read_bytes()).hexdigest()
 
 
-def _write_new_or_equal(path: Path, payload: bytes) -> None:
+def _write_new_or_equal(path: Path, payload: bytes, *, refresh_existing: bool) -> None:
     if path.exists():
-        if path.read_bytes() != payload:
+        if path.read_bytes() == payload:
+            return
+        if not refresh_existing:
             raise ValueError(f"refusing to replace an existing readiness artifact: {path}")
-        return
-    path.write_bytes(payload)
+    temporary = path.with_name(f".{path.name}.tmp")
+    if temporary.exists():
+        raise ValueError(f"refusing to reuse stale readiness temporary: {temporary}")
+    temporary.write_bytes(payload)
+    temporary.replace(path)
 
 
 def main() -> int:
@@ -38,6 +43,7 @@ def main() -> int:
     parser.add_argument("--authorization", required=True)
     parser.add_argument("--expected-executable-sha256", required=True)
     parser.add_argument("--verify-existing", action="store_true")
+    parser.add_argument("--refresh-existing", action="store_true")
     args = parser.parse_args()
     root = Path(args.repo_root).resolve()
     authorization = Path(args.authorization).resolve()
@@ -105,7 +111,7 @@ def main() -> int:
     freeze_bytes = canonical_json_bytes(freeze)
     freeze_sha256 = hashlib.sha256(freeze_bytes).hexdigest()
     manifest = {
-        "schema_version": "r02-d3-runner-readiness-manifest-v1",
+        "schema_version": "r02-d3-runner-readiness-manifest-v2",
         "status": "READY_FOR_INDEPENDENT_REVIEW_NOT_LIVE_AUTHORIZED",
         "runner_readiness_freeze_sha256": freeze_sha256,
         "accepted_live_gate_freeze_sha256": R02_D3_ACCEPTED_LIVE_GATE_FREEZE_SHA256,
@@ -133,12 +139,37 @@ def main() -> int:
         "live_execution": False,
         "micro_pilot_executed": False,
         "full_6_plus_49_executed": False,
+        "live_gate_hardening": {
+            "offline_runner_capability_enforced": True,
+            "external_live_authorization_artifact_required": True,
+            "external_live_authorization_rechecked_before_run": True,
+            "duplicate_bind_rejection_terminalized": True,
+            "actual_over_reserve_usage_preserved": True,
+            "usage_integer_bound_typed_fail_closed": True,
+            "expanded_tamper_and_token_boundary_tests": True,
+        },
     }
-    _write_new_or_equal(schema_path, schema_bytes)
-    _write_new_or_equal(freeze_path, freeze_bytes)
-    _write_new_or_equal(manifest_path, canonical_json_bytes(manifest))
+    _write_new_or_equal(
+        schema_path,
+        schema_bytes,
+        refresh_existing=args.refresh_existing,
+    )
+    _write_new_or_equal(
+        freeze_path,
+        freeze_bytes,
+        refresh_existing=args.refresh_existing,
+    )
+    _write_new_or_equal(
+        manifest_path,
+        canonical_json_bytes(manifest),
+        refresh_existing=args.refresh_existing,
+    )
     verification = verify_readiness_artifacts(root)
-    _write_new_or_equal(replay_path, canonical_json_bytes(verification))
+    _write_new_or_equal(
+        replay_path,
+        canonical_json_bytes(verification),
+        refresh_existing=args.refresh_existing,
+    )
     print(
         json.dumps(
             {

@@ -2,33 +2,34 @@
 
 ## Review status
 
-Provider-free implementation only. Not staged, committed, pushed, or live
-authorized. Provider calls, live executions, micro-pilot executions, and full
-6+49 executions remain zero.
+Provider-free LIVE-gate hardening only. Not staged, committed, pushed, or live
+authorized. No external LIVE authorization artifact has been supplied. Provider
+calls, live executions, micro-pilot executions, and full 6+49 executions remain
+zero.
 
 Base commit and accepted identities:
 
-- base HEAD: `f55942308496afbf28a3a0ebea769b0fd753c8a2`
+- base HEAD: `4f048df06c1b5c528dd048e8c6c313d3ba774b93`
 - accepted live-gate freeze: `b650b8379d36292eaafd1d2df29f0f400df486da94d8c8e74f22348db2cd7b07`
 - accepted live-gate preflight: `b1ec1eba58bedb959279af60067ff2d51610a9faa4c81ed9efb1146fcb73b529`
 - accepted executable pin: `cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4`
-- runner-readiness freeze: `bcde3649af1ba52598d873cbd86c13ee1dbba582967c33ceb5d1a6b6b89164d2`
+- runner-readiness freeze: `a779a6b722870889128e58a9fbf4f149d78f88dc69535a7aabc7722a0e1957c6`
 
 ## New production source pins
 
-- `RUNNER_CONTRACTS` — `v2/research/overlay/r02_d3_runner_contracts.py` — `e3768673c6b01bafe94219d0c06f9257bdbd59b280c888e89ab52b4d2a43d16c`
-- `SELECTOR_TRANSPORT_ADAPTER` — `v2/research/overlay/r02_d3_live_selector_adapter.py` — `8b90569bde7f5ebed1689f4c93eb13982b16854c53b83c8787eeede51f253065`
-- `FIFTY_FIVE_ATTEMPT_ORCHESTRATOR` — `v2/research/overlay/r02_d3_live_orchestrator.py` — `fd7bf726b90abfc401d57abf6798ff9c4db9771d582c57f073b077a53ebc385d`
+- `RUNNER_CONTRACTS` — `v2/research/overlay/r02_d3_runner_contracts.py` — `4110fd3c2749d5fca533a50c0b6017d7aa8a999f21be8a99e36995324a74f628`
+- `SELECTOR_TRANSPORT_ADAPTER` — `v2/research/overlay/r02_d3_live_selector_adapter.py` — `fa251e9308b6a245499802938cd8a41ff15618a6df8d43970c7858ea7c344b79`
+- `FIFTY_FIVE_ATTEMPT_ORCHESTRATOR` — `v2/research/overlay/r02_d3_live_orchestrator.py` — `e7da7f5e9316eb840924dc5d246d68e2cb9ccf5055eec339db6288c305ddad1f`
 - `APPEND_ONLY_AUDIT` — `v2/research/overlay/r02_d3_live_audit.py` — `2ad2965216d6ede1bb9a96438a651c115b31d2a8456c1684dfff5ddcb20140fa`
-- `FAIL_CLOSED_REPLAY` — `v2/research/overlay/r02_d3_live_runner_replay.py` — `d8fd7dd6b1ab33d6d515f9509cc8281fba73a51af36229e9f0f8c32902a32d50`
-- `ZERO_CALL_READINESS_SCRIPT` — `scripts/r02_d3_live_runner_readiness.py` — `9534a01b9a6fcc7428b6666cf26469250847e34e1600c09f8fe75bfeae005024`
+- `FAIL_CLOSED_REPLAY` — `v2/research/overlay/r02_d3_live_runner_replay.py` — `7b3b57b0d7744400aaf79a049f034c651a62ad27c7ef1b40c5b2029f76c0c1be`
+- `ZERO_CALL_READINESS_SCRIPT` — `scripts/r02_d3_live_runner_readiness.py` — `6cffba8b80c1d408f1de1fb3998f89c6012f215b205d69262cd64918e55be8c4`
 
 ## Generated readiness artifacts
 
 - selector output schema: `5466a24d3557e28251cb1393dac16e1049824637a27b969f3bea55c80ebc2eca`
-- readiness freeze: `bcde3649af1ba52598d873cbd86c13ee1dbba582967c33ceb5d1a6b6b89164d2`
-- zero-call manifest: `e83471798b4b648532ef4666b1a454c3d2a5b9bebb08acdf312f14d0907364dc`
-- readiness replay: `e68ec60b2179a09e48372fbfa0d5d5ebacfbbcc08202f648c7d67b74e0b2b045`
+- readiness freeze: `a779a6b722870889128e58a9fbf4f149d78f88dc69535a7aabc7722a0e1957c6`
+- zero-call manifest: `5d5f6529744b28bb5936666326a8be19d8a0cf6d868e75d8b7409545345af8c0`
+- readiness replay: `ccccd76c7e4fb0c9b915f6cde81310f1a43b4e7e57f44c3c3c49b38a9cc1a1b9`
 - provider-free authorization: `7f02148097f4b634fd7be3ce7550f96137b2a62ed1cf915370c186b685815fb0`
 
 ## Post-review fixes
@@ -37,21 +38,42 @@ Base commit and accepted identities:
   `R02D3ReplayError` instead of escaping as raw `UnicodeDecodeError`.
 - The accepted-selection invariant uses explicit
   `R02D3OrchestratorError`; it remains active under `python -O`.
+- RUNNING checkpoint ledgers reconcile against their exact completed audit
+  prefix, while terminal ledgers still reconcile against the complete graph.
+  An episode-2 launch crash now replays and reaches
+  `CRASH_AFTER_LAUNCH_UNSETTLED` sealing with zero resume calls.
 
-## Deferred LIVE-gate blockers
+## Provider-free LIVE-gate hardening under review
 
-These are intentionally not closed by the provider-free readiness commit and
-must be resolved before any LIVE authorization:
+- `OFFLINE_FAKE` accepts only a runner declaring the `OFFLINE_FAKE` capability;
+  a LIVE process capability or an unmarked runner is terminalized before launch.
+- LIVE booleans cannot self-issue approval. A canonical external authorization
+  artifact must be supplied outside repository/audit roots, match the run and
+  freeze identities, and match the exact `authorization_sha256`. Its bytes are
+  rechecked immediately before every run or resume.
+- duplicate `bind_attempt` and runner-capability rejection create typed
+  `prelaunch_failure`, `run_ledger`, and `run_terminal` audit nodes without a
+  second process call.
+- actual usage above the 32,000 reserve is preserved in settlement and terminal
+  ledger values. Values beyond the signed 64-bit auditable bound become typed
+  `USAGE_VALUE_OUT_OF_RANGE` unsettled hard stops rather than raw model errors.
+- E2E coverage now includes duplicate attempt identities, anchor gaps, missing
+  terminal anchors, the exact 32,000 boundary, over-reserve accounting, runner
+  capability mismatch, and authorization artifact tamper/recheck.
+- readiness refresh uses an explicit atomic replacement path; verification-only
+  behavior remains the default.
 
-- prevent `OFFLINE_FAKE` from accepting a process runner capable of launching
-  the frozen live argv;
-- bind LIVE authorization to an externally supplied immutable authorization
-  artifact rather than locally constructible booleans;
-- terminalize duplicate `bind_attempt` rejection inside the audit chain;
-- preserve actual over-reserve usage in the terminal ledger and validate usage
-  upper bounds without uncaught model errors;
-- expand E2E tamper coverage for duplicate attempts, anchor gaps, and missing
-  terminal anchors, plus the exact 32,000-token boundary.
+No LIVE approval exists after these changes. A future LIVE run still requires a
+separately supplied external artifact approving the indivisible 6+49 scope.
+
+Operational scope notes:
+
+- a crash between readiness temporary-file write and atomic replace leaves a
+  fail-closed `.{name}.tmp`; an operator must inspect and remove that stale file
+  before an explicit refresh retry;
+- external authorization bytes are rechecked at each `run()`/resume entry, not
+  between individual attempts. Mid-run authorization revocation is not part of
+  this indivisible 6+49 contract.
 
 ## Required review scope
 
@@ -78,10 +100,21 @@ documents. Confirm:
    terminal anchors.
 8. No new production source directly imports network/provider/subprocess
    capabilities. The only runtime process capability is the injected
-   `CodexProcessRunner` protocol.
+   `CodexProcessRunner` protocol wrapped by an explicit LIVE-only capability.
 9. The zero-call command map contains no `exec`, `--output-schema`, or live argv.
 10. Accepted R01/D1/D2c/D3/live-gate files and the user-owned Claude handoff are
     unchanged.
+11. LIVE construction and execution require exact external canonical artifact
+    bytes outside repository/audit roots; locally set approval booleans and
+    tampered bytes fail closed before any process call.
+
+## Provider-free validation observed
+
+- hardening target suite: `30 passed` (included in the full overlay run)
+- full overlay suite: `257 passed`
+- readiness replay: 6 source pins verified; accepted live-gate, executable,
+  prompt/schema, freeze/manifest, and zero-call exclusions matched
+- counters: provider calls `0`; live/micro/6+49 executions `0`
 
 ## Provider-free validation commands
 
@@ -90,6 +123,7 @@ Run from `C:\Users\User\Desktop\ai-hedge-fund-fresh`:
 ```powershell
 .\.venv\Scripts\python.exe -m pytest -q v2/research/overlay/test_r02_d3_live_runner.py
 .\.venv\Scripts\python.exe -m pytest -q v2/research/overlay/test_r02_d3_live_gate.py v2/research/overlay/test_r02_d3_preflight.py v2/research/overlay/test_r02_d3_replay.py
+.\.venv\Scripts\python.exe -m pytest -q v2/research/overlay
 .\.venv\Scripts\python.exe scripts/r02_d3_live_runner_readiness.py --repo-root . --authorization docs/r02-d3-live-runner-provider-free-authorization.md --expected-executable-sha256 cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4 --verify-existing
 git diff --check
 git status --short

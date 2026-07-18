@@ -26,6 +26,10 @@ R02_D3_MICRO_ATTEMPTS = 6
 R02_D3_FULL_ATTEMPTS = 55
 R02_D3_MICRO_TOKEN_CAP = 192_000
 R02_D3_FULL_TOKEN_CAP = 1_760_000
+R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT = (1 << 63) - 1
+R02_D3_MAX_REPORTED_TOKENS_PER_RUN = (
+    R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT * R02_D3_FULL_ATTEMPTS
+)
 R02_D3_MICRO_FALLBACK_CAP = 1
 R02_D3_FULL_FAIL_CLOSED_CAP = 5
 
@@ -36,11 +40,34 @@ class R02D3RunnerSourcePin(StrictModel):
     sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
 
 
-class R02D3RunAuthorization(StrictModel):
-    """Run-local authorization. Offline fakes can never authorize provider access."""
+class R02D3LiveAuthorizationArtifact(StrictModel):
+    """Canonical external approval artifact for one indivisible LIVE run."""
 
-    schema_version: Literal["r02-d3-run-authorization-v1"] = (
-        "r02-d3-run-authorization-v1"
+    schema_version: Literal["r02-d3-live-authorization-artifact-v1"] = (
+        "r02-d3-live-authorization-artifact-v1"
+    )
+    authorization_id: str = Field(pattern=r"^r02-d3-live-auth-[a-z0-9-]{4,80}$")
+    run_id: str = Field(pattern=r"^r02-d3-[a-z0-9-]{4,80}$")
+    approved_scope: Literal["INDIVISIBLE_6_PLUS_49_LIVE"] = (
+        "INDIVISIBLE_6_PLUS_49_LIVE"
+    )
+    accepted_live_gate_freeze_sha256: Literal[
+        R02_D3_ACCEPTED_LIVE_GATE_FREEZE_SHA256
+    ] = R02_D3_ACCEPTED_LIVE_GATE_FREEZE_SHA256
+    runner_readiness_freeze_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
+    expected_executable_sha256: Literal[R02_D3_EXPECTED_EXECUTABLE_SHA256] = (
+        R02_D3_EXPECTED_EXECUTABLE_SHA256
+    )
+    indivisible_6_plus_49_approved: Literal[True] = True
+    provider_calls_authorized: Literal[True] = True
+    utility_outcomes_available_to_continuation_gate: Literal[False] = False
+
+
+class R02D3RunAuthorization(StrictModel):
+    """Run-local scope bound to external LIVE approval when applicable."""
+
+    schema_version: Literal["r02-d3-run-authorization-v2"] = (
+        "r02-d3-run-authorization-v2"
     )
     run_id: str = Field(pattern=r"^r02-d3-[a-z0-9-]{4,80}$")
     mode: Literal["OFFLINE_FAKE", "LIVE"]
@@ -52,6 +79,7 @@ class R02D3RunAuthorization(StrictModel):
     indivisible_6_plus_49_approved: bool
     provider_calls_authorized: bool
     utility_outcomes_available_to_continuation_gate: Literal[False] = False
+    live_authorization_artifact: R02D3LiveAuthorizationArtifact | None = None
 
     @model_validator(mode="after")
     def validate_scope(self) -> "R02D3RunAuthorization":
@@ -59,10 +87,24 @@ class R02D3RunAuthorization(StrictModel):
             self.indivisible_6_plus_49_approved,
             self.provider_calls_authorized,
         )
-        if self.mode == "LIVE" and live_flags != (True, True):
-            raise ValueError("live mode requires explicit indivisible 6+49 authorization")
-        if self.mode == "OFFLINE_FAKE" and live_flags != (False, False):
+        if self.mode == "LIVE":
+            artifact = self.live_authorization_artifact
+            if artifact is None:
+                raise ValueError("live mode requires an external authorization artifact")
+            if live_flags != (True, True):
+                raise ValueError("live mode requires explicit indivisible 6+49 authorization")
+            if (
+                artifact.run_id != self.run_id
+                or artifact.accepted_live_gate_freeze_sha256
+                != self.accepted_live_gate_freeze_sha256
+                or artifact.runner_readiness_freeze_sha256
+                != self.runner_readiness_freeze_sha256
+            ):
+                raise ValueError("live authorization artifact identity mismatch")
+        elif live_flags != (False, False):
             raise ValueError("offline fake mode cannot authorize provider calls")
+        elif self.live_authorization_artifact is not None:
+            raise ValueError("offline fake mode cannot carry a live authorization artifact")
         return self
 
 
@@ -158,6 +200,17 @@ class R02D3AttemptStarted(StrictModel):
     launch_may_have_occurred: Literal[True] = True
 
 
+class R02D3PrelaunchFailure(StrictModel):
+    schema_version: Literal["r02-d3-prelaunch-failure-v1"] = (
+        "r02-d3-prelaunch-failure-v1"
+    )
+    run_id: str = Field(pattern=r"^r02-d3-[a-z0-9-]{4,80}$")
+    fixture_id: str = Field(pattern=r"^development-[0-9]{4}$")
+    attempt_id: str = Field(pattern=r"^[0-9a-f]{64}$")
+    code: str = Field(min_length=1)
+    launch_error: str | None = None
+
+
 class R02D3LiveTokenLedger(StrictModel):
     schema_version: Literal["r02-d3-live-token-ledger-v1"] = (
         "r02-d3-live-token-ledger-v1"
@@ -166,11 +219,13 @@ class R02D3LiveTokenLedger(StrictModel):
     fixture_id: str
     attempt_id: str = Field(pattern=r"^[0-9a-f]{64}$")
     provider_attempt_ordinal: int = Field(ge=1, le=R02_D3_FULL_ATTEMPTS)
-    input_tokens: int = Field(ge=0)
-    cached_input_tokens: int = Field(ge=0)
-    output_tokens: int = Field(ge=0)
-    reasoning_output_tokens: int = Field(ge=0)
-    accounting_total_tokens: int = Field(ge=0)
+    input_tokens: int = Field(ge=0, le=R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT)
+    cached_input_tokens: int = Field(ge=0, le=R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT)
+    output_tokens: int = Field(ge=0, le=R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT)
+    reasoning_output_tokens: int = Field(ge=0, le=R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT)
+    accounting_total_tokens: int = Field(
+        ge=0, le=R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT
+    )
     external_provider_calls: Literal[0, 1]
 
     @model_validator(mode="after")
@@ -215,8 +270,10 @@ class R02D3TokenSettlement(StrictModel):
     attempt_id: str = Field(pattern=r"^[0-9a-f]{64}$")
     reservation_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     settled: bool
-    debit_tokens: int = Field(ge=0, le=R02_D3_FULL_TOKEN_CAP)
-    observed_total_tokens: int | None = Field(default=None, ge=0)
+    debit_tokens: int = Field(ge=0, le=R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT)
+    observed_total_tokens: int | None = Field(
+        default=None, ge=0, le=R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT
+    )
     failure_code: str | None = None
     invalid_run_budget_breach: bool = False
 
@@ -329,7 +386,7 @@ class R02D3RunLedger(StrictModel):
     settled_attempt_count: int = Field(ge=0, le=R02_D3_FULL_ATTEMPTS)
     unsettled_attempt_count: int = Field(ge=0, le=R02_D3_FULL_ATTEMPTS)
     fallback_count: int = Field(ge=0, le=R02_D3_FULL_ATTEMPTS)
-    debited_tokens: int = Field(ge=0, le=R02_D3_FULL_TOKEN_CAP)
+    debited_tokens: int = Field(ge=0, le=R02_D3_MAX_REPORTED_TOKENS_PER_RUN)
     attempted_fixture_ids: tuple[str, ...]
     status: Literal["RUNNING", "COMPLETE", "HARD_STOP", "INVALID_RUN"]
     terminal_code: str | None = None

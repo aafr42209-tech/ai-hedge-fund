@@ -6,8 +6,10 @@ import base64
 import json
 from pathlib import Path
 
+from pydantic import ValidationError
+
 from .baselines import primary_deterministic
-from .canonical import canonical_sha256, sha256_hex
+from .canonical import canonical_json_bytes, canonical_sha256, sha256_hex
 from .contracts import ASSET_IDS, Decision, DecisionBatch, SyntheticEpisode
 from .r02_candidates import canonical_candidate_id, prepare_provider_free_episode
 from .r02_contracts import R02CandidateBatch, R02ProviderFreePreparation
@@ -35,8 +37,10 @@ from .r02_d3_runner_contracts import (
     R02D3AttemptStarted,
     R02D3CandidateExecution,
     R02D3ContinuationDecision,
+    R02D3LiveAuthorizationArtifact,
     R02D3PairedResult,
     R02D3PlannedEpisode,
+    R02D3PrelaunchFailure,
     R02D3RunAuthorization,
     R02D3RunLedger,
     R02D3RunPlan,
@@ -51,6 +55,54 @@ from .validator import validate_batch
 
 class R02D3OrchestratorError(RuntimeError):
     pass
+
+
+def verify_external_live_authorization_artifact(
+    repository_root: str | Path,
+    audit_root: str | Path,
+    authorization: R02D3RunAuthorization,
+    artifact_path: str | Path | None,
+) -> Path | None:
+    """Bind LIVE scope to exact external canonical bytes; offline rejects the path."""
+
+    if authorization.mode == "OFFLINE_FAKE":
+        if artifact_path is not None:
+            raise R02D3OrchestratorError(
+                "offline mode cannot receive a live authorization artifact path"
+            )
+        return None
+    if artifact_path is None:
+        raise R02D3OrchestratorError("live mode requires an external authorization artifact")
+    root = Path(repository_root).resolve()
+    audit = Path(audit_root).resolve()
+    path = Path(artifact_path).resolve()
+    if not path.is_file():
+        raise R02D3OrchestratorError("external live authorization artifact is missing")
+    if path == root or root in path.parents or path == audit or audit in path.parents:
+        raise R02D3OrchestratorError(
+            "live authorization artifact must remain outside repository and audit roots"
+        )
+    try:
+        raw = path.read_bytes()
+    except OSError as exc:
+        raise R02D3OrchestratorError(
+            "external live authorization artifact could not be read"
+        ) from exc
+    if sha256_hex(raw) != authorization.authorization_sha256:
+        raise R02D3OrchestratorError("external live authorization artifact hash mismatch")
+    try:
+        artifact = R02D3LiveAuthorizationArtifact.model_validate_json(raw)
+    except ValidationError as exc:
+        raise R02D3OrchestratorError(
+            "external live authorization artifact validation failed"
+        ) from exc
+    if raw != canonical_json_bytes(artifact):
+        raise R02D3OrchestratorError(
+            "external live authorization artifact is not canonical JSON"
+        )
+    if artifact != authorization.live_authorization_artifact:
+        raise R02D3OrchestratorError("external live authorization artifact identity mismatch")
+    return path
 
 
 def load_accepted_preregistration(repository_root: str | Path) -> R02D3Preregistration:
@@ -252,12 +304,19 @@ class R02D3LiveOrchestrator:
         authorization: R02D3RunAuthorization,
         adapter: R02D3CodexSelectorAdapter,
         preregistration: R02D3Preregistration,
+        live_authorization_artifact_path: str | Path | None = None,
     ) -> None:
         self.repository_root = Path(repository_root).resolve()
         self.audit_root = Path(audit_root).resolve()
         self.authorization = authorization
         self.adapter = adapter
         self.preregistration = preregistration
+        self.live_authorization_artifact_path = verify_external_live_authorization_artifact(
+            self.repository_root,
+            self.audit_root,
+            authorization,
+            live_authorization_artifact_path,
+        )
         self.plan = build_run_plan(self.repository_root, preregistration, authorization.run_id)
         if authorization.mode == "LIVE":
             verification = verify_readiness_artifacts(self.repository_root)
@@ -265,6 +324,12 @@ class R02D3LiveOrchestrator:
                 raise R02D3OrchestratorError("live authorization readiness freeze mismatch")
 
     def run(self) -> R02D3RunLedger:
+        verify_external_live_authorization_artifact(
+            self.repository_root,
+            self.audit_root,
+            self.authorization,
+            self.live_authorization_artifact_path,
+        )
         if audit_root_has_files(self.audit_root):
             state = replay_audit_root(self.audit_root)
             if state.authorization != self.authorization or state.plan != self.plan:
@@ -349,8 +414,23 @@ class R02D3LiveOrchestrator:
                 attempt_id=attempt_id,
                 provider_attempt_ordinal=launched_count + 1,
             )
-            self.adapter.bind_attempt(bound)
-            prompt_identity, _, _ = self.adapter.describe(request)
+            try:
+                self.adapter.bind_attempt(bound)
+                prompt_identity, _, _ = self.adapter.describe(request)
+            except R02D3SelectorTransportError as exc:
+                return self._terminalize_prelaunch_failure(
+                    writer=writer,
+                    planned=planned,
+                    attempt_id=attempt_id,
+                    failure=exc,
+                    reserved_count=reserved_count,
+                    launched_count=launched_count,
+                    settled_count=settled_count,
+                    fallback_count=fallback_count,
+                    debited_tokens=debited_tokens,
+                    attempted=tuple(attempted),
+                    external_calls=external_calls,
+                )
 
             if pending_reservation is None:
                 if (reserved_count + 1) * R02_D3_ATTEMPT_RESERVE > R02_D3_FULL_TOKEN_CAP:
@@ -487,7 +567,7 @@ class R02D3LiveOrchestrator:
                     settled_attempt_count=settled_count,
                     unsettled_attempt_count=0,
                     fallback_count=fallback_count,
-                    debited_tokens=min(debited_tokens, R02_D3_FULL_TOKEN_CAP),
+                    debited_tokens=debited_tokens,
                     attempted_fixture_ids=tuple(attempted),
                     status="INVALID_RUN",
                     terminal_code="INVALID_RUN_BUDGET_BREACH",
@@ -549,6 +629,48 @@ class R02D3LiveOrchestrator:
                 writer.append_json("run_terminal", ledger)
                 return ledger
         raise R02D3OrchestratorError("orchestrator exhausted plan without terminal ledger")
+
+    def _terminalize_prelaunch_failure(
+        self,
+        *,
+        writer: R02D3AuditWriter,
+        planned: R02D3PlannedEpisode,
+        attempt_id: str,
+        failure: R02D3SelectorTransportError,
+        reserved_count: int,
+        launched_count: int,
+        settled_count: int,
+        fallback_count: int,
+        debited_tokens: int,
+        attempted: tuple[str, ...],
+        external_calls: int,
+    ) -> R02D3RunLedger:
+        writer.append_json(
+            "prelaunch_failure",
+            R02D3PrelaunchFailure(
+                run_id=self.authorization.run_id,
+                fixture_id=planned.fixture_id,
+                attempt_id=attempt_id,
+                code=failure.code,
+                launch_error=failure.capture.launch_error,
+            ),
+        )
+        ledger = R02D3RunLedger(
+            run_id=self.authorization.run_id,
+            reserved_attempt_count=reserved_count,
+            launched_attempt_count=launched_count,
+            settled_attempt_count=settled_count,
+            unsettled_attempt_count=0,
+            fallback_count=fallback_count,
+            debited_tokens=debited_tokens,
+            attempted_fixture_ids=attempted,
+            status="HARD_STOP",
+            terminal_code=failure.code,
+            external_provider_calls=external_calls,
+        )
+        writer.append_json("run_ledger", ledger)
+        writer.append_json("run_terminal", ledger)
+        return ledger
 
     def _seal_crash_after_launch(self, writer, state, attempt_id: str) -> R02D3RunLedger:
         reservation = next(

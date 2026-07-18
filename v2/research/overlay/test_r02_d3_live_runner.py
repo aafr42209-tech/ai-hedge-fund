@@ -6,13 +6,14 @@ from pathlib import Path
 
 import pytest
 
-from .canonical import canonical_json_bytes, canonical_sha256
+from .canonical import canonical_json_bytes, canonical_sha256, sha256_hex
 from .codex_exec_client import CodexProcessCapture
 from .r02_candidates import prepare_provider_free_episode
 from .r02_d3_contracts import selector_output_schema
 from .r02_d3_live_audit import R02D3AuditWriter
 from .r02_d3_live_orchestrator import (
     R02D3LiveOrchestrator,
+    R02D3OrchestratorError,
     _attempt_id,
     build_run_plan,
     load_accepted_preregistration,
@@ -29,7 +30,9 @@ from .r02_d3_live_selector_adapter import (
 from .r02_d3_preflight import load_frame_episode
 from .r02_d3_runner_contracts import (
     R02_D3_ATTEMPT_RESERVE,
+    R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT,
     R02D3AttemptStarted,
+    R02D3LiveAuthorizationArtifact,
     R02D3RunAuthorization,
     R02D3TokenReservation,
 )
@@ -87,6 +90,8 @@ def _jsonl(
 
 
 class FakeProcessRunner:
+    r02_d3_execution_capability = "OFFLINE_FAKE"
+
     def __init__(
         self,
         responses: list[str] | None = None,
@@ -96,8 +101,22 @@ class FakeProcessRunner:
         self.captures = captures or []
         self.calls: list[dict[str, object]] = []
 
-    def run(self, **kwargs) -> CodexProcessCapture:
-        self.calls.append(kwargs)
+    def run(
+        self,
+        *,
+        argv: tuple[str, ...],
+        stdin_bytes: bytes,
+        working_directory: str,
+        timeout_ms: int,
+    ) -> CodexProcessCapture:
+        self.calls.append(
+            {
+                "argv": argv,
+                "stdin_bytes": stdin_bytes,
+                "working_directory": working_directory,
+                "timeout_ms": timeout_ms,
+            }
+        )
         index = len(self.calls) - 1
         if index < len(self.captures):
             return self.captures[index]
@@ -110,6 +129,10 @@ class FakeProcessRunner:
         )
 
 
+class LiveCapableFakeProcessRunner(FakeProcessRunner):
+    r02_d3_execution_capability = "LIVE_PROVIDER_PROCESS"
+
+
 def _authorization(run_id: str) -> R02D3RunAuthorization:
     return R02D3RunAuthorization(
         run_id=run_id,
@@ -119,6 +142,33 @@ def _authorization(run_id: str) -> R02D3RunAuthorization:
         indivisible_6_plus_49_approved=False,
         provider_calls_authorized=False,
     )
+
+
+def _external_live_authorization(
+    tmp_path: Path,
+    run_id: str,
+) -> tuple[R02D3RunAuthorization, R02D3LiveAuthorizationArtifact, Path]:
+    readiness_sha256 = sha256_hex(
+        (ROOT / "docs/r02-d3-runner-readiness-freeze.json").read_bytes()
+    )
+    artifact = R02D3LiveAuthorizationArtifact(
+        authorization_id=f"r02-d3-live-auth-{run_id.removeprefix('r02-d3-')}",
+        run_id=run_id,
+        runner_readiness_freeze_sha256=readiness_sha256,
+    )
+    raw = canonical_json_bytes(artifact)
+    path = tmp_path / "external-live-authorization.json"
+    path.write_bytes(raw)
+    authorization = R02D3RunAuthorization(
+        run_id=run_id,
+        mode="LIVE",
+        authorization_sha256=sha256_hex(raw),
+        runner_readiness_freeze_sha256=readiness_sha256,
+        indivisible_6_plus_49_approved=True,
+        provider_calls_authorized=True,
+        live_authorization_artifact=artifact,
+    )
+    return authorization, artifact, path
 
 
 def _schema(tmp_path: Path) -> Path:
@@ -133,9 +183,10 @@ def _harness(
     run_id: str,
     responses: list[str] | None = None,
     captures: list[CodexProcessCapture] | None = None,
+    process_runner: FakeProcessRunner | None = None,
 ):
     preregistration = load_accepted_preregistration(ROOT)
-    runner = FakeProcessRunner(responses, captures)
+    runner = process_runner or FakeProcessRunner(responses, captures)
     adapter = R02D3CodexSelectorAdapter(
         preregistration=preregistration,
         output_schema_path=_schema(tmp_path),
@@ -402,7 +453,76 @@ def test_actual_usage_above_reserve_marks_invalid_run_budget_breach(tmp_path: Pa
     ledger = orchestrator.run()
     assert ledger.status == "INVALID_RUN"
     assert ledger.terminal_code == "INVALID_RUN_BUDGET_BREACH"
-    assert replay_audit_root(audit_root).settlements[-1].invalid_run_budget_breach
+    assert ledger.debited_tokens == 32_001
+    settlement = replay_audit_root(audit_root).settlements[-1]
+    assert settlement.invalid_run_budget_breach
+    assert settlement.observed_total_tokens == 32_001
+    assert settlement.debit_tokens == 32_001
+
+
+def test_exact_32_000_token_boundary_is_settled_without_budget_breach(
+    tmp_path: Path,
+) -> None:
+    captures = [
+        CodexProcessCapture(
+            stdout=_jsonl(
+                _response(),
+                usage={
+                    "input_tokens": R02_D3_ATTEMPT_RESERVE,
+                    "cached_input_tokens": 0,
+                    "output_tokens": 0,
+                    "reasoning_output_tokens": 0,
+                },
+            ),
+            stderr=b"",
+            exit_code=0,
+            duration_ms=1,
+        ),
+        CodexProcessCapture(
+            stdout=b"", stderr=b"", exit_code=None, duration_ms=1, timed_out=True
+        ),
+    ]
+    orchestrator, _, audit_root = _harness(
+        tmp_path,
+        run_id="r02-d3-exact-token-boundary",
+        captures=captures,
+    )
+    ledger = orchestrator.run()
+    assert ledger.terminal_code == "TIMEOUT"
+    first = replay_audit_root(audit_root).settlements[0]
+    assert first.settled
+    assert first.observed_total_tokens == R02_D3_ATTEMPT_RESERVE
+    assert first.debit_tokens == R02_D3_ATTEMPT_RESERVE
+    assert not first.invalid_run_budget_breach
+
+
+def test_usage_above_auditable_integer_bound_is_typed_hard_stop(tmp_path: Path) -> None:
+    capture = CodexProcessCapture(
+        stdout=_jsonl(
+            _response(),
+            usage={
+                "input_tokens": R02_D3_MAX_REPORTED_TOKENS_PER_ATTEMPT + 1,
+                "cached_input_tokens": 0,
+                "output_tokens": 0,
+                "reasoning_output_tokens": 0,
+            },
+        ),
+        stderr=b"",
+        exit_code=0,
+        duration_ms=1,
+    )
+    orchestrator, _, audit_root = _harness(
+        tmp_path,
+        run_id="r02-d3-usage-value-out-of-range",
+        captures=[capture],
+    )
+    ledger = orchestrator.run()
+    assert ledger.status == "HARD_STOP"
+    assert ledger.terminal_code == "USAGE_VALUE_OUT_OF_RANGE"
+    assert ledger.debited_tokens == R02_D3_ATTEMPT_RESERVE
+    settlement = replay_audit_root(audit_root).settlements[-1]
+    assert not settlement.settled
+    assert settlement.failure_code == "USAGE_VALUE_OUT_OF_RANGE"
 
 
 def test_resume_after_launch_never_retries_same_episode(tmp_path: Path) -> None:
@@ -446,6 +566,118 @@ def test_resume_after_crash_before_launch_uses_existing_reservation_once(
     assert len({value.attempt_id for value in replay.attempts_started}) == 2
 
 
+def test_resume_after_episode_two_launch_crash_reaches_crash_seal(
+    tmp_path: Path,
+) -> None:
+    class CrashOnSecondCallRunner(FakeProcessRunner):
+        def run(
+            self,
+            *,
+            argv: tuple[str, ...],
+            stdin_bytes: bytes,
+            working_directory: str,
+            timeout_ms: int,
+        ) -> CodexProcessCapture:
+            if len(self.calls) == 1:
+                self.calls.append(
+                    {
+                        "argv": argv,
+                        "stdin_bytes": stdin_bytes,
+                        "working_directory": working_directory,
+                        "timeout_ms": timeout_ms,
+                    }
+                )
+                raise RuntimeError("simulated crash during episode two launch")
+            return super().run(
+                argv=argv,
+                stdin_bytes=stdin_bytes,
+                working_directory=working_directory,
+                timeout_ms=timeout_ms,
+            )
+
+    run_id = "r02-d3-crash-episode-two-launch"
+    crashing_runner = CrashOnSecondCallRunner()
+    orchestrator, _, audit_root = _harness(
+        tmp_path,
+        run_id=run_id,
+        process_runner=crashing_runner,
+    )
+    with pytest.raises(RuntimeError, match="episode two launch"):
+        orchestrator.run()
+    assert len(crashing_runner.calls) == 2
+    crashed = replay_audit_root(audit_root)
+    assert crashed.ledgers[-1].status == "RUNNING"
+    assert crashed.ledgers[-1].launched_attempt_count == 1
+    assert len(crashed.attempts_started) == 2
+
+    resumed, resume_runner, _ = _harness(tmp_path, run_id=run_id)
+    ledger = resumed.run()
+    assert ledger.status == "HARD_STOP"
+    assert ledger.terminal_code == "CRASH_AFTER_LAUNCH_UNSETTLED"
+    assert ledger.launched_attempt_count == 2
+    assert len(resume_runner.calls) == 0
+    sealed = replay_audit_root(audit_root)
+    assert not sealed.settlements[-1].settled
+    assert sealed.settlements[-1].failure_code == "CRASH_AFTER_LAUNCH_UNSETTLED"
+
+
+def test_offline_mode_rejects_live_process_capability_before_any_launch(
+    tmp_path: Path,
+) -> None:
+    runner = LiveCapableFakeProcessRunner()
+    orchestrator, _, audit_root = _harness(
+        tmp_path,
+        run_id="r02-d3-offline-live-runner-blocked",
+        process_runner=runner,
+    )
+    ledger = orchestrator.run()
+    assert ledger.status == "HARD_STOP"
+    assert ledger.terminal_code == "RUNNER_CAPABILITY_MISMATCH"
+    assert ledger.launched_attempt_count == 0
+    assert ledger.external_provider_calls == 0
+    assert runner.calls == []
+    replay = replay_audit_root(audit_root)
+    assert replay.prelaunch_failures[-1].code == "RUNNER_CAPABILITY_MISMATCH"
+    assert replay.ledgers[-1] == ledger
+
+
+def test_duplicate_bind_rejection_is_terminalized_without_second_call(
+    tmp_path: Path,
+) -> None:
+    orchestrator, runner, audit_root = _harness(
+        tmp_path,
+        run_id="r02-d3-duplicate-bind-terminal",
+    )
+    planned = orchestrator.plan.episodes[0]
+    episode = load_frame_episode(ROOT, planned.fixture_id)
+    preparation = prepare_provider_free_episode(
+        episode,
+        experiment_id=orchestrator.authorization.run_id,
+        replicate_id=0,
+        provider_attempt_count=0,
+    )
+    request = build_selector_request(preparation)
+    attempt_id = _attempt_id(orchestrator.authorization.run_id, planned)
+    orchestrator.adapter.bind_attempt(
+        R02D3BoundAttempt(orchestrator.authorization, preparation, attempt_id, 1)
+    )
+    orchestrator.adapter.select(request)
+    assert len(runner.calls) == 1
+
+    ledger = orchestrator.run()
+    assert ledger.status == "HARD_STOP"
+    assert ledger.terminal_code == "DUPLICATE_PROVIDER_CALL_BLOCKED"
+    assert ledger.launched_attempt_count == 0
+    assert len(runner.calls) == 1
+    replay = replay_audit_root(audit_root)
+    assert replay.prelaunch_failures[-1].code == "DUPLICATE_PROVIDER_CALL_BLOCKED"
+    assert replay.anchor.node_types[-3:] == (
+        "prelaunch_failure",
+        "run_ledger",
+        "run_terminal",
+    )
+
+
 def test_append_only_tamper_or_orphan_fails_replay(tmp_path: Path) -> None:
     orchestrator, _, audit_root = _harness(
         tmp_path,
@@ -458,15 +690,123 @@ def test_append_only_tamper_or_orphan_fails_replay(tmp_path: Path) -> None:
         replay_audit_root(audit_root)
 
 
-def test_live_authorization_cannot_be_inferred_from_offline_approval() -> None:
-    with pytest.raises(ValueError, match="live mode requires"):
+def test_duplicate_attempt_identity_fails_replay(tmp_path: Path) -> None:
+    orchestrator, _, audit_root = _harness(
+        tmp_path,
+        run_id="r02-d3-duplicate-attempt-tamper",
+    )
+    writer, reservation, attempt_id = _seed_reservation_before_launch(
+        orchestrator, audit_root
+    )
+    started = R02D3AttemptStarted(
+        run_id=orchestrator.authorization.run_id,
+        fixture_id=reservation.fixture_id,
+        attempt_id=attempt_id,
+        provider_attempt_ordinal=1,
+        reservation_sha256=canonical_sha256(reservation),
+    )
+    writer.append_json("attempt_started", started)
+    writer.append_json("attempt_started", started)
+    with pytest.raises(R02D3ReplayError, match="duplicate launched attempt identity"):
+        replay_audit_root(audit_root)
+
+
+def test_checkpoint_anchor_gap_fails_replay(tmp_path: Path) -> None:
+    orchestrator, _, audit_root = _harness(
+        tmp_path,
+        run_id="r02-d3-anchor-gap-tamper",
+        responses=["{}", "{}"],
+    )
+    orchestrator.run()
+    anchors = sorted((audit_root / "anchors").glob("*.json"))
+    anchors[len(anchors) // 2].unlink()
+    with pytest.raises(R02D3ReplayError, match="sequence has a gap"):
+        replay_audit_root(audit_root)
+
+
+def test_missing_terminal_anchor_fails_replay(tmp_path: Path) -> None:
+    orchestrator, _, audit_root = _harness(
+        tmp_path,
+        run_id="r02-d3-missing-terminal-tamper",
+        responses=["{}", "{}"],
+    )
+    orchestrator.run()
+    anchors = sorted((audit_root / "anchors").glob("*.json"))
+    last_anchor = anchors[-1]
+    sequence = int(last_anchor.stem)
+    node_path = audit_root / "nodes" / f"{sequence:05d}.json"
+    node = json.loads(node_path.read_text(encoding="utf-8"))
+    payload_path = audit_root / node["payload"]["relative_path"]
+    payload_path.unlink()
+    node_path.unlink()
+    last_anchor.unlink()
+    with pytest.raises(R02D3ReplayError, match="terminal ledger is missing"):
+        replay_audit_root(audit_root)
+
+
+def test_live_booleans_cannot_self_issue_authorization() -> None:
+    with pytest.raises(ValueError, match="external authorization artifact"):
         R02D3RunAuthorization(
             run_id="r02-d3-live-not-approved",
             mode="LIVE",
             authorization_sha256="a" * 64,
             runner_readiness_freeze_sha256="b" * 64,
-            indivisible_6_plus_49_approved=False,
-            provider_calls_authorized=False,
+            indivisible_6_plus_49_approved=True,
+            provider_calls_authorized=True,
+        )
+
+
+def test_live_authorization_is_bound_to_external_canonical_bytes_and_rechecked(
+    tmp_path: Path,
+) -> None:
+    authorization, _, artifact_path = _external_live_authorization(
+        tmp_path,
+        "r02-d3-live-artifact-binding",
+    )
+    preregistration = load_accepted_preregistration(ROOT)
+    runner = LiveCapableFakeProcessRunner()
+    adapter = R02D3CodexSelectorAdapter(
+        preregistration=preregistration,
+        output_schema_path=_schema(tmp_path),
+        working_directory=ROOT,
+        process_runner=runner,
+    )
+    orchestrator = R02D3LiveOrchestrator(
+        repository_root=ROOT,
+        audit_root=tmp_path / "live-audit",
+        authorization=authorization,
+        adapter=adapter,
+        preregistration=preregistration,
+        live_authorization_artifact_path=artifact_path,
+    )
+    assert orchestrator.live_authorization_artifact_path == artifact_path.resolve()
+    assert runner.calls == []
+
+    artifact_path.write_bytes(artifact_path.read_bytes() + b"\n")
+    with pytest.raises(R02D3OrchestratorError, match="artifact hash mismatch"):
+        orchestrator.run()
+    assert runner.calls == []
+
+
+def test_live_authorization_rejects_missing_external_artifact_path(tmp_path: Path) -> None:
+    authorization, _, _ = _external_live_authorization(
+        tmp_path,
+        "r02-d3-live-artifact-missing",
+    )
+    preregistration = load_accepted_preregistration(ROOT)
+    adapter = R02D3CodexSelectorAdapter(
+        preregistration=preregistration,
+        output_schema_path=_schema(tmp_path),
+        working_directory=ROOT,
+        process_runner=LiveCapableFakeProcessRunner(),
+    )
+    with pytest.raises(R02D3OrchestratorError, match="external authorization artifact"):
+        R02D3LiveOrchestrator(
+            repository_root=ROOT,
+            audit_root=tmp_path / "missing-live-audit",
+            authorization=authorization,
+            adapter=adapter,
+            preregistration=preregistration,
         )
 
 
@@ -560,3 +900,4 @@ def test_readiness_manifest_replays_and_excludes_provider_argv() -> None:
     assert "--output-schema" not in flattened
     assert manifest["provider_calls"] == 0
     assert not manifest["live_execution"]
+    assert all(manifest["live_gate_hardening"].values())

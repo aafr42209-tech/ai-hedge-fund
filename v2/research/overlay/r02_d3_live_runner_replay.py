@@ -21,6 +21,7 @@ from .r02_d3_runner_contracts import (
     R02D3AuditAnchor,
     R02D3AuditNode,
     R02D3ContinuationDecision,
+    R02D3PrelaunchFailure,
     R02D3ReadinessReplayVerification,
     R02D3RunAuthorization,
     R02D3RunLedger,
@@ -43,6 +44,7 @@ class R02D3ReplayState:
     plan: R02D3RunPlan | None
     reservations: tuple[R02D3TokenReservation, ...]
     attempts_started: tuple[R02D3AttemptStarted, ...]
+    prelaunch_failures: tuple[R02D3PrelaunchFailure, ...]
     settlements: tuple[R02D3TokenSettlement, ...]
     outcomes: tuple[R02D3SelectorOutcome, ...]
     decisions: tuple[R02D3ContinuationDecision, ...]
@@ -55,10 +57,12 @@ _PAYLOAD_MODELS = {
     "run_plan": R02D3RunPlan,
     "token_reservation": R02D3TokenReservation,
     "attempt_started": R02D3AttemptStarted,
+    "prelaunch_failure": R02D3PrelaunchFailure,
     "token_settlement": R02D3TokenSettlement,
     "selector_outcome": R02D3SelectorOutcome,
     "continuation_decision": R02D3ContinuationDecision,
     "run_ledger": R02D3RunLedger,
+    "run_terminal": R02D3RunLedger,
 }
 
 
@@ -134,6 +138,7 @@ def replay_audit_root(root: str | Path) -> R02D3ReplayState:
     reservations = tuple(decoded["token_reservation"])
     attempts = tuple(decoded["attempt_started"])
     settlements = tuple(decoded["token_settlement"])
+    prelaunch_failures = tuple(decoded["prelaunch_failure"])
     attempt_ids = tuple(value.attempt_id for value in attempts)
     if len(attempt_ids) != len(set(attempt_ids)):
         raise R02D3ReplayError("duplicate launched attempt identity")
@@ -144,6 +149,13 @@ def replay_audit_root(root: str | Path) -> R02D3ReplayState:
         raise R02D3ReplayError("attempt launch has no prior reservation")
     if not set(settlement_ids).issubset(set(attempt_ids)):
         raise R02D3ReplayError("settlement has no launched attempt")
+    prelaunch_ids = tuple(value.attempt_id for value in prelaunch_failures)
+    if len(prelaunch_ids) != len(set(prelaunch_ids)):
+        raise R02D3ReplayError("duplicate prelaunch failure identity")
+    if set(prelaunch_ids) & (
+        set(attempt_ids) | {value.attempt_id for value in reservations}
+    ):
+        raise R02D3ReplayError("prelaunch failure identity entered launch accounting")
     node_types = latest.node_types
     if node_types[:3] != ("run_authorization", "freeze_identity", "run_plan"):
         raise R02D3ReplayError("audit graph is missing its fixed run preamble")
@@ -168,9 +180,63 @@ def replay_audit_root(root: str | Path) -> R02D3ReplayState:
         "prompt_identity"
     ) != len(reservations):
         raise R02D3ReplayError("partial episode preparation graph detected")
-    if decoded["run_ledger"] and decoded["run_ledger"][-1].status != "RUNNING":
+    ledgers = tuple(decoded["run_ledger"])
+    if ledgers:
+        latest_ledger = ledgers[-1]
+        if latest_ledger.status == "RUNNING":
+            checkpoint_attempts = attempts[: latest_ledger.launched_attempt_count]
+            checkpoint_attempt_ids = {value.attempt_id for value in checkpoint_attempts}
+            checkpoint_settlements = tuple(
+                value for value in settlements if value.attempt_id in checkpoint_attempt_ids
+            )
+            if (
+                latest_ledger.reserved_attempt_count
+                != latest_ledger.launched_attempt_count
+                or latest_ledger.reserved_attempt_count > len(reservations)
+                or latest_ledger.launched_attempt_count > len(attempts)
+                or latest_ledger.attempted_fixture_ids
+                != tuple(value.fixture_id for value in checkpoint_attempts)
+                or tuple(
+                    value.attempt_id
+                    for value in reservations[: latest_ledger.reserved_attempt_count]
+                )
+                != tuple(value.attempt_id for value in checkpoint_attempts)
+                or latest_ledger.settled_attempt_count
+                != len([value for value in checkpoint_settlements if value.settled])
+                or latest_ledger.unsettled_attempt_count
+                != len([value for value in checkpoint_settlements if not value.settled])
+                or latest_ledger.debited_tokens
+                != sum(value.debit_tokens for value in checkpoint_settlements)
+            ):
+                raise R02D3ReplayError(
+                    "running ledger is not a valid audit checkpoint prefix"
+                )
+        elif (
+            latest_ledger.reserved_attempt_count != len(reservations)
+            or latest_ledger.launched_attempt_count != len(attempts)
+            or latest_ledger.settled_attempt_count
+            != len([value for value in settlements if value.settled])
+            or latest_ledger.unsettled_attempt_count
+            != len([value for value in settlements if not value.settled])
+            or latest_ledger.debited_tokens
+            != sum(value.debit_tokens for value in settlements)
+        ):
+            raise R02D3ReplayError("terminal ledger does not reconcile with audit accounting")
+    if prelaunch_failures:
+        if len(prelaunch_failures) != 1 or node_types[-3:] != (
+            "prelaunch_failure",
+            "run_ledger",
+            "run_terminal",
+        ):
+            raise R02D3ReplayError("prelaunch rejection is not terminalized in the audit chain")
+        if not ledgers or ledgers[-1].terminal_code != prelaunch_failures[0].code:
+            raise R02D3ReplayError("prelaunch rejection terminal code mismatch")
+    if ledgers and ledgers[-1].status != "RUNNING":
         if node_types[-1] != "run_terminal" or node_types[-2] != "run_ledger":
             raise R02D3ReplayError("terminal ledger is missing its terminal anchor payload")
+        terminals = tuple(decoded["run_terminal"])
+        if len(terminals) != 1 or terminals[0] != ledgers[-1]:
+            raise R02D3ReplayError("terminal anchor payload differs from the terminal ledger")
 
     return R02D3ReplayState(
         anchor=latest,
@@ -178,10 +244,11 @@ def replay_audit_root(root: str | Path) -> R02D3ReplayState:
         plan=(decoded["run_plan"][0] if decoded["run_plan"] else None),
         reservations=reservations,
         attempts_started=attempts,
+        prelaunch_failures=prelaunch_failures,
         settlements=settlements,
         outcomes=tuple(decoded["selector_outcome"]),
         decisions=tuple(decoded["continuation_decision"]),
-        ledgers=tuple(decoded["run_ledger"]),
+        ledgers=ledgers,
         payloads_by_type={key: tuple(value) for key, value in payloads.items()},
     )
 
