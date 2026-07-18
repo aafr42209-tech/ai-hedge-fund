@@ -1,0 +1,82 @@
+{
+  "schema_version": "r02-d3-live-evidence-v1",
+  "run_id": "r02-d3-live-a779a6b7-20260718",
+  "execution_date": "2026-07-18",
+  "status": "HARD_STOP",
+  "execution_identity": {
+    "approved_commit": "a85c2925d04b67a7628b1c0301e8cd3a48142f66",
+    "runner_readiness_freeze_sha256": "a779a6b722870889128e58a9fbf4f149d78f88dc69535a7aabc7722a0e1957c6",
+    "authorization_sha256": "9242b4c4c5c9658ceb489902322a58a6f7c4caa7a851dc09e00fac2e6d748a6c",
+    "launcher_sha256": "4c0e90413257595af8add8ddbd65cd1021b26aa68e509d70b50c8be08109d5ce",
+    "executable_sha256": "cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4",
+    "codex_cli_version": "codex-cli 0.144.1",
+    "requested_model_id": "gpt-5.6-sol",
+    "selector_output_schema_sha256": "5466a24d3557e28251cb1393dac16e1049824637a27b969f3bea55c80ebc2eca"
+  },
+  "authorization_scope": {
+    "approved_scope": "INDIVISIBLE_6_PLUS_49_LIVE",
+    "planned_attempts": 55,
+    "retry_attempt_cap": 0,
+    "replacement_allowed": false,
+    "second_authorization_requested": false
+  },
+  "terminal_accounting": {
+    "reserved_attempts": 1,
+    "launched_attempts": 1,
+    "settled_attempts": 0,
+    "unsettled_attempts": 1,
+    "completed_selector_outcomes": 0,
+    "debited_tokens": 32000,
+    "terminal_code": "contradictory_terminal_status",
+    "ledger_external_provider_calls": 0,
+    "observed_provider_api_submissions": 1,
+    "provider_call_accounting_discrepancy": "The provider returned a structured HTTP 400 response before successful token-ledger parsing, but the terminal ledger recorded zero external provider calls."
+  },
+  "provider_failure": {
+    "process_exit_code": 1,
+    "http_status": 400,
+    "provider_error_type": "invalid_request_error",
+    "provider_error_code": "invalid_json_schema",
+    "provider_error_summary": "The response schema required array did not include every property; schema_version was missing.",
+    "timed_out": false,
+    "stderr_bytes": 0
+  },
+  "audit": {
+    "relative_root": ".research_artifacts/r02-d3-live-a779a6b7-20260718/audit",
+    "anchor_sequence": 14,
+    "file_count": 42,
+    "total_bytes": 50110,
+    "tree_sha256": "c36402037e40fdd24e79df35aeaa386f200c1f93574fca4b16c198cae452d652",
+    "tree_hash_method": "v2.research.overlay.r02_d3_preflight._filesystem_tree",
+    "strict_replay_passed": true,
+    "run_terminal_present": true
+  },
+  "sealed_inputs": {
+    "frame_artifact_file_count": 162,
+    "frame_artifact_copy_tree_sha256": "316eb5757b2eda3a04ec16f19a225df7a6e44fdf7f506482aa947b9cf77fb494",
+    "frame_artifact_tree_hash_method": "v2.research.overlay.r02_d3_preflight._filesystem_tree",
+    "frozen_frame_tree_sha256": "316eb5757b2eda3a04ec16f19a225df7a6e44fdf7f506482aa947b9cf77fb494",
+    "frame_artifact_copy_matches_frozen_tree_sha256": true,
+    "loaded_episode_count": 55
+  },
+  "execution_notes": {
+    "initial_pre_provider_start": "Stopped before reservation because the detached worktree lacked ignored sealed frame artifacts; provider calls remained zero.",
+    "resumed_live_start": "Resumed the same run and audit root after an exact sealed-frame copy.",
+    "progress_reporting": "The run reached a terminal hard stop before the first ten-minute progress report.",
+    "rerun_performed": false
+  },
+  "artifact_paths": {
+    "authorization": ".research_artifacts/r02-d3-live-a779a6b7-20260718/r02-d3-live-a779a6b7-20260718-authorization.json",
+    "launcher": ".research_artifacts/r02-d3-live-a779a6b7-20260718/r02-d3-live-a779a6b7-20260718-launcher.py",
+    "initial_stdout": ".research_artifacts/r02-d3-live-a779a6b7-20260718/r02-d3-live-a779a6b7-20260718.stdout.log",
+    "initial_stderr": ".research_artifacts/r02-d3-live-a779a6b7-20260718/r02-d3-live-a779a6b7-20260718.stderr.log",
+    "resume_stdout": ".research_artifacts/r02-d3-live-a779a6b7-20260718/r02-d3-live-a779a6b7-20260718.resume1.stdout.log",
+    "resume_stderr": ".research_artifacts/r02-d3-live-a779a6b7-20260718/r02-d3-live-a779a6b7-20260718.resume1.stderr.log"
+  },
+  "final_disposition": {
+    "full_6_plus_49_completed": false,
+    "utility_hypothesis_evaluated": false,
+    "retry_or_replacement_prohibited": true,
+    "successor_run_requires_new_freeze_and_new_explicit_authorization": true
+  }
+}
