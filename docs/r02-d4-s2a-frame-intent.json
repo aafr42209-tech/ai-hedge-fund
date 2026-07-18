@@ -1,0 +1,140 @@
+{
+  "accepted_design_commit": "d9f984866c8775153d9c1ac1aea9b49fc9647635",
+  "accepted_design_manifest_sha256": "784f47a8fa19a679f1048269810604a9164081a1676ffe4c04ccb4d959e0a900",
+  "admission_rule": {
+    "candidate_headroom_strictly_positive": true,
+    "deduplicated_candidate_count_minimum": 2,
+    "episode_trigger_required": true,
+    "scan_order": "contiguous_source_index_ascending",
+    "stop_condition": "exactly_50_admissions",
+    "stratum": "challenge"
+  },
+  "authorization": {
+    "approved_actions": [
+      "provider_free_s2a_frame_generation",
+      "frozen_admission_scan",
+      "frame_seal",
+      "read_only_full_byte_replay",
+      "zero_call_manifest",
+      "independent_review_handoff"
+    ],
+    "forbidden_actions": [
+      "predecessor_partial_root_completion",
+      "predecessor_partial_root_reuse",
+      "provider_call",
+      "codex_exec",
+      "micro_pilot",
+      "live_execution",
+      "retry",
+      "replacement",
+      "commit",
+      "push"
+    ],
+    "scope": "R02 D4-S2A only",
+    "user_authorized_date": "2026-07-18"
+  },
+  "challenge_count": 50,
+  "challenge_scan_limit": 4096,
+  "challenge_scan_start_index": 150,
+  "codex_exec_invocations": 0,
+  "commit_created": false,
+  "execution_timeout_seconds": 900,
+  "frame_build_base_commit": "17d9a382075d5008c79b42d52f2a8409947b4b04",
+  "frame_id": "r02-d4-s2a-frame-0716a1b9c13a",
+  "frame_root_relative": ".research_artifacts/r02-d4-s2a-frame-0716a1b9c13a",
+  "generation_attempt_cap": 1,
+  "generator_config_sha256": "e6598cca07c846650f7d7c157c16a6d77aefd4a94966c6624288239b5ae04ccf",
+  "in_generation_process_full_replay": false,
+  "live_execution": false,
+  "micro_pilot_executed": false,
+  "predecessor_abort_commit": "17d9a382075d5008c79b42d52f2a8409947b4b04",
+  "predecessor_abort_diagnostic_sha256": "6f404821a35096eafc1cba060d52faa9d3bf0652ddb49580e98d07bbfa455e35",
+  "predecessor_abort_review": {
+    "handoff_sha256": "cc5958399b1ca842a18668e51a59bdd99c40a722667d8730d6d0a25f0b2bb30d",
+    "verdict": "PASS_ABORT_S2_NO_RETRY"
+  },
+  "predecessor_partial_root_relative": ".research_artifacts/r02-d4-frame-0716a1b9c13a",
+  "predecessor_partial_root_reused": false,
+  "predecessor_partial_root_tree_sha256": "2f15d7c9f0ff2e3e2314714a00384e110c45b0c468586c7f567aec0e7524d132",
+  "predecessor_zero_call_manifest_sha256": "d665fd6972c39197a62b2f94d7e160b11ceb26bc9c79daa1c528619edc4ea20e",
+  "protected_artifact_root_before": {
+    "children": {
+      "r01-b3-1f65106": {
+        "file_count": 299,
+        "total_bytes": 741890,
+        "tree_sha256": "6ecbab78625ced153cb4b446fc8e911890476c144f361769e2073c142fd5c30e"
+      },
+      "r01-b3-af8381f": {
+        "file_count": 107,
+        "total_bytes": 338920,
+        "tree_sha256": "46abfded3004f3e0f78e3bec54cda484ed54b5f904bde199a337587d868880e5"
+      },
+      "r01-b3-bcc3dbc": {
+        "file_count": 64,
+        "total_bytes": 267554,
+        "tree_sha256": "f1aaedb3beb500441917d27f86ead98ec5d8b085638c567e99816251a6de346d"
+      },
+      "r01-b3-f403e1a": {
+        "file_count": 268,
+        "total_bytes": 602081,
+        "tree_sha256": "9314e307683183d1a7b1fcb3ea01e2b0182c5bf8da50df8203dfe977f8215cd3"
+      },
+      "r02-d2c-frame-53be0c4bb060": {
+        "file_count": 162,
+        "total_bytes": 815406,
+        "tree_sha256": "316eb5757b2eda3a04ec16f19a225df7a6e44fdf7f506482aa947b9cf77fb494"
+      },
+      "r02-d3-live-a779a6b7-20260718": {
+        "file_count": 48,
+        "total_bytes": 58500,
+        "tree_sha256": "451175069ee11224d710ac689728d73110ebd8a323f1177de4d592294e767056"
+      },
+      "r02-d3-live-gate-b650b8379d36": {
+        "file_count": 3,
+        "total_bytes": 5571,
+        "tree_sha256": "58228ac0ce9b954dc60e5e371543ee27287d8467f8dd6650c8a0e257ae816870"
+      },
+      "r02-d3-preflight-5e07d88e98e7": {
+        "file_count": 6,
+        "total_bytes": 47849,
+        "tree_sha256": "7e02e5359340e14df30033411e41656cdfdc77eefeb14429949cf404a392328f"
+      },
+      "r02-d3-successor-84750652-20260718": {
+        "file_count": 2327,
+        "total_bytes": 46392220,
+        "tree_sha256": "b3cc74da593975865cd42087bb18bdc3f82d1c5666df5d98c5eb8ff92119dbea"
+      },
+      "r02-d4-frame-0716a1b9c13a": {
+        "file_count": 201,
+        "total_bytes": 806977,
+        "tree_sha256": "2f15d7c9f0ff2e3e2314714a00384e110c45b0c468586c7f567aec0e7524d132"
+      }
+    },
+    "file_count": 3485,
+    "total_bytes": 50076968,
+    "tree_hash_method": "r02_d3_preflight._filesystem_tree",
+    "tree_sha256": "ff678a35ab36ef21607f21d67ed6e614f7d5645e11b4ea61f939c53825b95441"
+  },
+  "provider_calls": 0,
+  "push_performed": false,
+  "replacement_cap": 0,
+  "representative_count": 150,
+  "resolved_frame_seed_sha256": "0716a1b9c13aec596b29776f48b3d8d1fc0a9afacc1c5010bd2cf2a9629d0621",
+  "resolved_seed_artifact": "docs/r02-d4-s1-resolved-seed.json",
+  "resolved_seed_artifact_sha256": "a05f3b2da66dfda6ba3369effa1734f8c760e6c1735db80306b07f51a8abeef5",
+  "retry_cap": 0,
+  "schema_version": "r02-d4-s2a-frame-intent-v1",
+  "seed_slot": 0,
+  "source_pins": {
+    "base_frame_builder_source_sha256": "178e9b5d943d2062517dfd5be746968e135b4a4bc1248092f17960b00e9786c3",
+    "candidate_generator_source_sha256": "29c13547230d1729d8b9cec637ccb13335fbcae52c1360e63718359d993a320e",
+    "fixture_generator_source_sha256": "732ca6ff358590edd856ba68bcb6cefb612246da9d81b97aa08d12db786eabfe",
+    "frame_builder_source_sha256": "5ed3164d6f7dc39785de6b70ce1dc90c615feebe7e754b6971cd94e68292f5c2",
+    "generation_script_sha256": "79b76ad19637cbf1d49f6e52d76e4fd37d9c6fb812a60c659511ae91c6613bc3",
+    "test_source_sha256": "4187f3427e65e22fcd256c061a0fc6f85b6b58c52ff9c2326397fa87d1cc6198",
+    "verification_script_sha256": "b18863976a756eddfc151b2173a14c8ce68414f16f4ff2abfff5902ea6b876cf"
+  },
+  "status": "AUTHORIZED_PROVIDER_FREE_S2A_FRAME_GENERATION_AND_FROZEN_ADMISSION_SCAN",
+  "successor_attempt_name": "R02_D4_S2A",
+  "total_count": 200
+}

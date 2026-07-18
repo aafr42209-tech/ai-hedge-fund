@@ -1,0 +1,44 @@
+{
+  "additive_verifier": {
+    "actual_in_memory_regeneration_count": 1,
+    "elapsed_seconds": 185,
+    "path": "scripts/r02_d4_s2a_sealed_replay_verify.py",
+    "sha256": "8d81486ac4f268b9f654324a5d8cb0360960f9cc97abb894609b679bcf610383",
+    "status": "PASS_S2A_PROVIDER_FREE_FRAME_REPRODUCED_ADDITIVE_VERIFIER"
+  },
+  "artifact_mutation_during_replay_attempts": false,
+  "date": "2026-07-18",
+  "frame_generation_accounting": {
+    "generation_attempt_count": 1,
+    "generation_retry_count": 0,
+    "replacement_count": 0
+  },
+  "frame_identity": {
+    "frame_id": "r02-d4-s2a-frame-0716a1b9c13a",
+    "frame_manifest_sha256": "368e01509b04a53928df2d729f0914dbd0c1ee14c5221a6e189fbf7b8bfa4ba1",
+    "frame_seal_sha256": "40aec915d3d24598ad2cbc46713a949b8c8ee5401d5768695b9be918b8bb5838",
+    "frame_tree_sha256": "65c0acc67c2987997d3dfac8ce4fb861ddf4f439e7a4ce59c1eab79ac5d6ea29"
+  },
+  "pre_generation_verifier": {
+    "actual_in_memory_regeneration_count": 0,
+    "elapsed_seconds": 0,
+    "error": "R02D4S2AFrameManifest strict model_validate(dict) rejected JSON cases list for tuple field",
+    "error_field": "cases",
+    "error_type": "pydantic_core.ValidationError",
+    "failed_before_artifact_store_open": true,
+    "path": "scripts/r02_d4_s2a_frame_verify.py",
+    "sha256": "b18863976a756eddfc151b2173a14c8ce68414f16f4ff2abfff5902ea6b876cf",
+    "source_modified_after_failure": false,
+    "status": "FAILED_PARSER_BOUNDARY_NO_FRAME_IMPACT"
+  },
+  "read_only_replay_attempt_count": 2,
+  "remediation_boundary": {
+    "intent_modified_after_generation": false,
+    "pre_generation_sources_modified_after_generation": false,
+    "sealed_artifact_modified": false,
+    "technique": "additive verifier uses model_validate_json on canonical JSON bytes",
+    "verifier_fix_outcome_independent": true
+  },
+  "schema_version": "r02-d4-s2a-replay-verifier-diagnostic-v1",
+  "status": "SEALED_FRAME_REPRODUCED_AFTER_ADDITIVE_READ_ONLY_PARSER_FIX"
+}
