@@ -102,8 +102,8 @@ documents. Confirm:
    capabilities. The only runtime process capability is the injected
    `CodexProcessRunner` protocol wrapped by an explicit LIVE-only capability.
 9. The zero-call command map contains no `exec`, `--output-schema`, or live argv.
-10. Accepted R01/D1/D2c/D3/live-gate files and the user-owned Claude handoff are
-    unchanged.
+10. Accepted R01/D1/D2c/D3/live-gate files are unchanged. The user-owned D2b
+    Claude handoff was retired by its owner after the D2b review concluded.
 11. LIVE construction and execution require exact external canonical artifact
     bytes outside repository/audit roots; locally set approval booleans and
     tampered bytes fail closed before any process call.
