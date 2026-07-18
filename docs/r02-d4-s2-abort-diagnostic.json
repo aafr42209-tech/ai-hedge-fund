@@ -1,0 +1,92 @@
+{
+  "abort_code": "ABORT_S2_NO_RETRY",
+  "accepted_design_commit": "d9f984866c8775153d9c1ac1aea9b49fc9647635",
+  "attempt": {
+    "command": ".venv/Scripts/python.exe scripts/r02_d4_s2_frame_generate.py --repo-root C:\\Users\\User\\Desktop\\ai-hedge-fund-fresh",
+    "generation_attempt_count": 1,
+    "outcome": "TIMEOUT_SIGTERM",
+    "process_exit_status": null,
+    "process_signal": "SIGTERM",
+    "timeout_milliseconds": 295000
+  },
+  "base_commit": "a563fb4e6e83a51662fa41c166eeb3fa5f1a52f0",
+  "capability_accounting": {
+    "codex_exec_invocations": 0,
+    "commit_created": false,
+    "frame_generation_attempted": true,
+    "live_execution": false,
+    "micro_pilot_executed": false,
+    "provider_calls": 0,
+    "push_performed": false,
+    "replacement_count": 0,
+    "retry_count": 0
+  },
+  "date": "2026-07-18",
+  "d3_sealed_evidence": {
+    "posthoc_artifact": "docs/r02-d3-successor-provider-free-posthoc.json",
+    "posthoc_artifact_sha256": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "verdict": "SUPPORTED",
+    "verdict_modified_or_reclassified": false
+  },
+  "frame_contract": {
+    "challenge_count": 50,
+    "frame_id": "r02-d4-frame-0716a1b9c13a",
+    "frame_root_relative": ".research_artifacts/r02-d4-frame-0716a1b9c13a",
+    "representative_count": 150,
+    "resolved_frame_seed_sha256": "0716a1b9c13aec596b29776f48b3d8d1fc0a9afacc1c5010bd2cf2a9629d0621",
+    "seed_slot": 0,
+    "total_count": 200
+  },
+  "partial_payload": {
+    "challenge_fixture_count": 50,
+    "challenge_scan": {
+      "admission_rule": "TRIGGER_TRUE_AND_AT_LEAST_TWO_DEDUPLICATED_CANDIDATES_AND_POSITIVE_HEADROOM",
+      "admitted_count": 50,
+      "admitted_first_source_index": 152,
+      "admitted_last_source_index": 560,
+      "admitted_source_indexes_match_admitted_records": true,
+      "disposition_counts": {
+        "ADMITTED": 50,
+        "NOT_TRIGGERED": 351,
+        "NO_POSITIVE_CANDIDATE_HEADROOM": 10
+      },
+      "frame_scan": true,
+      "live_execution": false,
+      "outcome_shopping_fields_used": false,
+      "provider_calls": 0,
+      "record_count": 411,
+      "scan_limit": 4096,
+      "scan_source_indexes_contiguous": true,
+      "scan_start_index": 150,
+      "scan_stop_index": 560,
+      "sha256": "a316b32b5856564118700f4dee79067ce38b257f24eec5f85bc29915926ada9f"
+    },
+    "challenge_scan_present": true,
+    "docs_frame_manifest_present": false,
+    "docs_frame_seal_present": false,
+    "expected_sealed_tree_file_count": 202,
+    "frame_manifest_present": false,
+    "observed_tree_file_count": 201,
+    "observed_tree_sha256": "2f15d7c9f0ff2e3e2314714a00384e110c45b0c468586c7f567aec0e7524d132",
+    "observed_tree_total_bytes": 806977,
+    "representative_fixture_count": 150
+  },
+  "pre_generation_gate": {
+    "intent_verifier": "PASS_S2_INTENT_PINS",
+    "focused_tests": "53 passed in 35.77s",
+    "target_root_absent": true,
+    "target_docs_manifest_absent": true,
+    "target_docs_seal_absent": true
+  },
+  "quarantine": {
+    "frame_admitted_for_statistical_freeze": false,
+    "frame_sealed": false,
+    "partial_root_may_be_completed": false,
+    "partial_root_may_be_reused": false,
+    "provider_budget_may_be_derived": false,
+    "provider_or_live_use_allowed": false,
+    "required_next_gate": "INDEPENDENT_ABORT_REVIEW_THEN_SEPARATE_USER_AUTHORIZATION_FOR_A_NEWLY_NAMED_ATTEMPT"
+  },
+  "schema_version": "r02-d4-s2-abort-diagnostic-v1",
+  "status": "ABORTED_UNSEALED_PARTIAL_FRAME_QUARANTINED"
+}
