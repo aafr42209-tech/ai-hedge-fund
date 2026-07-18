@@ -1,0 +1,121 @@
+{
+  "artifact_root_contract": {
+    "append_only": true,
+    "existing_files_action": "HARD_STOP_RETRY_AND_RESUME_PROHIBITED",
+    "live_root_shape": ".research_artifacts/r02-d4-s6-{run_id}",
+    "offline_fake_root_must_be_outside_repository": true,
+    "production_artifact_root_execution_in_s6": false,
+    "test_artifact_root": "PYTEST_TMP_PATH_OR_TEMPORARY_DIRECTORY_ONLY"
+  },
+  "audit_contract": {
+    "append_order": [
+      "PAYLOAD_CANONICAL_JSON_EXCLUSIVE_FSYNC",
+      "HASH_CHAIN_NODE_EXCLUSIVE_FSYNC",
+      "FULL_HISTORY_CHECKPOINT_ANCHOR_EXCLUSIVE_FSYNC"
+    ],
+    "attempt_node_order": [
+      "token_reservation",
+      "attempt_started",
+      "transport_result",
+      "attempt_outcome",
+      "continuation_decision",
+      "run_ledger"
+    ],
+    "prefix_node_order": [
+      "run_authorization",
+      "contract_binding",
+      "run_plan"
+    ],
+    "terminal_node": "run_terminal"
+  },
+  "authorization_boundary": {
+    "approved": "PROVIDER_FREE_RUNNER_AUDIT_REPLAY_IMPLEMENTATION_ONLY",
+    "codex_exec_authorized": false,
+    "live_authorization_artifact_created": false,
+    "live_execution_authorized": false,
+    "micro_pilot_authorized": false,
+    "production_artifact_root_execution_authorized": false,
+    "provider_calls_authorized": false,
+    "replacement_authorized": false,
+    "retry_authorized": false,
+    "s6_commit_push_authorized": false
+  },
+  "base_commit": "bf8c293ab656be915b34c392133d77f3b8e748b2",
+  "date": "2026-07-18",
+  "execution_contract": {
+    "aggregate_token_cap": 2208000,
+    "attempt_reservation_before_transport": true,
+    "eligible_attempts": 69,
+    "execution_order": "ELIGIBLE_CASES_BY_FRAME_ORDINAL_ASCENDING",
+    "execution_plan_sha256": "a5e461a74a594a7f54a4751c8cb330ab4032c23ce25bdcbbd0dda6599c6af7d1",
+    "full_prepared_run_plan_sha256": "188c971db338d5456c72a1e6e71801119dd8f992dd90fd86c3952f09121cffc9",
+    "micro_pilot_attempts": 0,
+    "no_hard_stop_action": "CONTINUE_NEXT_ELIGIBLE_CASE_WITHOUT_INTERIM_DISCLOSURE_OR_SECOND_AUTHORIZATION",
+    "per_attempt_timeout_ms": 900000,
+    "per_attempt_token_reserve": 32000,
+    "replacement_cap": 0,
+    "resume_cap": 0,
+    "retry_cap": 0,
+    "settled_fail_closed_cap": 6,
+    "seventh_settled_fail_closed_action": "HARD_STOP_INVALID_RUN",
+    "unsettled_attempt_cap": 0,
+    "unused_reservation_creates_attempt_credit": false
+  },
+  "hard_stop_conditions": [
+    "MISSING_SEPARATE_LIVE_AUTHORIZATION",
+    "TRUST_ANCHOR_PROTECTED_TREE_OR_SOURCE_PIN_DRIFT",
+    "FRAME_ID_MANIFEST_SEAL_TREE_OR_EXECUTION_ORDER_DRIFT",
+    "PROMPT_OUTPUT_SCHEMA_MODEL_PROVIDER_EXECUTABLE_FEATURE_OR_COMMAND_DRIFT",
+    "ATTEMPT_OR_TOKEN_BUDGET_WOULD_BE_EXCEEDED",
+    "TRANSPORT_TIMEOUT_NONZERO_EXIT_MISSING_USAGE_OR_UNSETTLED_ATTEMPT",
+    "REPORTED_USAGE_OVER_32000_TOKEN_RESERVE",
+    "SETTLED_FAIL_CLOSED_COUNT_WOULD_EXCEED_6",
+    "AUDIT_PERSISTENCE_HASH_OR_REPLAY_FAILURE",
+    "RETRY_REPLACEMENT_OR_RESUME_REQUESTED"
+  ],
+  "outcome_independence": {
+    "continuation_uses_utility_outcomes": false,
+    "interim_outcome_disclosure": false,
+    "settled_paired_outcomes_persisted_for_terminal_analysis_only": true,
+    "stop_authority": "FROZEN_HARD_STOP_CONDITIONS_ONLY"
+  },
+  "replay_contract": {
+    "canonical_payload_bytes_required": true,
+    "checkpoint_every_append": true,
+    "complete_terminal_replay_required_before_runner_returns": true,
+    "duplicate_attempt_identity_rejected": true,
+    "hash_chain_recomputed": true,
+    "missing_or_orphan_file_rejected": true,
+    "sealed_frame_rebuild_required_for_independent_replay": true,
+    "settled_selection_and_paired_utility_recomputed": true
+  },
+  "schema_version": "r02-d4-s6-runner-contract-v1",
+  "sealed_inputs": {
+    "frame_id": "r02-d4-s2a-frame-0716a1b9c13a",
+    "frame_manifest_sha256": "368e01509b04a53928df2d729f0914dbd0c1ee14c5221a6e189fbf7b8bfa4ba1",
+    "frame_seal_sha256": "40aec915d3d24598ad2cbc46713a949b8c8ee5401d5768695b9be918b8bb5838",
+    "frame_tree_file_count": 202,
+    "frame_tree_sha256": "65c0acc67c2987997d3dfac8ce4fb861ddf4f439e7a4ce59c1eab79ac5d6ea29",
+    "s3_statistical_freeze_sha256": "3538c09ffedd95f946a448ae298e04cad1cf933a99ff767b58472c4285c6b449",
+    "s4_provider_budget_sha256": "722eb1aee9e115c76990387f7baf8a19dbfd66226ebaae4060acf29f1bf74e70",
+    "s5_execution_identity_snapshot_sha256": "248f3683db276d45f275b5a2c236bc02909f6b7bf1be4ff56f6886573b2df5dc",
+    "s5_live_gate_freeze_sha256": "d931edfaa347165975a0edcff1a256f81cd7d56fc7268d7a2a19bf97379f50ab"
+  },
+  "source_pins": {
+    "v2/research/overlay/r02_d4_s6_audit.py": "935cf31e779da3fe1b7d5b0e381080af5c9d3952e075b1bd7a92c495ee03971b",
+    "v2/research/overlay/r02_d4_s6_contracts.py": "9cc3e3dcc07d635555729ba7d19800e349658a259e8592b0bddb52963d7cc433",
+    "v2/research/overlay/r02_d4_s6_replay.py": "eb22acbfa40917c3465fa2060dca0879d4f0b1decf32ba66c64e83db7ef1cd78",
+    "v2/research/overlay/r02_d4_s6_runner.py": "8b33288f21a2b85825c5f101a40c5f0f1c7170cad0437fa342c5c255049e3eac"
+  },
+  "status": "PROVIDER_FREE_S6_IMPLEMENTATION_PENDING_INDEPENDENT_REVIEW",
+  "transport_contract": {
+    "actual_provider_adapter_implemented": false,
+    "allowed_test_capability": "OFFLINE_FAKE",
+    "expected_live_capability_name": "LIVE_PROVIDER_PROCESS",
+    "fake_transport_external_provider_calls": 0,
+    "injected_protocol_only": true,
+    "process_or_network_imports_in_s6_sources": false,
+    "production_entrypoint_implemented": false,
+    "timeout_argument_ms": 900000
+  }
+}

@@ -1,0 +1,101 @@
+{
+  "authorization_boundary": {
+    "approved": "PROVIDER_FREE_RUNNER_AUDIT_REPLAY_IMPLEMENTATION_ONLY",
+    "codex_exec_authorized": false,
+    "live_authorization_artifact_created": false,
+    "live_execution_authorized": false,
+    "production_artifact_root_execution_authorized": false,
+    "provider_calls_authorized": false,
+    "retry_or_replacement_authorized": false,
+    "s5_commit_push_completed": true,
+    "s6_commit_push_authorized": false
+  },
+  "base_commit": "bf8c293ab656be915b34c392133d77f3b8e748b2",
+  "capability_accounting": {
+    "codex_exec_invocations": 0,
+    "commit_created_for_s6": false,
+    "fake_transport_invocations_in_independent_verifier": 69,
+    "frame_generation": false,
+    "frame_scan": false,
+    "live_authorization_artifact_created": false,
+    "live_execution": false,
+    "local_execution_identity_command_invocations": 0,
+    "micro_pilot_executed": false,
+    "production_artifact_root_execution": false,
+    "production_s6_artifact_roots_created": 0,
+    "provider_calls": 0,
+    "push_performed_for_s6": false,
+    "replacement_count": 0,
+    "resume_count": 0,
+    "retry_count": 0
+  },
+  "date": "2026-07-18",
+  "evidence_identity": {
+    "d3_posthoc_sha256": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "d3_verdict": "SUPPORTED",
+    "d3_verdict_modified_or_reclassified": false,
+    "s2a_frame_tree_sha256": "65c0acc67c2987997d3dfac8ce4fb861ddf4f439e7a4ce59c1eab79ac5d6ea29",
+    "s5_live_gate_freeze_sha256": "d931edfaa347165975a0edcff1a256f81cd7d56fc7268d7a2a19bf97379f50ab"
+  },
+  "execution_contract": {
+    "aggregate_token_cap": 2208000,
+    "eligible_attempts": 69,
+    "full_prepared_run_plan_sha256": "188c971db338d5456c72a1e6e71801119dd8f992dd90fd86c3952f09121cffc9",
+    "micro_pilot_attempts": 0,
+    "per_attempt_timeout_ms": 900000,
+    "per_attempt_token_reserve": 32000,
+    "replacement_cap": 0,
+    "resume_cap": 0,
+    "retry_cap": 0,
+    "settled_fail_closed_cap": 6
+  },
+  "focused_tests": {
+    "collected_count": 133,
+    "manifest_sha256": "63ca78cfcc61017044319f57578fef364388def02b0717cb5eaa6cd131c3c82b",
+    "result": "133 passed in 142.94s",
+    "s6_specific_result": "12 passed in 70.25s",
+    "test_list_and_count_pinned": true,
+    "test_source_hashes_pinned": true
+  },
+  "outcome_access": {
+    "continuation_consulted_utility_outcomes": false,
+    "fake_selector_outputs_used_for_tests": true,
+    "individual_live_selector_outcomes_accessed": false,
+    "provider_outputs_accessed": false,
+    "sealed_frame_deterministic_utilities_recomputed_for_replay": true
+  },
+  "protected_artifact_root_after": {
+    "child_root_count": 11,
+    "file_count": 3687,
+    "total_bytes": 51050083,
+    "tree_hash_method": "r02_d3_preflight._filesystem_tree",
+    "tree_sha256": "692ced9177f71cbe1af45a8f3ce06b7ec1c690fba87a8c7de254a1dfc834f891"
+  },
+  "protected_artifact_root_before": {
+    "child_root_count": 11,
+    "file_count": 3687,
+    "total_bytes": 51050083,
+    "tree_hash_method": "r02_d3_preflight._filesystem_tree",
+    "tree_sha256": "692ced9177f71cbe1af45a8f3ce06b7ec1c690fba87a8c7de254a1dfc834f891"
+  },
+  "provider_free_verifier": {
+    "audit_nodes": 418,
+    "fake_attempts": 69,
+    "provider_calls": 0,
+    "reserved_tokens": 2208000,
+    "result": "PASS_S6_PROVIDER_FREE_RUNNER_AUDIT_REPLAY_REPRODUCED"
+  },
+  "schema_version": "r02-d4-s6-zero-call-manifest-v1",
+  "source_hashes": {
+    "docs/r02-d4-s6-focused-tests.json": "63ca78cfcc61017044319f57578fef364388def02b0717cb5eaa6cd131c3c82b",
+    "docs/r02-d4-s6-runner-contract.json": "edea01bf2dc6b3c110cf780bc5c774266871ae06b8d716685965fadf34f2f26f",
+    "docs/r02-d4-s6-runner-implementation.md": "0c42f74513bb3432ffce0a2721195ecd7882a038f2aa2eaf63a3adeaab6da20e",
+    "scripts/r02_d4_s6_verify.py": "fc968f66b68fbc701fea3300c8a25df6e8554d3da53de56b9189b884174cf5d7",
+    "v2/research/overlay/r02_d4_s6_audit.py": "935cf31e779da3fe1b7d5b0e381080af5c9d3952e075b1bd7a92c495ee03971b",
+    "v2/research/overlay/r02_d4_s6_contracts.py": "9cc3e3dcc07d635555729ba7d19800e349658a259e8592b0bddb52963d7cc433",
+    "v2/research/overlay/r02_d4_s6_replay.py": "eb22acbfa40917c3465fa2060dca0879d4f0b1decf32ba66c64e83db7ef1cd78",
+    "v2/research/overlay/r02_d4_s6_runner.py": "8b33288f21a2b85825c5f101a40c5f0f1c7170cad0437fa342c5c255049e3eac",
+    "v2/research/overlay/test_r02_d4_s6_runner.py": "285cbae5d920cf99433b324ffa45490a83a77d5a04121c8f6ec936f0966b5ceb"
+  },
+  "status": "ZERO_CALL_BOUNDARY_CONFIRMED_S6_RUNNER_AUDIT_REPLAY_DRAFT"
+}
