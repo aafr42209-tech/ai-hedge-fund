@@ -1,0 +1,123 @@
+{
+  "schema_version": "r02-d4-s1-seed-resolution-zero-call-manifest-v1",
+  "status": "SEED_SLOT_ZERO_RESOLVED_AND_SEALED_PENDING_INDEPENDENT_CLOSEOUT_REVIEW",
+  "date": "2026-07-18",
+  "scope": "S1_SEED_RESOLUTION_COMPLETE_FRAME_GENERATION_AND_SCAN_BLOCKED",
+  "git": {
+    "repository": "C:\\Users\\User\\Desktop\\ai-hedge-fund-fresh",
+    "branch": "codex/llm-overlay-research-01",
+    "accepted_design_head": "d9f984866c8775153d9c1ac1aea9b49fc9647635",
+    "upstream_sync": "0/0",
+    "tracked_diff": "EMPTY",
+    "commit_created": false,
+    "push_performed": false
+  },
+  "static_pins": {
+    "accepted_design_commit": "d9f984866c8775153d9c1ac1aea9b49fc9647635",
+    "accepted_design_manifest_sha256": "784f47a8fa19a679f1048269810604a9164081a1676ffe4c04ccb4d959e0a900",
+    "generator_config_sha256": "e6598cca07c846650f7d7c157c16a6d77aefd4a94966c6624288239b5ae04ccf",
+    "seed_contract_sha256": "7b670cc9613a16e6f170b613a3b05a24529699c379bad14cad911736e34792fa",
+    "seed_slot": 0,
+    "domain": "R02-D4-EXACT-REPLICATION-FRAME-SEED-V1",
+    "algorithm": "SHA256_CANONICAL_JSON_FULL_DIGEST_HEX"
+  },
+  "resolution_lineage": {
+    "coordinator_commitment_artifact_sha256": "7ea3288a36424f939d295ec2e96751b33908a82dba78818cfdd16adbdd0687fe",
+    "reviewer_commitment_artifact_sha256": "2c93c329e30693ea3de99f9114f1f16af9282acfaff6b2b49e2e555438092215",
+    "coordinator_reveal_artifact_sha256": "a674c1ae1852b51650b680916ce6c5dbdb8d652384bae1a6209c970558e0c8a5",
+    "reviewer_reveal_artifact_sha256": "52227dcbcc3c8754a95a425172fc9f31479f62b5b4155ae5c1ed15995c198ec0",
+    "prior_commitment_zero_call_manifest_sha256": "79c8fa298d3268ef2f0abb15408f285f79b83f8914bae4032572f03579639c9b",
+    "prior_coordinator_reveal_zero_call_manifest_sha256": "9775488293d9a590e754e5e5d6a7d53c3e881e35c735e12370eb4add65b16d7a",
+    "resolved_seed_artifact_path": "docs/r02-d4-s1-resolved-seed.json",
+    "resolved_seed_artifact_sha256": "a05f3b2da66dfda6ba3369effa1734f8c760e6c1735db80306b07f51a8abeef5"
+  },
+  "resolution": {
+    "outcome_independent": true,
+    "individual_r02_d3_outcomes_used": false,
+    "both_commitments_verified": true,
+    "both_reveals_verified": true,
+    "coordinator_reveal_count": 1,
+    "reviewer_reveal_count": 1,
+    "seed_derivation_count": 1,
+    "seed_replacement_count": 0,
+    "alternate_seed_slots": 0,
+    "resolved_frame_seed_sha256": "0716a1b9c13aec596b29776f48b3d8d1fc0a9afacc1c5010bd2cf2a9629d0621",
+    "frame_seed_created": true,
+    "resolved_frame_id": null,
+    "verification_recomputation_is_identity_check_not_seed_replacement": true
+  },
+  "assertions": {
+    "provider_calls": 0,
+    "codex_exec_invocations": 0,
+    "frame_generation": false,
+    "frame_scan": false,
+    "micro_pilot_executed": false,
+    "live_execution": false,
+    "live_authorization_artifact_created": false,
+    "retry_or_replacement": false,
+    "further_reveal_allowed": false,
+    "further_seed_derivation_allowed": false,
+    "r02_d3_sealed_evidence_modified": false,
+    "r02_d3_supported_verdict_modified": false
+  },
+  "protected_artifact_root_before": {
+    "source": "docs/r02-d4-s1-coordinator-reveal-zero-call-manifest.json:protected_artifact_root_after",
+    "captured_utc": "2026-07-18T06:58:00.134Z",
+    "file_count": 3284,
+    "total_bytes": 49269991,
+    "tree_sha256": "3a7ed6ede78176affb13a2b49590ecfe49d5a7156a0c2467d4302021345c7279",
+    "tree_hash_method": "v2.research.overlay.r02_d3_preflight._filesystem_tree"
+  },
+  "protected_artifact_root_after": {
+    "captured_utc": "2026-07-18T07:19:53.092Z",
+    "file_count": 3284,
+    "total_bytes": 49269991,
+    "tree_sha256": "3a7ed6ede78176affb13a2b49590ecfe49d5a7156a0c2467d4302021345c7279",
+    "tree_hash_method": "v2.research.overlay.r02_d3_preflight._filesystem_tree"
+  },
+  "protected_artifact_root_unchanged": true,
+  "sealed_posthoc": {
+    "path": "docs/r02-d3-successor-provider-free-posthoc.json",
+    "sha256_before": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "sha256_after": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "verdict_unchanged": "SUPPORTED"
+  },
+  "stage_artifacts": [
+    {
+      "path": "docs/r02-d4-s1-reviewer-reveal.json",
+      "sha256": "52227dcbcc3c8754a95a425172fc9f31479f62b5b4155ae5c1ed15995c198ec0"
+    },
+    {
+      "path": "docs/r02-d4-s1-resolved-seed.json",
+      "sha256": "a05f3b2da66dfda6ba3369effa1734f8c760e6c1735db80306b07f51a8abeef5"
+    },
+    {
+      "path": "v2/research/overlay/r02_d4_s1_resolve.py",
+      "sha256": "2c8685a6ad8c05a3727d1f8efe867620a35b66485290bf78dea1cd60d05640d7"
+    },
+    {
+      "path": "v2/research/overlay/test_r02_d4_s1_resolve.py",
+      "sha256": "6c767021a6f21b6d695233cc23db697581b5d1383785fbc34e99b1be6245969d"
+    },
+    {
+      "path": "scripts/r02_d4_s1_resolve_verify.py",
+      "sha256": "0fb8828e53af91a3682e25164e2255cd27fb7b7981301c143ac622aef35df262"
+    }
+  ],
+  "validation": {
+    "posthoc_verify_existing_passed": true,
+    "original_focused_tests_passed": 9,
+    "d4_and_s1_tests_passed": 36,
+    "read_only_design_verifier": "PASS_PROVIDER_FREE_DRAFT_REPRODUCED",
+    "read_only_commitment_verifier": "PASS_COORDINATOR_COMMITMENT_SEALED",
+    "read_only_reveal_verifier": "PASS_COORDINATOR_REVEAL_SEALED",
+    "read_only_resolution_verifier": "PASS_SEED_SLOT_ZERO_RESOLVED_AND_SEALED",
+    "source_capability_audit": "NO_NONCE_GENERATOR_PROVIDER_NETWORK_PROCESS_OR_FRAME_IMPORTS"
+  },
+  "review_handoff": {
+    "path": "docs/r02-d4-s1-seed-resolution-review-handoff.md",
+    "included_in_manifest_self_hash_set": false,
+    "reason": "HANDOFF_HASHES_THIS_MANIFEST_AND_IS_INTENTIONALLY_NOT_SELF_HASHED"
+  },
+  "authorization": "S1_SEED_RESOLUTION_COMPLETE_FRAME_GENERATION_AND_SCAN_REQUIRE_SEPARATE_EXPLICIT_USER_AUTHORIZATION_NO_COMMIT_NO_PUSH"
+}

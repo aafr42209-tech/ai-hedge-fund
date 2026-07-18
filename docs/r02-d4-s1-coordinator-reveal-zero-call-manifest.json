@@ -1,0 +1,115 @@
+{
+  "schema_version": "r02-d4-s1-coordinator-reveal-zero-call-manifest-v1",
+  "status": "COORDINATOR_REVEAL_SEALED_REVIEWER_REVEAL_PENDING",
+  "date": "2026-07-18",
+  "scope": "S1_SEED_RESOLUTION_ONLY_COORDINATOR_REVEAL_STAGE",
+  "git": {
+    "repository": "C:\\Users\\User\\Desktop\\ai-hedge-fund-fresh",
+    "branch": "codex/llm-overlay-research-01",
+    "accepted_design_head": "d9f984866c8775153d9c1ac1aea9b49fc9647635",
+    "upstream_sync": "0/0",
+    "tracked_diff": "EMPTY",
+    "commit_created": false,
+    "push_performed": false
+  },
+  "static_pins": {
+    "accepted_design_commit": "d9f984866c8775153d9c1ac1aea9b49fc9647635",
+    "accepted_design_manifest_sha256": "784f47a8fa19a679f1048269810604a9164081a1676ffe4c04ccb4d959e0a900",
+    "generator_config_sha256": "e6598cca07c846650f7d7c157c16a6d77aefd4a94966c6624288239b5ae04ccf",
+    "seed_contract_sha256": "7b670cc9613a16e6f170b613a3b05a24529699c379bad14cad911736e34792fa",
+    "seed_slot": 0
+  },
+  "commitment_lineage": {
+    "coordinator_commitment_sha256": "7d2f9653b12d3b3ad6746ea067829b1b5222564821ace311f1f7fb98550fb5d3",
+    "coordinator_commitment_artifact_sha256": "7ea3288a36424f939d295ec2e96751b33908a82dba78818cfdd16adbdd0687fe",
+    "reviewer_commitment_sha256": "4943ea6a6f990fe88d400d6d3afe880c2634c65a4a842c9d2966d662ee52b144",
+    "reviewer_commitment_artifact_sha256": "2c93c329e30693ea3de99f9114f1f16af9282acfaff6b2b49e2e555438092215",
+    "coordinator_reveal_artifact_sha256": "a674c1ae1852b51650b680916ce6c5dbdb8d652384bae1a6209c970558e0c8a5",
+    "prior_zero_call_manifest_sha256": "79c8fa298d3268ef2f0abb15408f285f79b83f8914bae4032572f03579639c9b"
+  },
+  "assertions": {
+    "provider_calls": 0,
+    "codex_exec_invocations": 0,
+    "coordinator_nonce_generation_count": 1,
+    "coordinator_nonce_replacement_count": 0,
+    "reviewer_nonce_generation_reported_count": 1,
+    "coordinator_commitment_sealed": true,
+    "reviewer_commitment_sealed": true,
+    "coordinator_reveal_count": 1,
+    "coordinator_reveal_commitment_match": true,
+    "coordinator_reveal_public_in_sealed_artifact": true,
+    "reviewer_reveal_performed": false,
+    "frame_seed_created": false,
+    "resolved_frame_seed_sha256": null,
+    "resolved_frame_id": null,
+    "frame_generation": false,
+    "frame_scan": false,
+    "micro_pilot_executed": false,
+    "live_execution": false,
+    "live_authorization_artifact_created": false,
+    "retry_or_replacement": false,
+    "r02_d3_sealed_evidence_modified": false,
+    "r02_d3_supported_verdict_modified": false
+  },
+  "protected_artifact_root_before": {
+    "source": "docs/r02-d4-s1-zero-call-manifest.json:protected_artifact_root_after",
+    "captured_utc": "2026-07-18T06:40:20.025Z",
+    "file_count": 3284,
+    "total_bytes": 49269991,
+    "tree_sha256": "3a7ed6ede78176affb13a2b49590ecfe49d5a7156a0c2467d4302021345c7279",
+    "tree_hash_method": "v2.research.overlay.r02_d3_preflight._filesystem_tree"
+  },
+  "protected_artifact_root_after": {
+    "captured_utc": "2026-07-18T06:58:00.134Z",
+    "file_count": 3284,
+    "total_bytes": 49269991,
+    "tree_sha256": "3a7ed6ede78176affb13a2b49590ecfe49d5a7156a0c2467d4302021345c7279",
+    "tree_hash_method": "v2.research.overlay.r02_d3_preflight._filesystem_tree"
+  },
+  "protected_artifact_root_unchanged": true,
+  "sealed_posthoc": {
+    "path": "docs/r02-d3-successor-provider-free-posthoc.json",
+    "sha256_before": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "sha256_after": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "verdict_unchanged": "SUPPORTED"
+  },
+  "stage_artifacts": [
+    {
+      "path": "docs/r02-d4-s1-reviewer-commitment.json",
+      "sha256": "2c93c329e30693ea3de99f9114f1f16af9282acfaff6b2b49e2e555438092215"
+    },
+    {
+      "path": "docs/r02-d4-s1-coordinator-reveal.json",
+      "sha256": "a674c1ae1852b51650b680916ce6c5dbdb8d652384bae1a6209c970558e0c8a5"
+    },
+    {
+      "path": "v2/research/overlay/r02_d4_s1_reveal.py",
+      "sha256": "487d90e541e2f22247017b7f8130abad49dba311b11674a6bfdbb90e4789e79d"
+    },
+    {
+      "path": "v2/research/overlay/test_r02_d4_s1_reveal.py",
+      "sha256": "f7e1d15efa86cba2bc7268902465060919b85864748deebdd38bc5717517c983"
+    },
+    {
+      "path": "scripts/r02_d4_s1_reveal_verify.py",
+      "sha256": "a01a31055e19de8d3a81558252b66595229cf6d2bcc9de05d697b8fad1ed5ad6"
+    }
+  ],
+  "validation": {
+    "posthoc_verify_existing_passed": true,
+    "original_focused_tests_passed": 9,
+    "d4_and_s1_tests_passed": 28,
+    "read_only_design_verifier": "PASS_PROVIDER_FREE_DRAFT_REPRODUCED",
+    "read_only_commitment_verifier": "PASS_COORDINATOR_COMMITMENT_SEALED",
+    "read_only_reveal_verifier": "PASS_COORDINATOR_REVEAL_SEALED",
+    "source_capability_audit": "NO_NONCE_GENERATOR_PROVIDER_NETWORK_PROCESS_OR_FRAME_IMPORTS",
+    "reviewer_reveal_absent": true,
+    "seed_unresolved": true
+  },
+  "review_handoff": {
+    "path": "docs/r02-d4-s1-reviewer-reveal-handoff.md",
+    "included_in_manifest_self_hash_set": false,
+    "reason": "HANDOFF_HASHES_THIS_MANIFEST_AND_IS_INTENTIONALLY_NOT_SELF_HASHED"
+  },
+  "authorization": "S1_SEED_RESOLUTION_ONLY_REVIEWER_REVEAL_PENDING_NO_FRAME_NO_SCAN_NO_PROVIDER_NO_LIVE_NO_COMMIT_NO_PUSH"
+}

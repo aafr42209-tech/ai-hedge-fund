@@ -1,0 +1,93 @@
+{
+  "schema_version": "r02-d4-s1-seed-intent-v1",
+  "status": "AUTHORIZED_SEED_RESOLUTION_ONLY_COORDINATOR_COMMITMENT_PENDING",
+  "date": "2026-07-18",
+  "accepted_design_commit": "d9f984866c8775153d9c1ac1aea9b49fc9647635",
+  "accepted_design_manifest": {
+    "path": "docs/r02-d4-replication-design.json",
+    "sha256": "784f47a8fa19a679f1048269810604a9164081a1676ffe4c04ccb4d959e0a900",
+    "definition": "MACHINE_READABLE_ACCEPTED_REPLICATION_DESIGN"
+  },
+  "zero_call_design_manifest": {
+    "path": "docs/r02-d4-zero-call-manifest.json",
+    "sha256": "a8d6dd9d12fda29c9cbcef6c3f41d8dafdfc8fb59d5f8857a90c41175a5f856b",
+    "definition": "DESIGN_BOUNDARY_EVIDENCE_NOT_THE_ACCEPTED_DESIGN_MANIFEST"
+  },
+  "seed_contract": {
+    "path": "docs/r02-d4-seed-contract.json",
+    "sha256": "7b670cc9613a16e6f170b613a3b05a24529699c379bad14cad911736e34792fa"
+  },
+  "generator_config": {
+    "sha256": "e6598cca07c846650f7d7c157c16a6d77aefd4a94966c6624288239b5ae04ccf",
+    "evidence": [
+      "docs/r02-d2c-frame-manifest.json:generator_config_sha256",
+      "v2.research.overlay.canonical.canonical_sha256(GeneratorConfig())"
+    ],
+    "both_evidence_values_match": true
+  },
+  "roles": {
+    "coordinator": "CODEX",
+    "reviewer": "CLAUDE",
+    "independent_nonce_generation_required": true
+  },
+  "authorization_scope": {
+    "allowed": [
+      "PIN_STATIC_PREIMAGE_FIELDS",
+      "COORDINATOR_NONCE_COMMITMENT",
+      "REVIEWER_NONCE_COMMITMENT",
+      "COORDINATOR_NONCE_REVEAL_ONCE",
+      "REVIEWER_NONCE_REVEAL_ONCE",
+      "VERIFY_BOTH_COMMITMENTS",
+      "DERIVE_AND_SEAL_SEED_SLOT_ZERO_ONCE"
+    ],
+    "not_allowed": [
+      "FRAME_GENERATION",
+      "FRAME_SCAN",
+      "PROVIDER_CALL",
+      "CODEX_EXEC",
+      "MICRO_PILOT",
+      "LIVE_EXECUTION",
+      "LIVE_AUTHORIZATION_ARTIFACT",
+      "RETRY",
+      "REPLACEMENT"
+    ],
+    "frame_generation_and_scan_require_later_explicit_user_authorization": true
+  },
+  "contract_scope_difference": {
+    "frozen_protocol_step_2": "SEPARATE_USER_AUTHORIZATION_ALLOWS_SEED_RESOLUTION_AND_FRAME_GENERATION",
+    "current_user_authorization": "SEED_RESOLUTION_ONLY_FRAME_GENERATION_AND_SCAN_NOT_AUTHORIZED",
+    "classification": "STRICTER_SAFER_SPLIT_GATE",
+    "seed_shopping_surface_added": false
+  },
+  "fixed_protocol_order": [
+    "COORDINATOR_COMMITMENT_SEALED_BEFORE_ANY_REVIEWER_NONCE_INFORMATION",
+    "REVIEWER_INDEPENDENT_COMMITMENT_SEALED",
+    "COORDINATOR_REVEAL_EXACTLY_ONCE_AND_COMMITMENT_VERIFIED",
+    "REVIEWER_REVEAL_EXACTLY_ONCE_AND_COMMITMENT_VERIFIED",
+    "CANONICAL_PREIMAGE_HASHED_EXACTLY_ONCE_FOR_SEED_SLOT_ZERO",
+    "SEED_ARTIFACT_SEALED_WITH_FRAME_GENERATION_AND_SCAN_STILL_BLOCKED"
+  ],
+  "failure_rule": {
+    "on_any_error_or_commitment_mismatch": "ABORT_WITHOUT_SEED",
+    "newly_named_independent_review_required": true,
+    "retry_cap": 0,
+    "replacement_cap": 0,
+    "alternate_seed_slots": 0
+  },
+  "current_state": {
+    "seed_slot": 0,
+    "coordinator_nonce_commitment_sha256": null,
+    "reviewer_nonce_commitment_sha256": null,
+    "coordinator_nonce_reveal_hex": null,
+    "reviewer_nonce_reveal_hex": null,
+    "resolved_frame_seed_sha256": null,
+    "resolved_frame_id": null,
+    "frame_seed_created": false
+  },
+  "provider_calls": 0,
+  "frame_generation": false,
+  "frame_scan": false,
+  "live_execution": false,
+  "commit_created": false,
+  "push_performed": false
+}
