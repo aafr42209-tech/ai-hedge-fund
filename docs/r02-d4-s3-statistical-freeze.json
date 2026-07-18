@@ -1,0 +1,253 @@
+{
+  "accepted_design_sha256": "784f47a8fa19a679f1048269810604a9164081a1676ffe4c04ccb4d959e0a900",
+  "agreement_endpoint": {
+    "confidence_interval": "WILSON_TWO_SIDED_95_PERCENT",
+    "eligible_population_count": 69,
+    "exact_candidate_id_agreement": true,
+    "outputs": [
+      "agreement_count",
+      "agreement_rate_ppm",
+      "wilson_lower_ppm",
+      "wilson_upper_ppm",
+      "total_discordance",
+      "representative_discordance",
+      "challenge_discordance"
+    ],
+    "rounding": "DECIMAL_50_PRECISION_ROUND_HALF_EVEN_TO_PPM",
+    "z_decimal": "1.959963984540054"
+  },
+  "bootstrap": {
+    "bit_generator": "PCG64",
+    "implementation_contract": "RESAMPLE_FIXTURES_WITH_REPLACEMENT_WITHIN_EACH_STRATUM_RETAIN_STRATUM_SIZE_AND_3_TO_1_TARGET_WEIGHT",
+    "lower_rank_index_zero_based": 249,
+    "numpy_version": "1.26.4",
+    "preimage": {
+      "accepted_design_sha256": "784f47a8fa19a679f1048269810604a9164081a1676ffe4c04ccb4d959e0a900",
+      "bootstrap_resamples": 10000,
+      "challenge_n": 50,
+      "challenge_weight_numerator": 1,
+      "delta_min_e12": 50000000,
+      "domain": "r02-d4-s3-evaluation-bootstrap-v1",
+      "frame_id": "r02-d4-s2a-frame-0716a1b9c13a",
+      "frame_manifest_sha256": "368e01509b04a53928df2d729f0914dbd0c1ee14c5221a6e189fbf7b8bfa4ba1",
+      "frame_seal_sha256": "40aec915d3d24598ad2cbc46713a949b8c8ee5401d5768695b9be918b8bb5838",
+      "frame_tree_sha256": "65c0acc67c2987997d3dfac8ce4fb861ddf4f439e7a4ce59c1eab79ac5d6ea29",
+      "freeze_base_commit": "c4fb28c66404fc783cfbc33d125012e1dff2c76e",
+      "lower_rank_index_zero_based": 249,
+      "m_min": 57,
+      "representative_n": 150,
+      "representative_weight_numerator": 3,
+      "upper_rank_index_zero_based": 9749,
+      "weight_denominator": 4
+    },
+    "reinitialize_generator_per_analysis": true,
+    "resamples": 10000,
+    "seed_integer_decimal": "77381240907582846253313109133161309130450043096931343042213491421713473673220",
+    "seed_outcome_independent": true,
+    "seed_sha256": "ab143af338e991209a9c3fb387623d126ab8399aba268285758234eb15f71804",
+    "two_sided_interval": "95_PERCENTILE_NEAREST_RANK",
+    "upper_rank_index_zero_based": 9749,
+    "variant_seed_derivation": "SHA256_CANONICAL_JSON_OF_DOMAIN_BASE_SEED_ANALYSIS_ID_FIXTURE_ORDINAL_WINSOR_FRACTION"
+  },
+  "challenge_eligible_count": 50,
+  "challenge_n": 50,
+  "codex_exec_invocations": 0,
+  "commit_created": false,
+  "date": "2026-07-18",
+  "effect_arithmetic": {
+    "integer_unit": "e12",
+    "rounding": "ROUND_HALF_EVEN",
+    "theta_expression": "round_half_even(3/4*mean(D_REPRESENTATIVE)+1/4*mean(D_CHALLENGE))",
+    "weight_denominator": 4,
+    "weight_numerators": {
+      "challenge": 1,
+      "representative": 3
+    }
+  },
+  "estimand_hierarchy": {
+    "ambiguity_engineered_mechanism_study_can_reclassify_d4": false,
+    "deterministic_policy_can_rescue_primary": false,
+    "incremental_can_rescue_primary": false,
+    "order": [
+      "PRIMARY_REPLICATION",
+      "DETERMINISTIC_POLICY",
+      "INCREMENTAL_LLM",
+      "AGREEMENT"
+    ],
+    "primary_evaluated_first": true
+  },
+  "estimands": [
+    {
+      "confirmatory": true,
+      "contrast": "LLM_SELECTED_SYSTEM_UTILITY_MINUS_DETERMINISTIC_BASELINE_UTILITY",
+      "id": "PRIMARY_REPLICATION",
+      "population": "FULL_200_FIXTURE_ITT_FRAME",
+      "threshold_e12": 50000000,
+      "zero_contribution": "TRIGGER_FALSE_NO_CALL_INVALID_RESPONSE_AND_BASELINE_FALLBACK"
+    },
+    {
+      "confirmatory": false,
+      "contrast": "PARSIMONY_SELECTED_SYSTEM_UTILITY_MINUS_DETERMINISTIC_BASELINE_UTILITY",
+      "id": "DETERMINISTIC_POLICY",
+      "population": "FULL_200_FIXTURE_ITT_FRAME",
+      "threshold_e12": 50000000,
+      "zero_contribution": "TRIGGER_FALSE_NO_ELIGIBLE_CANDIDATE_OR_FAIL_CLOSED_SELECTION"
+    },
+    {
+      "confirmatory": false,
+      "contrast": "LLM_SELECTED_UTILITY_MINUS_PARSIMONY_SELECTED_UTILITY",
+      "id": "INCREMENTAL_LLM",
+      "population": "FULL_200_FIXTURE_ITT_FRAME",
+      "threshold_e12": 0,
+      "zero_contribution": "SELECTOR_AGREEMENT_AND_ALL_PRIMARY_ITT_ZERO_CONTRIBUTION_CASES"
+    },
+    {
+      "confirmatory": false,
+      "contrast": "EXACT_LLM_AND_PARSIMONY_CANONICAL_CANDIDATE_ID_AGREEMENT",
+      "id": "AGREEMENT",
+      "population": "69_SELECTOR_ELIGIBLE_FIXTURES",
+      "threshold_e12": null,
+      "zero_contribution": null
+    }
+  ],
+  "execution_validity_fail_closed_conditions": [
+    "FRAME_ID_MANIFEST_SEAL_OR_TREE_DRIFT",
+    "STATISTICAL_FREEZE_OR_TEST_MANIFEST_DRIFT",
+    "FIXTURE_IDENTITY_ORDER_OR_STRATUM_DRIFT",
+    "PROMPT_OUTPUT_SCHEMA_MODEL_OR_PROVIDER_IDENTITY_DRIFT",
+    "PROVIDER_BUDGET_OR_ATTEMPT_TOKEN_ACCOUNTING_BREACH",
+    "UNSETTLED_ATTEMPT_OR_RETRY_REPLACEMENT",
+    "AUDIT_PERSISTENCE_HASH_OR_REPLAY_FAILURE",
+    "MISSING_SEPARATE_LIVE_AUTHORIZATION"
+  ],
+  "focused_test_manifest_sha256": "a5dbf246e109ffcb907456c8ab16673d48bbd10638a7620555679d6d8c825716",
+  "frame_id": "r02-d4-s2a-frame-0716a1b9c13a",
+  "frame_information_gate_prequalified": true,
+  "frame_manifest_sha256": "368e01509b04a53928df2d729f0914dbd0c1ee14c5221a6e189fbf7b8bfa4ba1",
+  "frame_seal_sha256": "40aec915d3d24598ad2cbc46713a949b8c8ee5401d5768695b9be918b8bb5838",
+  "frame_tree_sha256": "65c0acc67c2987997d3dfac8ce4fb861ddf4f439e7a4ce59c1eab79ac5d6ea29",
+  "freeze_base_commit": "c4fb28c66404fc783cfbc33d125012e1dff2c76e",
+  "freeze_source_sha256": "b80221af86a7db365c00d67d33378597c10f70b14c856c4080c94a7c2bbac7c2",
+  "future_mechanism_study": "AMBIGUITY_ENGINEERED_CANDIDATES_SEPARATE_NOT_PART_OF_D4",
+  "future_phases": {
+    "live_authorization_created": false,
+    "live_authorization_required_separately": true,
+    "provider_budget_created": false,
+    "provider_budget_must_use_sealed_eligible_count": 69,
+    "provider_budget_required_separately": true
+  },
+  "generation_attempt_cap_verified": true,
+  "incremental_discordance_floor": {
+    "challenge": 5,
+    "representative": 5,
+    "total": 20
+  },
+  "label_precedence": {
+    "delta_min_e12": 50000000,
+    "incremental": [
+      "INVALID_RUN",
+      "NOT_IDENTIFIED_REDUNDANT_SELECTOR",
+      "INCREMENTAL_LLM_SUPPORTED",
+      "INCREMENTAL_LLM_HARM",
+      "INCREMENTAL_LLM_INCONCLUSIVE"
+    ],
+    "m_min": 57,
+    "maximum_theta_shift_ppm": 100000,
+    "parsimony": [
+      "INVALID_RUN",
+      "PARSIMONY_POLICY_INCONCLUSIVE_LOW_INFORMATION",
+      "PARSIMONY_POLICY_SUPPORTED",
+      "PARSIMONY_POLICY_NOT_SUPPORTED"
+    ],
+    "primary": [
+      "INVALID_RUN",
+      "INCONCLUSIVE_LOW_INFORMATION",
+      "REPLICATION_NOT_SUPPORTED",
+      "REPLICATION_SUPPORTED_ROBUST",
+      "REPLICATION_SUPPORTED_FRAGILE"
+    ],
+    "robust_margin_e12": 5000000,
+    "strict_threshold_comparisons": {
+      "incremental_harm": "upper_e12 < 0",
+      "incremental_supported": "lower_e12 > 0",
+      "parsimony_supported": "lower_e12 > delta_min_e12",
+      "primary_supported": "lower_e12 > delta_min_e12"
+    }
+  },
+  "live_authorization_created": false,
+  "live_execution": false,
+  "m_min": 57,
+  "micro_pilot_executed": false,
+  "power_design_reference": {
+    "estimated_power_target_ppm": 850000,
+    "frozen_low_snr_bps": 8000,
+    "n160_raw_scenarios_pass": false,
+    "n200_bounded_power_ppm": 871000,
+    "n200_bounded_wilson_lower_ppm": 848796,
+    "n200_gamma_power_ppm": 890000,
+    "n200_gamma_wilson_lower_ppm": 869095,
+    "n200_is_smallest_passing_size": true,
+    "n240_raw_scenarios_pass": true,
+    "opportunity_probability_ppm_at_m_min": 943424,
+    "prospective_sizing_sha256": "9df82bc59865de6856cf2417925e771a4afc2142baaae912a853b0ad0f01be17",
+    "winsorized_power_scenarios_are_diagnostic_not_gates": true,
+    "wilson_lower_power_target_ppm": 800000
+  },
+  "provider_budget_created": false,
+  "provider_calls": 0,
+  "push_performed": false,
+  "representative_eligible_count": 19,
+  "representative_n": 150,
+  "robustness_diagnostics": {
+    "eligible_fixture_count": 69,
+    "literal_leave_one_out": {
+      "bootstrap_seed": "DERIVED_VARIANT_SEED_PER_ELIGIBLE_FIXTURE_ORDINAL",
+      "definition": "DELETE_ONE_ELIGIBLE_FIXTURE_FROM_ITS_STRATUM_RETAIN_3_TO_1_TARGET_WEIGHTS",
+      "required_for_robust": "EVERY_LOWER_E12_STRICTLY_GREATER_THAN_DELTA_MIN"
+    },
+    "maximum_single_fixture_theta_shift": {
+      "definition": "MAX_ABSOLUTE_RAW_THETA_CHANGE_AFTER_ONE_ELIGIBLE_DELTA_IS_ZEROED_WITH_FRAME_DENOMINATORS_RETAINED",
+      "required_for_robust": "SHIFT_PPM_NO_GREATER_THAN_100000_OF_ABSOLUTE_UNMODIFIED_THETA"
+    },
+    "single_fixture_zero_nullification": {
+      "bootstrap_seed": "DERIVED_VARIANT_SEED_PER_ELIGIBLE_FIXTURE_ORDINAL",
+      "definition": "KEEP_FULL_200_FRAME_AND_REPLACE_ONE_ELIGIBLE_PRIMARY_DELTA_WITH_ZERO",
+      "required_for_robust": "EVERY_LOWER_E12_STRICTLY_GREATER_THAN_DELTA_MIN"
+    },
+    "unmodified_lower_margin": {
+      "required_for_robust_e12": 5000000
+    },
+    "within_full_stratum_winsorization": {
+      "bootstrap_seed": "DERIVED_VARIANT_SEED_PER_FRACTION",
+      "clip_rounding": "NUMPY_RINT_TIES_TO_EVEN_INT64",
+      "fractions_ppm": [
+        50000,
+        100000
+      ],
+      "quantile_method": "NUMPY_QUANTILE_LINEAR",
+      "required_for_robust": "BOTH_LOWER_E12_STRICTLY_GREATER_THAN_DELTA_MIN"
+    }
+  },
+  "runtime_pins": {
+    "numpy": "1.26.4",
+    "pydantic": "2.12.2",
+    "python": "3.11.15",
+    "scipy": "1.17.1"
+  },
+  "schema_version": "r02-d4-s3-statistical-freeze-v1",
+  "scientific_priority": {
+    "confirmatory_value": "SYSTEM_VS_BASELINE_EXACT_REPLICATION",
+    "incremental_not_identified_is_valid_if_redundant": true,
+    "mechanism_diagnostics_do_not_diminish_primary": true
+  },
+  "source_references": {
+    "d3_posthoc_sha256": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "parsimony_vectors_sha256": "a304d36b31b570e7ae28a0a9ec89d4e8c7e2ef1ec0eda5b8c854b40e85f4ea77",
+    "r02_statistics_source_sha256": "9e051dbe7a64f434811fcafc1c1ce26013c14076214e959d884fb961a3d771fb",
+    "sealed_frame_zero_call_sha256": "2afe3a93d8a66a0919dc5d3041bb0537bc249f6c4aa89ffcc9b861c5b9b71503"
+  },
+  "status": "PROVIDER_FREE_STATISTICAL_FREEZE_PENDING_INDEPENDENT_REVIEW",
+  "total_eligible_count": 69,
+  "total_n": 200,
+  "zero_contribution_rule": "PRIMARY_AND_INCREMENTAL_ITT_NONINTERVENTION_PATHS_CONTRIBUTE_EXACTLY_ZERO"
+}

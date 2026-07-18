@@ -1,0 +1,88 @@
+{
+  "authorization_boundary": {
+    "approved": "PROVIDER_FREE_STATISTICAL_FREEZE_AUTHORING_ONLY",
+    "commit_push_of_s2a_completed": true,
+    "live_authorization_created": false,
+    "provider_budget_created": false,
+    "provider_call_authorized": false,
+    "s3_commit_push_authorized": false
+  },
+  "base_commit": "c4fb28c66404fc783cfbc33d125012e1dff2c76e",
+  "capability_accounting": {
+    "codex_exec_invocations": 0,
+    "commit_created_for_s3": false,
+    "frame_generation": false,
+    "frame_scan": false,
+    "live_execution": false,
+    "micro_pilot_executed": false,
+    "provider_calls": 0,
+    "push_performed_for_s3": false,
+    "replacement_count": 0,
+    "retry_count": 0
+  },
+  "date": "2026-07-18",
+  "evidence_identity": {
+    "d3_posthoc_sha256": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "d3_verdict": "SUPPORTED",
+    "d3_verdict_modified_or_reclassified": false,
+    "s2a_frame_manifest_sha256": "368e01509b04a53928df2d729f0914dbd0c1ee14c5221a6e189fbf7b8bfa4ba1",
+    "s2a_frame_seal_sha256": "40aec915d3d24598ad2cbc46713a949b8c8ee5401d5768695b9be918b8bb5838",
+    "s2a_frame_tree_sha256": "65c0acc67c2987997d3dfac8ce4fb861ddf4f439e7a4ce59c1eab79ac5d6ea29",
+    "s2a_zero_call_manifest_sha256": "2afe3a93d8a66a0919dc5d3041bb0537bc249f6c4aa89ffcc9b861c5b9b71503"
+  },
+  "focused_tests": {
+    "collected_count": 77,
+    "manifest_sha256": "a5dbf246e109ffcb907456c8ab16673d48bbd10638a7620555679d6d8c825716",
+    "result": "77 passed in 21.71s",
+    "test_list_and_count_pinned": true,
+    "test_source_hashes_pinned": true
+  },
+  "freeze": {
+    "bootstrap_seed_outcome_independent": true,
+    "bootstrap_seed_sha256": "ab143af338e991209a9c3fb387623d126ab8399aba268285758234eb15f71804",
+    "frame_eligible_count": 69,
+    "m_min": 57,
+    "statistical_freeze_json_sha256": "3538c09ffedd95f946a448ae298e04cad1cf933a99ff767b58472c4285c6b449",
+    "statistical_freeze_markdown_sha256": "112646a9dc412fb04cdfc9e13e25ee8c1a26dc3093837d6f0f3a0ffaa4c05c43",
+    "verifier_result": "PASS_S3_STATISTICAL_FREEZE_REPRODUCED"
+  },
+  "low_finding_remediation": {
+    "exact_focused_test_argv_files_hashes_and_count_frozen": true,
+    "focused_test_count_tamper_negative_test": true,
+    "generation_attempt_cap_checked_against_intent_manifest_and_seal": true,
+    "generation_attempt_cap_tamper_negative_test": true
+  },
+  "outcome_access": {
+    "individual_llm_selection_outcomes_available": false,
+    "individual_provider_responses_available": false,
+    "provider_outcomes_used_to_choose_seed_rule_label_or_diagnostic": false,
+    "sealed_frame_structure_and_eligible_counts_used": true
+  },
+  "protected_artifact_root_after": {
+    "child_root_count": 11,
+    "file_count": 3687,
+    "total_bytes": 51050083,
+    "tree_hash_method": "r02_d3_preflight._filesystem_tree",
+    "tree_sha256": "692ced9177f71cbe1af45a8f3ce06b7ec1c690fba87a8c7de254a1dfc834f891"
+  },
+  "protected_artifact_root_before": {
+    "child_root_count": 11,
+    "file_count": 3687,
+    "total_bytes": 51050083,
+    "tree_hash_method": "r02_d3_preflight._filesystem_tree",
+    "tree_sha256": "692ced9177f71cbe1af45a8f3ce06b7ec1c690fba87a8c7de254a1dfc834f891"
+  },
+  "protected_child_checks": {
+    "all_11_child_roots_unchanged": true,
+    "d3_successor_tree_sha256": "b3cc74da593975865cd42087bb18bdc3f82d1c5666df5d98c5eb8ff92119dbea",
+    "quarantined_s2_tree_sha256": "2f15d7c9f0ff2e3e2314714a00384e110c45b0c468586c7f567aec0e7524d132",
+    "sealed_s2a_tree_sha256": "65c0acc67c2987997d3dfac8ce4fb861ddf4f439e7a4ce59c1eab79ac5d6ea29"
+  },
+  "schema_version": "r02-d4-s3-zero-call-manifest-v1",
+  "source_hashes": {
+    "focused_test_source_sha256": "6e74d88f5876566c0cce662620a449f392f529d200c22763fc0b19c0afc519c2",
+    "freeze_source_sha256": "b80221af86a7db365c00d67d33378597c10f70b14c856c4080c94a7c2bbac7c2",
+    "freeze_verifier_script_sha256": "9f0e514b6b5a21e372413db59d0e2c95502b8ee581169af4b90988358c3dcd7c"
+  },
+  "status": "ZERO_CALL_BOUNDARY_CONFIRMED_S3_STATISTICAL_FREEZE_DRAFT"
+}
