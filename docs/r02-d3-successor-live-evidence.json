@@ -1,0 +1,177 @@
+{
+  "schema_version": "r02-d3-successor-live-evidence-v1",
+  "run_id": "r02-d3-successor-84750652-20260718",
+  "execution_date": "2026-07-18",
+  "status": "COMPLETE",
+  "execution_identity": {
+    "approved_implementation_commit": "e5643a34bed91e7d9618ab434f9b695e127c4bfe",
+    "prelaunch_package_commit": "9d1b9525f85caf88b41beabf49e97928b2ec1ef6",
+    "runner_readiness_freeze_sha256": "847506528aa68b32bc1a7ec5ef0261d369ee638addc7c1590a3180369751bd54",
+    "runner_readiness_manifest_sha256": "95d25f24e1e6269ad78ac1252eef5a2c0468b4eb679f64610e2b7de466740596",
+    "authorization_sha256": "0053aa6191e7cc860c9a3968644e0c9968939f41cf7f730a1172f21635ac0f19",
+    "launcher_sha256": "10cdc3970f112e5da28f5cc1c13ac7da799fbdfdd36653094e19b61ca569c1d5",
+    "prelaunch_manifest_sha256": "bd49dfc4c3639059fc1e03b646bbfa1ba809a1db033f2edeaea25508454ee0e0",
+    "executable_sha256": "cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4",
+    "codex_cli_version": "codex-cli 0.144.1",
+    "requested_model_id": "gpt-5.6-sol",
+    "successor_selector_output_schema_sha256": "f8089e667cff113d600e3c9c726fbbff4f80c8f522804525e37d8693bbd36937",
+    "prompt_contract_sha256": "cf8541aa83d41bd82f2e0b79d60c4be7f299259a7c12d84d32a3500ed9f199ec"
+  },
+  "authorization_scope": {
+    "authorization_id": "r02-d3-live-auth-successor-84750652-20260718",
+    "approved_scope": "INDIVISIBLE_6_PLUS_49_LIVE",
+    "planned_attempts": 55,
+    "provider_calls_authorized": true,
+    "retry_attempt_cap": 0,
+    "replacement_allowed": false,
+    "second_authorization_requested": false,
+    "utility_outcomes_available_to_continuation_gate": false
+  },
+  "terminal_accounting": {
+    "reserved_attempts": 55,
+    "launched_attempts": 55,
+    "settled_attempts": 55,
+    "unsettled_attempts": 0,
+    "completed_selector_outcomes": 55,
+    "completed_paired_results": 55,
+    "debited_tokens": 655122,
+    "terminal_status": "COMPLETE",
+    "terminal_code": null,
+    "external_provider_calls": 55,
+    "fallback_count": 0,
+    "settlement_failure_count": 0,
+    "invalid_run_budget_breach_count": 0,
+    "provider_call_accounting_reconciled": true
+  },
+  "selector_summary": {
+    "valid_structured_responses": 55,
+    "baseline_fallback_count": 0,
+    "selected_presented_id_counts": {
+      "P00": 18,
+      "P01": 16,
+      "P02": 13,
+      "P03": 8
+    },
+    "selected_canonical_id": "11eb14e46d7e2bd45610d4e4c92945332a947dae5f2be307d8ccfd3458e3ec11",
+    "selected_canonical_id_count": 55,
+    "continuation_decisions": {
+      "CONTINUE": 54,
+      "COMPLETE": 1
+    }
+  },
+  "frozen_primary_evaluation": {
+    "statistical_freeze_sha256": "45a68aacde0135a4f5e446f1022406d35e24346b23df1bc7e4db78889c6e12b9",
+    "statistics_source_sha256": "9e051dbe7a64f434811fcafc1c1ce26013c14076214e959d884fb961a3d771fb",
+    "bootstrap_seed_sha256": "319dea85b61187c07089deedb525d4d927ffc03dc7ea2026e4be8022f2df9f68",
+    "bit_generator": "PCG64",
+    "bootstrap_resamples": 10000,
+    "bootstrap_interval": "TWO_SIDED_95_PERCENTILE_NEAREST_RANK",
+    "bootstrap_lower_one_based_rank": 250,
+    "bootstrap_upper_one_based_rank": 9750,
+    "primary_estimand": "round_half_even(3/4*mean(D_REPRESENTATIVE)+1/4*mean(D_CHALLENGE))",
+    "zero_contribution_rule": "TRIGGER_FALSE_NO_CALL_INVALID_RESPONSE_AND_BASELINE_FALLBACK_ALL_D_EQ_0",
+    "full_fixture_count": 160,
+    "representative_fixture_count": 120,
+    "challenge_fixture_count": 40,
+    "eligible_paired_fixture_count": 55,
+    "trigger_false_zero_contribution_count": 105,
+    "m_min": 46,
+    "delta_min_e12": 50000000,
+    "delta_target_e12": 100000000,
+    "theta_system_e12": 92928891,
+    "bootstrap_lower_e12": 51470259,
+    "bootstrap_upper_e12": 138094263,
+    "lower_minus_delta_min_e12": 1470259,
+    "decision_rule": "SUPPORTED_IFF_LOWER_GT_DELTA_MIN_AND_M_GE_M_MIN_AND_ALL_GATES_PASS",
+    "verdict": "SUPPORTED",
+    "eligible_delta_summary": {
+      "count": 55,
+      "positive": 43,
+      "negative": 12,
+      "zero": 0,
+      "sum_e12": 14868622616,
+      "mean_e12_rounded": 270338593,
+      "minimum_e12": -967880852,
+      "maximum_e12": 1722160500
+    },
+    "representative_full_stratum_summary": {
+      "count": 120,
+      "positive": 9,
+      "negative": 6,
+      "zero": 105,
+      "sum_e12": 3011565871,
+      "mean_e12_rounded": 25096382
+    },
+    "challenge_full_stratum_summary": {
+      "count": 40,
+      "positive": 34,
+      "negative": 6,
+      "zero": 0,
+      "sum_e12": 11857056745,
+      "mean_e12_rounded": 296426419
+    },
+    "all_paired_fixture_ids_present_in_frozen_frame": true,
+    "all_fail_closed_execution_gates_passed": true,
+    "interpretation_scope": "SEALED_R02_SYSTEM_UTILITY_HYPOTHESIS_ONLY_NOT_AN_INVESTMENT_OR_DEPLOYMENT_VERDICT"
+  },
+  "audit": {
+    "relative_root": ".research_artifacts/r02-d3-successor-84750652-20260718/audit",
+    "anchor_sequence": 774,
+    "file_count": 2322,
+    "total_bytes": 46379372,
+    "tree_sha256": "bca066c859ded362cc6f531c236a224cacce6f2a4f0f62a06f15f8cc0d950bc4",
+    "tree_hash_method": "v2.research.overlay.r02_d3_preflight._filesystem_tree",
+    "strict_replay_passed_on_original": true,
+    "strict_replay_passed_on_durable_copy": true,
+    "run_terminal_present": true
+  },
+  "sealed_inputs": {
+    "frame_id": "r02-d2c-frame-53be0c4bb060",
+    "frame_artifact_file_count": 162,
+    "frame_artifact_tree_sha256": "316eb5757b2eda3a04ec16f19a225df7a6e44fdf7f506482aa947b9cf77fb494",
+    "frame_tree_hash_method": "v2.research.overlay.r02_d3_preflight._filesystem_tree",
+    "loaded_episode_count": 55,
+    "episode_hashes_sha256": "60fe7a493bffff6c61c2efa928551eef842f6173ff74cef5e500244030d6a2a0"
+  },
+  "durable_archive": {
+    "relative_root": ".research_artifacts/r02-d3-successor-84750652-20260718",
+    "file_count": 2327,
+    "total_bytes": 46392220,
+    "tree_sha256": "b3cc74da593975865cd42087bb18bdc3f82d1c5666df5d98c5eb8ff92119dbea",
+    "tree_hash_method": "v2.research.overlay.r02_d3_preflight._filesystem_tree",
+    "authorization_relative_path": ".research_artifacts/r02-d3-successor-84750652-20260718/r02-d3-successor-84750652-20260718-authorization.json",
+    "launcher_relative_path": ".research_artifacts/r02-d3-successor-84750652-20260718/r02-d3-successor-84750652-20260718-launcher.py",
+    "prelaunch_relative_path": ".research_artifacts/r02-d3-successor-84750652-20260718/r02-d3-successor-84750652-20260718-prelaunch.json",
+    "stdout_relative_path": ".research_artifacts/r02-d3-successor-84750652-20260718/r02-d3-successor-84750652-20260718-stdout.log",
+    "stderr_relative_path": ".research_artifacts/r02-d3-successor-84750652-20260718/r02-d3-successor-84750652-20260718-stderr.log",
+    "stdout_sha256": "69c3d3a689897dc8cbee6733dab00e509977a8ae9fa14051705a1299f7d7eaa8",
+    "stderr_sha256": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "execution_notes": {
+    "single_authorized_run_only": true,
+    "resume_performed": false,
+    "rerun_performed": false,
+    "replacement_performed": false,
+    "stderr_empty": true,
+    "progress_reporting": "The run completed before the first ten-minute checkpoint; sub-ten-minute progress updates were emitted while it was active."
+  },
+  "independent_review": {
+    "review_date": "2026-07-18",
+    "status": "PASS",
+    "identity_hashes_recomputed": true,
+    "filesystem_tree_hashes_recomputed": true,
+    "strict_replay_recomputed": true,
+    "frozen_primary_evaluation_recomputed": true,
+    "single_run_no_retry_or_replacement_confirmed": true,
+    "reviewer_reported_blocking_findings": 0
+  },
+  "final_disposition": {
+    "full_6_plus_49_completed": true,
+    "utility_hypothesis_evaluated": true,
+    "frozen_utility_verdict": "SUPPORTED",
+    "run_sealed_no_retry_or_replacement": true,
+    "further_live_execution_authorized": false,
+    "investment_or_deployment_authorized": false,
+    "closeout_status": "INDEPENDENTLY_REVIEWED"
+  }
+}
