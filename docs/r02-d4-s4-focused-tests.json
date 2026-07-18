@@ -1,0 +1,52 @@
+{
+  "argv": [
+    ".venv\\Scripts\\python.exe",
+    "-m",
+    "pytest",
+    "v2/research/overlay/test_r02_frame.py",
+    "v2/research/overlay/test_r02_d3_posthoc_analysis.py",
+    "v2/research/overlay/test_r02_d4_design.py",
+    "v2/research/overlay/test_r02_d4_s1_seed.py",
+    "v2/research/overlay/test_r02_d4_s1_reveal.py",
+    "v2/research/overlay/test_r02_d4_s1_resolve.py",
+    "v2/research/overlay/test_r02_d4_s2_frame.py",
+    "v2/research/overlay/test_r02_d4_s2a_frame.py",
+    "v2/research/overlay/test_r02_d4_s3_freeze.py",
+    "v2/research/overlay/test_r02_d4_s4_budget.py",
+    "-q"
+  ],
+  "codex_exec_invocations": 0,
+  "collect_only_argv_suffix": [
+    "--collect-only",
+    "-q"
+  ],
+  "expected_collected_tests": 97,
+  "live_execution": false,
+  "provider_calls": 0,
+  "schema_version": "r02-d4-s4-focused-tests-v1",
+  "status": "FROZEN_EXACT_TEST_SUITE",
+  "test_file_sha256": {
+    "v2/research/overlay/test_r02_d3_posthoc_analysis.py": "9b06f7111ba3de4f00455cecef92d717202749aaead33e5b383ab87fe9f87ab5",
+    "v2/research/overlay/test_r02_d4_design.py": "d82f1839a53d9f7a17aa81c002cf7422a83ce4c4b689cd29e83eac6f66905d15",
+    "v2/research/overlay/test_r02_d4_s1_resolve.py": "6c767021a6f21b6d695233cc23db697581b5d1383785fbc34e99b1be6245969d",
+    "v2/research/overlay/test_r02_d4_s1_reveal.py": "f7e1d15efa86cba2bc7268902465060919b85864748deebdd38bc5717517c983",
+    "v2/research/overlay/test_r02_d4_s1_seed.py": "89ed2e7b328d93a29e3b0469032ccd1259990362b25d65552a46a3a98d1a201b",
+    "v2/research/overlay/test_r02_d4_s2_frame.py": "636e36d32019c720f6454bd50748b3e006bbb7887a5b9be8602aa9ba4bdafb69",
+    "v2/research/overlay/test_r02_d4_s2a_frame.py": "4187f3427e65e22fcd256c061a0fc6f85b6b58c52ff9c2326397fa87d1cc6198",
+    "v2/research/overlay/test_r02_d4_s3_freeze.py": "6e74d88f5876566c0cce662620a449f392f529d200c22763fc0b19c0afc519c2",
+    "v2/research/overlay/test_r02_d4_s4_budget.py": "94d24c1668d8c87514949ae03a91a99e14881554f1b11b0e1a04ad9b8c5b8650",
+    "v2/research/overlay/test_r02_frame.py": "61c400351e56389df93a2a5e51cbd6218fc3432e391fb8a03bab79119402ad75"
+  },
+  "test_files": [
+    "v2/research/overlay/test_r02_frame.py",
+    "v2/research/overlay/test_r02_d3_posthoc_analysis.py",
+    "v2/research/overlay/test_r02_d4_design.py",
+    "v2/research/overlay/test_r02_d4_s1_seed.py",
+    "v2/research/overlay/test_r02_d4_s1_reveal.py",
+    "v2/research/overlay/test_r02_d4_s1_resolve.py",
+    "v2/research/overlay/test_r02_d4_s2_frame.py",
+    "v2/research/overlay/test_r02_d4_s2a_frame.py",
+    "v2/research/overlay/test_r02_d4_s3_freeze.py",
+    "v2/research/overlay/test_r02_d4_s4_budget.py"
+  ]
+}

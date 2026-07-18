@@ -1,0 +1,94 @@
+{
+  "authorization_boundary": {
+    "approved": "PROVIDER_FREE_PROVIDER_BUDGET_FREEZE_AUTHORING_ONLY",
+    "codex_exec_authorized": false,
+    "live_authorization_created": false,
+    "live_execution_authorized": false,
+    "micro_pilot_authorized": false,
+    "provider_calls_authorized": false,
+    "retry_or_replacement_authorized": false,
+    "s3_commit_push_completed": true,
+    "s4_commit_push_authorized": false
+  },
+  "base_commit": "277d4e4d8f67f46572df073413c21b49f551f189",
+  "budget": {
+    "aggregate_token_cap": 2208000,
+    "eligible_episode_count": 69,
+    "incremental_usd_cap": 0,
+    "per_attempt_token_reserve": 32000,
+    "provider_attempt_cap": 69,
+    "provider_budget_sha256": "722eb1aee9e115c76990387f7baf8a19dbfd66226ebaae4060acf29f1bf74e70"
+  },
+  "capability_accounting": {
+    "codex_exec_invocations": 0,
+    "commit_created_for_s4": false,
+    "frame_generation": false,
+    "frame_scan": false,
+    "live_execution": false,
+    "micro_pilot_executed": false,
+    "provider_calls": 0,
+    "push_performed_for_s4": false,
+    "replacement_count": 0,
+    "retry_count": 0
+  },
+  "date": "2026-07-18",
+  "evidence_identity": {
+    "d3_posthoc_sha256": "1ab968ec5b4af153d12f87ed00c431155982c34ad8b938de629cda3e9d4edb73",
+    "d3_verdict": "SUPPORTED",
+    "d3_verdict_modified_or_reclassified": false,
+    "s2a_frame_manifest_sha256": "368e01509b04a53928df2d729f0914dbd0c1ee14c5221a6e189fbf7b8bfa4ba1",
+    "s2a_frame_seal_sha256": "40aec915d3d24598ad2cbc46713a949b8c8ee5401d5768695b9be918b8bb5838",
+    "s2a_frame_tree_sha256": "65c0acc67c2987997d3dfac8ce4fb861ddf4f439e7a4ce59c1eab79ac5d6ea29",
+    "s3_statistical_freeze_sha256": "3538c09ffedd95f946a448ae298e04cad1cf933a99ff767b58472c4285c6b449"
+  },
+  "focused_tests": {
+    "collected_count": 97,
+    "manifest_sha256": "c1505d9e36b02bf1c4bb6263a2811ab338bc35278cb563bec8942ea445fe58e8",
+    "result": "97 passed in 83.31s",
+    "test_list_and_count_pinned": true,
+    "test_source_hashes_pinned": true
+  },
+  "low_finding_remediation": {
+    "generation_attempt_cap_checked": true,
+    "manifest_and_seal_frame_generation_count_checked": true,
+    "manifest_and_seal_replacement_count_checked": true,
+    "manifest_retry_count_checked": true,
+    "seal_retry_count_checked_directly": true,
+    "seal_retry_count_tamper_negative_test": true
+  },
+  "outcome_access": {
+    "individual_provider_outputs_accessed": false,
+    "provider_calls_used_for_budget_sizing": 0,
+    "sealed_frame_structure_accessed": true,
+    "sealed_request_size_evidence_recomputed": true,
+    "selector_outcomes_used_for_budget_sizing": false
+  },
+  "protected_artifact_root_after": {
+    "child_root_count": 11,
+    "file_count": 3687,
+    "total_bytes": 51050083,
+    "tree_hash_method": "r02_d3_preflight._filesystem_tree",
+    "tree_sha256": "692ced9177f71cbe1af45a8f3ce06b7ec1c690fba87a8c7de254a1dfc834f891"
+  },
+  "protected_artifact_root_before": {
+    "child_root_count": 11,
+    "file_count": 3687,
+    "total_bytes": 51050083,
+    "tree_hash_method": "r02_d3_preflight._filesystem_tree",
+    "tree_sha256": "692ced9177f71cbe1af45a8f3ce06b7ec1c690fba87a8c7de254a1dfc834f891"
+  },
+  "protected_child_checks": {
+    "all_11_child_roots_unchanged": true,
+    "d3_successor_tree_sha256": "b3cc74da593975865cd42087bb18bdc3f82d1c5666df5d98c5eb8ff92119dbea",
+    "quarantined_s2_tree_sha256": "2f15d7c9f0ff2e3e2314714a00384e110c45b0c468586c7f567aec0e7524d132",
+    "sealed_s2a_tree_sha256": "65c0acc67c2987997d3dfac8ce4fb861ddf4f439e7a4ce59c1eab79ac5d6ea29"
+  },
+  "schema_version": "r02-d4-s4-zero-call-manifest-v1",
+  "source_hashes": {
+    "budget_source_sha256": "8e9f3ca75d448ab69a1a0f21c810dd112e75c015673ce5bb1cc3a2c52a1b7a19",
+    "budget_verifier_script_sha256": "2ebaf55349be1fc3e705b1623dcd9ab957cc7835ebc46394b9697b8fb3361523",
+    "focused_test_source_sha256": "94d24c1668d8c87514949ae03a91a99e14881554f1b11b0e1a04ad9b8c5b8650",
+    "provider_budget_markdown_sha256": "c4f0a8c655fdcfed09b7b59fa183770ac6876c781805f618f9548d4622ae9902"
+  },
+  "status": "ZERO_CALL_BOUNDARY_CONFIRMED_S4_PROVIDER_BUDGET_FREEZE_DRAFT"
+}
