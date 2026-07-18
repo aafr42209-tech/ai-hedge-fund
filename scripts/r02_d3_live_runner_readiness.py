@@ -9,14 +9,6 @@ import sys
 from pathlib import Path
 
 
-SOURCE_ROLES = (
-    ("RUNNER_CONTRACTS", "v2/research/overlay/r02_d3_runner_contracts.py"),
-    ("SELECTOR_TRANSPORT_ADAPTER", "v2/research/overlay/r02_d3_live_selector_adapter.py"),
-    ("FIFTY_FIVE_ATTEMPT_ORCHESTRATOR", "v2/research/overlay/r02_d3_live_orchestrator.py"),
-    ("APPEND_ONLY_AUDIT", "v2/research/overlay/r02_d3_live_audit.py"),
-    ("FAIL_CLOSED_REPLAY", "v2/research/overlay/r02_d3_live_runner_replay.py"),
-    ("ZERO_CALL_READINESS_SCRIPT", "scripts/r02_d3_live_runner_readiness.py"),
-)
 ZERO_CALL_LABELS = ("PYTEST_OFFLINE_FAKE", "VERIFY_EXISTING_READINESS")
 
 
@@ -52,13 +44,17 @@ def main() -> int:
     sys.path.insert(0, str(root))
 
     from v2.research.overlay.canonical import canonical_json_bytes, canonical_sha256
-    from v2.research.overlay.r02_d3_contracts import selector_output_schema
+    from v2.research.overlay.r02_d3_successor_contracts import (
+        selector_output_schema,
+        validate_selector_output_schema_for_successor,
+    )
     from v2.research.overlay.r02_d3_live_orchestrator import load_accepted_preregistration
     from v2.research.overlay.r02_d3_live_runner_replay import verify_readiness_artifacts
     from v2.research.overlay.r02_d3_runner_contracts import (
         R02_D3_ACCEPTED_LIVE_GATE_FREEZE_SHA256,
         R02_D3_ACCEPTED_PREFLIGHT_SHA256,
         R02_D3_EXPECTED_EXECUTABLE_SHA256,
+        R02_D3_RUNNER_SOURCE_ROLES,
         R02D3RunnerReadinessFreeze,
         R02D3RunnerSourcePin,
     )
@@ -90,6 +86,7 @@ def main() -> int:
         print(canonical_json_bytes(verification).decode("utf-8"))
         return 0
 
+    validate_selector_output_schema_for_successor()
     schema_bytes = canonical_json_bytes(selector_output_schema())
     source_pins = tuple(
         R02D3RunnerSourcePin(
@@ -97,7 +94,7 @@ def main() -> int:
             relative_path=relative_path,
             sha256=_sha256(root / relative_path),
         )
-        for role, relative_path in SOURCE_ROLES
+        for role, relative_path in R02_D3_RUNNER_SOURCE_ROLES
     )
     preregistration = load_accepted_preregistration(root)
     freeze = R02D3RunnerReadinessFreeze(
@@ -111,7 +108,7 @@ def main() -> int:
     freeze_bytes = canonical_json_bytes(freeze)
     freeze_sha256 = hashlib.sha256(freeze_bytes).hexdigest()
     manifest = {
-        "schema_version": "r02-d3-runner-readiness-manifest-v2",
+        "schema_version": "r02-d3-runner-readiness-manifest-v3",
         "status": "READY_FOR_INDEPENDENT_REVIEW_NOT_LIVE_AUTHORIZED",
         "runner_readiness_freeze_sha256": freeze_sha256,
         "accepted_live_gate_freeze_sha256": R02_D3_ACCEPTED_LIVE_GATE_FREEZE_SHA256,
@@ -147,6 +144,9 @@ def main() -> int:
             "actual_over_reserve_usage_preserved": True,
             "usage_integer_bound_typed_fail_closed": True,
             "expanded_tamper_and_token_boundary_tests": True,
+            "provider_compatible_strict_schema_validated": True,
+            "live_submission_accounting_at_launch": True,
+            "predecessor_freeze_preserved_as_sealed_history": True,
         },
     }
     _write_new_or_equal(

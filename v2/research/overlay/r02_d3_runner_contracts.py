@@ -21,6 +21,31 @@ R02_D3_ACCEPTED_PREREGISTRATION_SHA256 = (
 R02_D3_EXPECTED_EXECUTABLE_SHA256 = (
     "cbacbb9726262ef558b4af0438a1b2a5bba9076132401d947b5b4d2bf92ab0e4"
 )
+R02_D3_PREDECESSOR_RUNNER_READINESS_FREEZE_SHA256 = (
+    "a779a6b722870889128e58a9fbf4f149d78f88dc69535a7aabc7722a0e1957c6"
+)
+R02_D3_PREDECESSOR_SELECTOR_OUTPUT_SCHEMA_SHA256 = (
+    "5466a24d3557e28251cb1393dac16e1049824637a27b969f3bea55c80ebc2eca"
+)
+R02_D3_RUNNER_SOURCE_ROLES = (
+    ("SELECTOR_RESPONSE_CONTRACT", "v2/research/overlay/r02_contracts.py"),
+    (
+        "D3_SUCCESSOR_SELECTOR_SCHEMA_EXPORT",
+        "v2/research/overlay/r02_d3_successor_contracts.py",
+    ),
+    ("RUNNER_CONTRACTS", "v2/research/overlay/r02_d3_runner_contracts.py"),
+    (
+        "SELECTOR_TRANSPORT_ADAPTER",
+        "v2/research/overlay/r02_d3_live_selector_adapter.py",
+    ),
+    (
+        "FIFTY_FIVE_ATTEMPT_ORCHESTRATOR",
+        "v2/research/overlay/r02_d3_live_orchestrator.py",
+    ),
+    ("APPEND_ONLY_AUDIT", "v2/research/overlay/r02_d3_live_audit.py"),
+    ("FAIL_CLOSED_REPLAY", "v2/research/overlay/r02_d3_live_runner_replay.py"),
+    ("ZERO_CALL_READINESS_SCRIPT", "scripts/r02_d3_live_runner_readiness.py"),
+)
 R02_D3_ATTEMPT_RESERVE = 32_000
 R02_D3_MICRO_ATTEMPTS = 6
 R02_D3_FULL_ATTEMPTS = 55
@@ -434,8 +459,8 @@ class R02D3AuditAnchor(StrictModel):
 
 
 class R02D3RunnerReadinessFreeze(StrictModel):
-    schema_version: Literal["r02-d3-runner-readiness-freeze-v1"] = (
-        "r02-d3-runner-readiness-freeze-v1"
+    schema_version: Literal["r02-d3-runner-readiness-freeze-v2"] = (
+        "r02-d3-runner-readiness-freeze-v2"
     )
     authorization_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     accepted_live_gate_freeze_sha256: Literal[
@@ -447,10 +472,18 @@ class R02D3RunnerReadinessFreeze(StrictModel):
     expected_executable_sha256: Literal[R02_D3_EXPECTED_EXECUTABLE_SHA256] = (
         R02_D3_EXPECTED_EXECUTABLE_SHA256
     )
+    predecessor_runner_readiness_freeze_sha256: Literal[
+        R02_D3_PREDECESSOR_RUNNER_READINESS_FREEZE_SHA256
+    ] = R02_D3_PREDECESSOR_RUNNER_READINESS_FREEZE_SHA256
+    predecessor_output_schema_sha256: Literal[
+        R02_D3_PREDECESSOR_SELECTOR_OUTPUT_SCHEMA_SHA256
+    ] = R02_D3_PREDECESSOR_SELECTOR_OUTPUT_SCHEMA_SHA256
+    strict_output_schema_successor: Literal[True] = True
+    live_submission_accounting_at_launch: Literal[True] = True
     output_schema_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     prompt_contract_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
     model_identity_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    source_pins: tuple[R02D3RunnerSourcePin, ...] = Field(min_length=6)
+    source_pins: tuple[R02D3RunnerSourcePin, ...] = Field(min_length=8)
     zero_call_allowed_command_labels: tuple[str, ...]
     live_argv_allowed_by_zero_call: Literal[False] = False
     provider_calls: Literal[0] = 0
@@ -463,12 +496,15 @@ class R02D3RunnerReadinessFreeze(StrictModel):
 
 
 class R02D3ReadinessReplayVerification(StrictModel):
-    schema_version: Literal["r02-d3-readiness-replay-v1"] = (
-        "r02-d3-readiness-replay-v1"
+    schema_version: Literal["r02-d3-readiness-replay-v2"] = (
+        "r02-d3-readiness-replay-v2"
     )
     freeze_sha256: str = Field(pattern=r"^[0-9a-f]{64}$")
-    verified_source_pins: int = Field(ge=6)
+    verified_source_pins: int = Field(ge=8)
     output_schema_matches: Literal[True] = True
+    output_schema_recomputed: Literal[True] = True
+    strict_schema_validated: Literal[True] = True
+    launch_accounting_source_pinned: Literal[True] = True
     accepted_live_gate_matches: Literal[True] = True
     executable_pin_matches: Literal[True] = True
     zero_call_allowlist_excludes_live_argv: Literal[True] = True

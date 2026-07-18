@@ -213,6 +213,9 @@ def _evaluate_selection(
     error_codes: tuple[str, ...] = ()
     try:
         parsed = parse_selector_response(raw_response)
+        decoded_response = json.loads(raw_response)
+        if "schema_version" not in decoded_response:
+            raise R02SelectorParseError("SCHEMA:schema_version:missing")
         selected_presented_id = parsed.selected_candidate_id
         selected_canonical_id = preparation.permutation.presented_to_canonical_map.get(
             selected_presented_id
@@ -469,6 +472,8 @@ class R02D3LiveOrchestrator:
             writer.append_json("attempt_started", started)
             launched_count += 1
             attempted.append(planned.fixture_id)
+            if self.authorization.mode == "LIVE":
+                external_calls += 1
             try:
                 raw_response, token_ledger, transport = self.adapter.select(request)
             except R02D3SelectorTransportError as exc:
@@ -549,7 +554,6 @@ class R02D3LiveOrchestrator:
             writer.append_json("token_settlement", settlement)
             settled_count += 1
             debited_tokens += observed
-            external_calls += token_ledger.external_provider_calls
             if settlement.invalid_run_budget_breach or debited_tokens > R02_D3_FULL_TOKEN_CAP:
                 decision = R02D3ContinuationDecision(
                     run_id=self.authorization.run_id,

@@ -9,7 +9,12 @@ import pytest
 from .canonical import canonical_json_bytes, canonical_sha256, sha256_hex
 from .codex_exec_client import CodexProcessCapture
 from .r02_candidates import prepare_provider_free_episode
-from .r02_d3_contracts import selector_output_schema
+from .r02_d3_successor_contracts import (
+    predecessor_selector_output_schema_sha256,
+    selector_output_schema,
+    selector_output_schema_sha256,
+    validate_openai_strict_json_schema,
+)
 from .r02_d3_live_audit import R02D3AuditWriter
 from .r02_d3_live_orchestrator import (
     R02D3LiveOrchestrator,
@@ -294,6 +299,41 @@ def test_adapter_uses_only_frozen_stdin_live_argv_and_injected_runner(tmp_path: 
     assert not audit_root.exists()
 
 
+def test_selector_output_schema_satisfies_provider_strict_object_rules() -> None:
+    schema = selector_output_schema()
+    validate_openai_strict_json_schema(schema)
+    assert set(schema["required"]) == set(schema["properties"])
+    assert "schema_version" in schema["required"]
+    assert selector_output_schema_sha256() != predecessor_selector_output_schema_sha256()
+
+    drifted = json.loads(json.dumps(schema))
+    drifted["required"].remove("schema_version")
+    with pytest.raises(ValueError, match="required must contain every property"):
+        validate_openai_strict_json_schema(drifted)
+
+
+def test_successor_local_parser_requires_explicit_schema_version(tmp_path: Path) -> None:
+    missing_version = json.dumps(
+        {
+            "selected_candidate_id": "P00",
+            "confidence": 64,
+            "reason_codes": ["TIE_BREAK_PREFERENCE"],
+        },
+        sort_keys=True,
+        separators=(",", ":"),
+    )
+    orchestrator, _, audit_root = _harness(
+        tmp_path,
+        run_id="r02-d3-missing-schema-version",
+        responses=[missing_version, missing_version],
+    )
+    ledger = orchestrator.run()
+    assert ledger.status == "HARD_STOP"
+    assert ledger.terminal_code == "MICRO_SELECTOR_FALLBACK_CAP_EXCEEDED"
+    replay = replay_audit_root(audit_root)
+    assert replay.outcomes[0].error_codes == ("SCHEMA:schema_version:missing",)
+
+
 def test_offline_normal_flow_runs_indivisible_6_plus_49_without_provider_calls(tmp_path: Path) -> None:
     orchestrator, runner, audit_root = _harness(
         tmp_path,
@@ -427,6 +467,7 @@ def test_timeout_nonzero_and_model_echo_mismatch_fail_closed(
     )
     ledger = orchestrator.run()
     assert ledger.terminal_code == expected_code
+    assert ledger.external_provider_calls == 0
     assert len(runner.calls) == 1
 
 
@@ -788,6 +829,50 @@ def test_live_authorization_is_bound_to_external_canonical_bytes_and_rechecked(
     assert runner.calls == []
 
 
+def test_live_transport_failure_counts_submission_at_launch_before_parsing(
+    tmp_path: Path,
+) -> None:
+    authorization, _, artifact_path = _external_live_authorization(
+        tmp_path,
+        "r02-d3-live-launch-accounting",
+    )
+    preregistration = load_accepted_preregistration(ROOT)
+    runner = LiveCapableFakeProcessRunner(
+        captures=[
+            CodexProcessCapture(
+                stdout=_jsonl(_response()),
+                stderr=b"provider rejected request",
+                exit_code=2,
+                duration_ms=1,
+            )
+        ]
+    )
+    adapter = R02D3CodexSelectorAdapter(
+        preregistration=preregistration,
+        output_schema_path=_schema(tmp_path),
+        working_directory=ROOT,
+        process_runner=runner,
+    )
+    audit_root = tmp_path / "live-launch-accounting-audit"
+    orchestrator = R02D3LiveOrchestrator(
+        repository_root=ROOT,
+        audit_root=audit_root,
+        authorization=authorization,
+        adapter=adapter,
+        preregistration=preregistration,
+        live_authorization_artifact_path=artifact_path,
+    )
+
+    ledger = orchestrator.run()
+    assert ledger.status == "HARD_STOP"
+    assert ledger.terminal_code == "PROCESS_STATUS_VIOLATION"
+    assert ledger.launched_attempt_count == 1
+    assert ledger.external_provider_calls == 1
+    assert len(runner.calls) == 1
+    replay = replay_audit_root(audit_root)
+    assert replay.ledgers[-1].external_provider_calls == 1
+
+
 def test_live_authorization_rejects_missing_external_artifact_path(tmp_path: Path) -> None:
     authorization, _, _ = _external_live_authorization(
         tmp_path,
@@ -888,7 +973,10 @@ def test_invalid_utf8_readiness_manifest_is_typed_replay_error(tmp_path: Path) -
 
 def test_readiness_manifest_replays_and_excludes_provider_argv() -> None:
     verification = verify_readiness_artifacts(ROOT)
-    assert verification.verified_source_pins == 6
+    assert verification.verified_source_pins == 8
+    assert verification.output_schema_recomputed
+    assert verification.strict_schema_validated
+    assert verification.launch_accounting_source_pinned
     assert verification.zero_call_allowlist_excludes_live_argv
     manifest = json.loads(
         (ROOT / "docs/r02-d3-runner-readiness-manifest.json").read_text(encoding="utf-8")

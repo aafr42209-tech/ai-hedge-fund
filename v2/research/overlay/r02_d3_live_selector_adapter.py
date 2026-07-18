@@ -16,7 +16,11 @@ from .codex_exec_client import (
     parse_codex_jsonl,
 )
 from .r02_contracts import R02ProviderFreePreparation, R02SelectorRequest
-from .r02_d3_contracts import selector_output_schema, selector_output_schema_sha256
+from .r02_d3_successor_contracts import (
+    selector_output_schema,
+    selector_output_schema_sha256,
+    validate_selector_output_schema_for_successor,
+)
 from .r02_d3_preflight import R02D3Preregistration, render_frozen_prompt, render_live_argv
 from .r02_d3_runner_contracts import (
     R02_D3_ACCEPTED_PREREGISTRATION_SHA256,
@@ -107,6 +111,7 @@ class R02D3CodexSelectorAdapter:
             != R02_D3_EXPECTED_EXECUTABLE_SHA256
         ):
             raise ValueError("accepted D3 executable identity drift")
+        validate_selector_output_schema_for_successor()
         if not self.output_schema_path.is_file():
             raise ValueError("frozen selector output schema file is missing")
         expected_schema = canonical_json_bytes(selector_output_schema())
