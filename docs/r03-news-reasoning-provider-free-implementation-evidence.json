@@ -1,0 +1,152 @@
+{
+  "counters": {
+    "fixture_materializations": 0,
+    "frame_materializations": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "network_attempts": 0,
+    "oos_accesses": 0,
+    "provider_calls": 0,
+    "raw_source_opens": 0,
+    "research_gate_executions": 0
+  },
+  "evidence_sha256": "f56b558f7f4c02b706fbf97e6aa61065d3ff9559491a272e626a6b2e6f49f050",
+  "focused_test_command": ".venv/Scripts/python.exe -m pytest -q tests/test_r03_contracts.py tests/test_r03_source.py tests/test_r03_payload.py tests/test_r03_frames.py tests/test_r03_tiers.py tests/test_r03_headroom.py tests/test_r03_power.py tests/test_r03_audit.py",
+  "focused_result": {
+    "command": ".venv/Scripts/python.exe -m pytest -q tests/test_r03_contracts.py tests/test_r03_source.py tests/test_r03_payload.py tests/test_r03_frames.py tests/test_r03_tiers.py tests/test_r03_headroom.py tests/test_r03_power.py tests/test_r03_audit.py",
+    "exit_code": 0,
+    "passed": 51
+  },
+  "full_overlay_result": {
+    "command": ".venv/Scripts/python.exe -m pytest -q v2/research/overlay",
+    "exit_code": 0,
+    "passed": 433
+  },
+  "implementation_plan_commit": "6da16688b3da581d1a919d7c75e285827ed10e85",
+  "negative_tests": [
+    "recompute_payload_retention_from_read_only_raw_source",
+    "reject_article_byte_cap_perturbation",
+    "reject_ticker_session_byte_cap_perturbation",
+    "reject_article_ordering_perturbation",
+    "reject_early_close_cutoff_perturbation",
+    "reject_duplicate_selection_perturbation",
+    "reject_raw_text_emission",
+    "reject_nonzero_provider_counter"
+  ],
+  "organizational_independence_established": false,
+  "regression_test_command": ".venv/Scripts/python.exe -m pytest -q v2/research/overlay",
+  "r02_api_result": {
+    "command": ".venv/Scripts/python.exe -m pytest -q v2/research/overlay/test_r02_v2_contracts.py v2/research/overlay/test_r02_v2_payload.py v2/research/overlay/test_r02_v2_grounding.py v2/research/overlay/test_r02_v2_comparator.py v2/research/overlay/test_r02_v2_selection.py v2/research/overlay/test_r02_v2_headroom.py v2/research/overlay/test_r02_v2_power.py v2/research/overlay/test_r02_v2_audit.py",
+    "exit_code": 0,
+    "passed": 27
+  },
+  "schema_version": "r03-provider-free-code-only-evidence-v1",
+  "source_pin_kind": {
+    "v2/research/news_reasoning/__init__.py": "filesystem_sha256",
+    "v2/research/news_reasoning/r03_audit.py": "filesystem_sha256",
+    "v2/research/news_reasoning/r03_contracts.py": "filesystem_sha256",
+    "v2/research/news_reasoning/r03_frames.py": "filesystem_sha256",
+    "v2/research/news_reasoning/r03_headroom.py": "filesystem_sha256",
+    "v2/research/news_reasoning/r03_payload.py": "filesystem_sha256",
+    "v2/research/news_reasoning/r03_power.py": "filesystem_sha256",
+    "v2/research/news_reasoning/r03_source.py": "filesystem_sha256",
+    "v2/research/news_reasoning/r03_tiers.py": "filesystem_sha256"
+  },
+  "source_sha256": {
+    "v2/research/news_reasoning/__init__.py": "98fde5416bd3121b537c63b4051a24b28b43a8e7a93edc3bc7fa86583398312b",
+    "v2/research/news_reasoning/r03_audit.py": "6248891bdda7e6c15b8826d263d7279449d532d3f0b1c059e2ef0dbcd22e3ea9",
+    "v2/research/news_reasoning/r03_contracts.py": "d00c7ef4207e0f7b054bad58d0966270d1d3d509685a2f13e9d1f9fe64db40a2",
+    "v2/research/news_reasoning/r03_frames.py": "72a8dfb0fc0f2855d5d96635ab1edfabc3372849506ab4d3a729d9fb9be6eb82",
+    "v2/research/news_reasoning/r03_headroom.py": "50839834df22281cd4a20a455cc2aa4ef423f7d1256061e239e0d8f2e178ee89",
+    "v2/research/news_reasoning/r03_payload.py": "d0bbc4785af87b988b60271478d2a15283519894f8863094e0a66cf57a2fa703",
+    "v2/research/news_reasoning/r03_power.py": "b9db57fdf385090a65f652b45af0348e6e0502e937393e9be1f3a7f289af1730",
+    "v2/research/news_reasoning/r03_source.py": "3584a22c0bef3ea72d1a578fa604dbcc0eb690f8e25bc23dca858e9831458707",
+    "v2/research/news_reasoning/r03_tiers.py": "236b85782fd0f2043d201bb6c8fd5e8185a07f8250878d488ab5bd9b7ac3f3f5"
+  },
+  "stage_exit_tests": {
+    "I0": [
+      "test_contract_schema_bundle_passes_metaschema",
+      "test_contracts_are_strict_and_forbid_extras",
+      "test_numeric_contract_normalizes_binary64_and_e12",
+      "test_training_identity_rejects_unmatured_labels",
+      "test_evidence_requires_pin_kind_coverage_and_zero_counters"
+    ],
+    "I1": [
+      "test_recompute_payload_retention_from_read_only_raw_source",
+      "test_public_retention_is_digest_reproducible",
+      "test_reject_raw_text_emission",
+      "test_payload_is_deterministic_ordered_and_information_equal",
+      "test_duplicate_rule_selects_available_at_before_updated_at",
+      "test_caps_truncate_only_valid_utf8_body_prefix",
+      "test_session_truncation_makes_final_article_and_omits_later_articles",
+      "test_reject_article_byte_cap_perturbation",
+      "test_reject_ticker_session_byte_cap_perturbation",
+      "test_reject_article_ordering_perturbation",
+      "test_reject_duplicate_selection_perturbation",
+      "test_t3_response_contract_and_grounding_are_provider_free"
+    ],
+    "I2": [
+      "test_split_topology_and_phase_books_are_frozen",
+      "test_reject_early_close_cutoff_perturbation",
+      "test_frame_rejects_oos_and_unmatured_outcome",
+      "test_buffered_constructor_is_deterministic_and_no_trade_below_twenty",
+      "test_buffer_retains_names_inside_rank_twenty",
+      "test_cost_and_net_utility_use_common_e12_book",
+      "test_sector_relative_outcomes_are_e12_and_sector_neutral"
+    ],
+    "I3": [
+      "test_frozen_tiers_bind_single_t2_comparator",
+      "test_alpha_selection_uses_worst_fold_then_larger_alpha",
+      "test_t2_model_identity_is_reproducible_and_drift_sensitive",
+      "test_sklearn_absence_fails_closed_without_dependency_install",
+      "test_t2_t3_payload_identity_is_exact",
+      "test_t0_preprocessing_and_t1_join_are_deterministic",
+      "test_t2_fit_path_requires_separate_authority_before_sklearn_import"
+    ],
+    "I4": [
+      "test_sort_relaxation_certificate_is_exact_and_replays",
+      "test_sort_relaxation_forces_no_trade_below_twenty",
+      "test_sort_relaxation_upper_bounds_a_feasible_zero_cost_book",
+      "test_g1_bootstrap_is_deterministic_and_uses_conservative_boundary",
+      "test_g1_empty_input_is_invalid_no_decision",
+      "test_greedy_feasible_lower_bracket_does_not_govern_bound"
+    ],
+    "I5": [
+      "test_g2_pause_and_continue_labels_are_deterministic",
+      "test_g3_grid_contains_exact_six_preregistered_cells",
+      "test_g3_simulation_is_domain_separated_and_reproducible",
+      "test_g3_grid_uses_wilson_lower_for_all_cells",
+      "test_audit_chain_is_append_only_and_replays",
+      "test_reject_nonzero_provider_counter",
+      "test_implementation_modules_have_no_provider_network_or_process_imports"
+    ]
+  },
+  "status": "CODE_ONLY_IMPLEMENTED_REVIEW_REQUIRED_DATA_AND_INFERENCE_NO_GO",
+  "style_exit_codes": {
+    "black": 0,
+    "flake8": 0,
+    "isort": 0
+  },
+  "test_pin_kind": {
+    "tests/test_r03_audit.py": "filesystem_sha256",
+    "tests/test_r03_contracts.py": "filesystem_sha256",
+    "tests/test_r03_frames.py": "filesystem_sha256",
+    "tests/test_r03_headroom.py": "filesystem_sha256",
+    "tests/test_r03_payload.py": "filesystem_sha256",
+    "tests/test_r03_power.py": "filesystem_sha256",
+    "tests/test_r03_source.py": "filesystem_sha256",
+    "tests/test_r03_tiers.py": "filesystem_sha256"
+  },
+  "test_sha256": {
+    "tests/test_r03_audit.py": "242e47a435a8f1aaf22ba94778514e781ffeedbce2bf706bf2a1983566b4e06f",
+    "tests/test_r03_contracts.py": "8af34f77c8fe16157f97f8e040beb9e8dd71ada9dcd13d89a64b3a4f3772ae7b",
+    "tests/test_r03_frames.py": "23c5e7ec40fecc8af568d4e34aad588539584a4fcea63966980db2b1575374f9",
+    "tests/test_r03_headroom.py": "3897d94b915bacf5e17b0a2c83efe003950281d6b8cfbb5a9bdce73cae362bb7",
+    "tests/test_r03_payload.py": "ca785d03f207a6330ec6a27486ffba6678280f3a9bc961fdd5198c5af72ee3c0",
+    "tests/test_r03_power.py": "4bc7ad95604f53dd75e63b48c732657e2340b1e8dad516e5e0cb532f35e02282",
+    "tests/test_r03_source.py": "9daf36fd4f7c284d4e261102ffc48aeb077e6620d82a1143d07a21cfdeeef3ad",
+    "tests/test_r03_tiers.py": "426a7bd3cf0c9f04f8a6d4b8516d04b07a2d90760d5d6a0eb2c9d94e9576903f"
+  },
+  "verifier_pin_kind": "filesystem_sha256",
+  "verifier_sha256": "7b1b0d0851b22715f68050e5f41f7932670fb4754d33c0d13d8d1221cd652ff1"
+}

@@ -1,0 +1,69 @@
+{
+  "artifact_pin_kind": {
+    "docs/r03-news-reasoning-provider-free-implementation-evidence.json": "filesystem_sha256",
+    "docs/r03-news-reasoning-provider-free-implementation.md": "filesystem_sha256",
+    "scripts/r03_news_reasoning_implementation_verify.py": "filesystem_sha256"
+  },
+  "artifact_sha256": {
+    "docs/r03-news-reasoning-provider-free-implementation-evidence.json": "9f21b035997e3bcddd66c8718b4eb9c05a3bb8b64e0a6e4a8941839ebc071b18",
+    "docs/r03-news-reasoning-provider-free-implementation.md": "27bde97c85dcc2c4ae7a4c72ce0985a001505b7efabbc92ea4f8fcb1405e33fa",
+    "scripts/r03_news_reasoning_implementation_verify.py": "7b1b0d0851b22715f68050e5f41f7932670fb4754d33c0d13d8d1221cd652ff1"
+  },
+  "authority": {
+    "commit_authorized": false,
+    "dependency_change_authorized": false,
+    "external_provider_authorized": false,
+    "fixture_or_frame_materialization_authorized": false,
+    "g1_g2_g3_research_execution_authorized": false,
+    "local_inference_authorized": false,
+    "model_fitting_authorized": false,
+    "oos_access_authorized": false,
+    "push_authorized": false,
+    "read_only_data_check_authorized": false
+  },
+  "counters": {
+    "fixture_materializations": 0,
+    "frame_materializations": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "network_attempts": 0,
+    "oos_accesses": 0,
+    "provider_calls": 0,
+    "raw_source_opens": 0,
+    "research_gate_executions": 0
+  },
+  "current_authority": "CODE_ONLY_AUTHORIZED",
+  "evidence_canonical_sha256": "f56b558f7f4c02b706fbf97e6aa61065d3ff9559491a272e626a6b2e6f49f050",
+  "g1_contract": "G1_DECOUPLED_ZERO_COST_SORT_RELAXATION_V1",
+  "implementation_file_count": 9,
+  "implementation_plan_commit": "6da16688b3da581d1a919d7c75e285827ed10e85",
+  "implementation_plan_sha256": "324645be4e387a1706c5d40c5d188c4c01288163d72871700501475c745aa60d",
+  "mandatory_negative_tests": [
+    "recompute_payload_retention_from_read_only_raw_source",
+    "reject_article_byte_cap_perturbation",
+    "reject_ticker_session_byte_cap_perturbation",
+    "reject_article_ordering_perturbation",
+    "reject_early_close_cutoff_perturbation",
+    "reject_duplicate_selection_perturbation",
+    "reject_raw_text_emission",
+    "reject_nonzero_provider_counter"
+  ],
+  "new_dependency_count": 0,
+  "organizational_independence_established": false,
+  "phase": "R03",
+  "status": "CODE_ONLY_IMPLEMENTED_REVIEW_REQUIRED_DATA_AND_INFERENCE_NO_GO",
+  "test_file_count": 8,
+  "test_results": {
+    "black_exit_code": 0,
+    "flake8_exit_code": 0,
+    "focused_exit_code": 0,
+    "focused_passed": 51,
+    "full_r02_overlay_exit_code": 0,
+    "full_r02_overlay_passed": 433,
+    "isort_exit_code": 0,
+    "r02_api_exit_code": 0,
+    "r02_api_passed": 27
+  },
+  "t2_dependency_state": "SCIKIT_LEARN_NOT_INSTALLED_FIT_PATH_FAIL_CLOSED",
+  "zero_call_assertion": "Synthetic CODE_ONLY implementation and tests only; no licensed source, fitted model, research gate, OOS, inference, provider, network, dependency, commit, or push action occurred."
+}
