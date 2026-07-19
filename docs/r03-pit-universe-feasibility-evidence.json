@@ -1,0 +1,275 @@
+{
+  "schema_version": "r03-pit-universe-feasibility-evidence-v1",
+  "as_of": "2026-07-19",
+  "scope": "aggregate feasibility evidence only; no article text, holdings rows, or purchased data",
+  "status": "working estimate pending independent technical review and source-level acceptance reconstruction",
+  "local_inputs": [
+    {
+      "path": "docs/r03-news-reasoning-charter-draft.md",
+      "sha256": "e5527c13a14b86dbeba6a1ee9d7290ebcbd0eb53e5d0c1c8ae512672f2710724",
+      "bytes": 16774
+    },
+    {
+      "path": "docs/r03-news-reasoning-provider-free-preregistration-draft.md",
+      "sha256": "629d282b71fc19f5db691de47c325f195d01c4ec1ae96686b3e4c7bb75f200a2",
+      "bytes": 14281
+    },
+    {
+      "path": "docs/r03-news-reasoning-data-reuse-decision.md",
+      "sha256": "097e6df5ed4aafccc1031cfb3ab7f0639dce439d84b5f57e968fb4462cd58a0a",
+      "bytes": 4571
+    },
+    {
+      "path": "docs/r03-news-reasoning-provider-free-coverage-audit.json",
+      "sha256": "6275292839b9446825bc8d05cc334a82dc7fe865067501895fd0f2c15c821984",
+      "bytes": 5240
+    },
+    {
+      "path": "docs/news-llm-reasoning-reuse-feasibility-handoff.md",
+      "sha256": "4fec8ae4afbd04147933068d3a34b844f9cc653df27658a4ae435fedea6b5c9d",
+      "bytes": 19226
+    },
+    {
+      "path": "docs/r03-news-reasoning-p5-review-handoff.md",
+      "sha256": "07cadebb5040e26d36f179a5ec190c23addc6001260f1ba54d784e0554516864",
+      "bytes": 10809
+    },
+    {
+      "path": "C:/Users/User/Desktop/FinGPT/configs/universe.json",
+      "sha256": "3017ce3138887867ae238ece81dc7fa6db6c646014554cc07408abbd64b356fe",
+      "bytes": 9710,
+      "read_only": true
+    }
+  ],
+  "verified_local_corpus": {
+    "window": "2016-2025",
+    "manifest_tickers": 100,
+    "ticker_year_manifests_complete": 1000,
+    "ticker_year_manifests_total": 1000,
+    "declared_fetched_articles": 436916,
+    "eligible_unique_articles": 247976,
+    "eligible_ticker_article_events": 301541,
+    "eligible_headline_pct": 100.0,
+    "eligible_summary_pct": 29.33,
+    "eligible_body_pct": 50.9,
+    "eligible_headline_only_pct": 49.1,
+    "universe_as_of": "2026-06-30",
+    "universe_symbols": 100,
+    "documented_exclusion": "HONA",
+    "limitation": "eligibility and collection are conditioned on the frozen 2026 survivor-symbol panel"
+  },
+  "annual_revision_snapshot_estimate": {
+    "source": "Wikipedia S&P 100 Components tables at the last revision before each January 1 boundary",
+    "status": "observed public-archive lower bound; not official PIT membership",
+    "boundary_oldids": {
+      "2016-01-01": 697490890,
+      "2017-01-01": 755910909,
+      "2018-01-01": 808600849,
+      "2019-01-01": 867611884,
+      "2020-01-01": 929329274,
+      "2021-01-01": 996842773,
+      "2022-01-01": 1053620687,
+      "2023-01-01": 1126258944,
+      "2024-01-01": 1190636511,
+      "2025-01-01": 1260310089,
+      "2026-01-01": 1315309322
+    },
+    "snapshot_security_counts": [
+      100,
+      102,
+      102,
+      102,
+      101,
+      101,
+      101,
+      101,
+      101,
+      101,
+      101
+    ],
+    "gross_additions_between_annual_snapshots": [
+      11,
+      2,
+      3,
+      4,
+      4,
+      3,
+      3,
+      1,
+      1,
+      4
+    ],
+    "gross_additions_total": 36,
+    "gross_removals_total": 35,
+    "average_gross_additions_per_year": 3.6,
+    "distinct_ticker_labels_observed": 134,
+    "working_distinct_ticker_label_estimate_low": 134,
+    "working_distinct_ticker_label_estimate_high": 136,
+    "uncertainty": "134 is exact for the eleven parsed snapshot tables and a lower bound for the real window. 136 is a turnover-model planning envelope, not a hard upper bound; intrayear round trips and delayed edits can make the true total larger. Ticker labels include renames and multiple share classes and are not issuer counts."
+  },
+  "official_announcement_partial_inventory": {
+    "announcement_urls_found": 17,
+    "known_incomplete": true,
+    "use": "announcement/effective-date examples and candidate event proofs only; not used for the distinct-member estimate"
+  },
+  "regulatory_snapshot_feasibility": {
+    "vehicle": "iShares S&P 100 ETF (OEF)",
+    "edgar_cik": "0001100663",
+    "quarter_ends_discovered_2016_2025": 40,
+    "quarter_ends_expected_2016_2025": 40,
+    "discovery_complete_pct": 100.0,
+    "forms_observed": [
+      "N-Q",
+      "N-CSR",
+      "N-CSRS",
+      "NPORT-EX",
+      "NPORT-P"
+    ],
+    "earliest_sample": {
+      "period": "2016-12-31",
+      "form": "N-Q",
+      "url": "https://www.sec.gov/Archives/edgar/data/1100663/000119312517065125/d346678dnq.htm"
+    },
+    "later_sample": {
+      "period": "2024-06-30",
+      "form": "NPORT exhibit",
+      "url": "https://www.sec.gov/Archives/edgar/data/1100663/000175272424191829/251704BR063024.htm"
+    },
+    "last_period_discovered": {
+      "period": "2025-12-31",
+      "filed": "2026-02-25",
+      "document": "0000940400-26-007517:251704BR123125.htm"
+    },
+    "boundary": "40/40 measures filing discovery, not full holdings-row parsing. Public filings provide quarter-end fund holdings and filing timestamps, not index announcement/effective event times. OEF uses representative sampling and may not hold every index security."
+  },
+  "gap_against_local_2026_panel": {
+    "historical_ticker_labels_absent_from_local_panel_observed": 39,
+    "historical_ticker_labels_absent_from_local_panel_planning_low": 39,
+    "historical_ticker_labels_absent_from_local_panel_planning_high": 41,
+    "historical_union_intersection_with_local_panel_estimate": 95,
+    "current_panel_only_ticker_labels_count": 5,
+    "historical_only_ticker_year_exposure_proxy": 199,
+    "proportional_raw_capture_proxy": 86946,
+    "proportional_eligible_ticker_event_proxy": 60007,
+    "proportional_storage_gb_proxy": 0.531,
+    "interpretation": "39 is an exact difference between the observed annual-snapshot ticker-label union and the local 2026 symbol list, not an issuer count or count of proven-missing articles. Dedicated former-symbol manifests and complete former-security bars are absent; successor/current-symbol pages may contain some cross-symbol news and must be audited separately. The 199 ticker-years and proportional article/event/storage values are planning proxies only.",
+    "identity_mapping_required": true
+  },
+  "public_cost_observations": {
+    "sp_dji_historical_constituents": "public price not found; quote and use-rights confirmation required",
+    "sec_edgar": "$0 public access; comply with SEC fair-access controls",
+    "wrds_compustat_crsp": "institutional subscription/access required; public price not found",
+    "wikipedia_wayback": "$0 public access; source-specific licenses and archive terms still apply",
+    "alpaca_basic_market_data": "$0/month on the public plan page as checked",
+    "alpaca_algo_trader_plus": "$99/month on the public plan page as checked",
+    "alpaca_news": "historical coverage documented from 2015 and supplied by Benzinga; no separate contractual news backfill price found on the reviewed public pages",
+    "alpaca_redistribution": "not permitted by Alpaca's public support statement; exact research retention/training rights require agreement review"
+  },
+  "public_sources": [
+    {
+      "label": "S&P 100 index page and methodology link",
+      "url": "https://www.spglobal.com/spdji/en/indices/equity/sp-100/"
+    },
+    {
+      "label": "S&P U.S. Indices Methodology",
+      "url": "https://www.spglobal.com/spdji/en/methodology/article/sp-us-indices-methodology/"
+    },
+    {
+      "label": "S&P DJI Index Data capabilities brochure",
+      "url": "https://www.spglobal.com/spdji/en/documents/index-policies/index-data-capabilities-brochure.pdf"
+    },
+    {
+      "label": "S&P DJI constituent licensing notice for Compustat users",
+      "url": "https://pages.marketintelligence.spglobal.com/SP-Dow-Jones-Indices-Constituent-Removal.html"
+    },
+    {
+      "label": "SEC Investment Company Reporting Modernization guide",
+      "url": "https://www.sec.gov/resources-small-businesses/small-business-compliance-guides/investment-company-reporting-modernization-rules"
+    },
+    {
+      "label": "OEF 2020 NPORT-P filing example",
+      "url": "https://www.sec.gov/Archives/edgar/data/1100663/0001752724-20-247755-index.htm"
+    },
+    {
+      "label": "OEF 2016-12 N-Q holdings sample",
+      "url": "https://www.sec.gov/Archives/edgar/data/1100663/000119312517065125/d346678dnq.htm"
+    },
+    {
+      "label": "OEF 2024-06 NPORT holdings sample",
+      "url": "https://www.sec.gov/Archives/edgar/data/1100663/000175272424191829/251704BR063024.htm"
+    },
+    {
+      "label": "OEF 2019 shareholder report and holdings example",
+      "url": "https://www.sec.gov/Archives/edgar/data/1100663/000119312519306805/d787052dncsrs.htm"
+    },
+    {
+      "label": "SEC EDGAR fair-access rate control",
+      "url": "https://www.sec.gov/filergroup/announcements-old/new-rate-control-limits"
+    },
+    {
+      "label": "WRDS CRSP/Compustat merged programming guide",
+      "url": "https://wrds-www.wharton.upenn.edu/documents/416/CRSP-Compustat_Merged_Database_Programming_Access.pdf"
+    },
+    {
+      "label": "WRDS Compustat historical index constituents table gate",
+      "url": "https://wrds-www.wharton.upenn.edu/data-dictionary/comp_na_daily_all/idxcst_his/"
+    },
+    {
+      "label": "CRSP historical indexes catalog",
+      "url": "https://www.crsp.org/research/crsp-historical-indexes/"
+    },
+    {
+      "label": "WRDS Compustat historical identifiers",
+      "url": "https://wrds-www.wharton.upenn.edu/pages/wrds-research/database-linking-matrix/using-compustat-historical-identifier-notebook/"
+    },
+    {
+      "label": "Alpaca historical news coverage",
+      "url": "https://docs.alpaca.markets/us/docs/historical-news-data"
+    },
+    {
+      "label": "Alpaca market-data plans",
+      "url": "https://docs.alpaca.markets/us/docs/about-market-data-api"
+    },
+    {
+      "label": "Alpaca redistribution restriction",
+      "url": "https://alpaca.markets/support/redistribute-alpaca-api"
+    },
+    {
+      "label": "Wikimedia Terms of Use",
+      "url": "https://foundation.wikimedia.org/wiki/Policy:Terms_of_Use"
+    },
+    {
+      "label": "Internet Archive Wayback Machine general information",
+      "url": "https://archivesupport.zendesk.com/hc/en-us/articles/360004716091-Wayback-Machine-General-Information"
+    }
+  ],
+  "official_change_announcement_urls": [
+    "https://press.spglobal.com/2016-03-11-Danaher-Duke-Energy-and-NextEra-Energy-Set-to-Join-the-S-P-100",
+    "https://press.spglobal.com/2016-08-31-Kraft-Heinz-Set-to-Join-S-P-100-Charter-Communications-to-Join-S-P-500",
+    "https://press.spglobal.com/2018-06-04-Netflix-Set-to-Join-S-P-100-Twitter-to-Join-S-P-500-REGENXBIO-to-Join-S-P-SmallCap-600",
+    "https://press.spglobal.com/2018-06-15-NVIDIA-Set-to-Join-S-P-100-FleetCor-Technologies-to-Join-S-P-500-Penn-Virginia-to-Join-S-P-SmallCap-600",
+    "https://press.spglobal.com/2019-03-14-Fox-Set-to-Join-S-P-500-Adobe-to-Join-S-P-100",
+    "https://press.spglobal.com/2019-03-26-Dow-Set-to-Join-S-P-500-and-S-P-100-Brighthouse-Financial-and-Trex-Company-to-Join-S-P-MidCap-400-Pitney-Bowes-and-Xenia-Hotels-Resorts-to-Join-S-P-SmallCap-600",
+    "https://press.spglobal.com/2019-11-19-Thermo-Fisher-Scientific-Set-to-Join-S-P-100-ServiceNow-to-Join-S-P-500",
+    "https://press.spglobal.com/2020-03-31-Otis-Worldwide-and-Carrier-Global-Set-to-Join-S-P-500-American-Tower-to-Join-S-P-100-and-Macys-to-Join-S-P-SmallCap-600",
+    "https://press.spglobal.com/2020-05-06-DexCom-Dominos-Pizza-Set-to-Join-S-P-500-Salesforce-com-to-Join-S-P-100-STORE-Capital-to-Join-S-P-MidCap-400-Capri-Holdings-to-Join-S-P-SmallCap-600",
+    "https://press.spglobal.com/2021-03-12-NXP-Semiconductors-Penn-National-Gaming-Generac-Holdings-and-Caesars-Entertainment-Set-to-Join-S-P-500-Others-to-Join-S-P-MidCap-400-S-P-SmallCap-600-and-S-P-100",
+    "https://press.spglobal.com/2022-03-04-Charles-Schwab-Set-to-Join-S-P-100-BellRing-Brands-to-Join-S-P-MidCap-400-Cerence-to-Join-S-P-SmallCap-600",
+    "https://press.spglobal.com/2023-09-01-Blackstone-and-Airbnb-Set-to-Join-S-P-500-Others-to-Join-S-P-100%2C-S-P-MidCap-400-and-S-P-SmallCap-600",
+    "https://press.spglobal.com/2024-03-01-Super-Micro-Computer-and-Deckers-Outdoor-Set-to-Join-S-P-500-Others-to-Join-S-P-100%2C-S-P-MidCap-400-and-S-P-SmallCap-600",
+    "https://press.spglobal.com/2025-03-07-DoorDash%2C-TKO-Group-Holdings%2C-Williams-Sonoma-and-Expand-Energy-Set-to-Join-S-P-500-Others-to-Join-S-P-100%2C-S-P-MidCap-400-and-S-P-SmallCap-600",
+    "https://press.spglobal.com/2025-09-05-AppLovin%2C-Robinhood-Markets-and-Emcor-Group-Set-to-Join-S-P-500-Others-to-Join-S-P-100%2C-S-P-MidCap-400-and-S-P-SmallCap-600",
+    "https://press.spglobal.com/2026-03-06-Vertiv-Holdings%2C-Lumentum-Holdings%2C-Coherent%2C-and-EchoStar-Set-to-Join-S-P-500-Others-to-Join-S-P-100%2C-S-P-MidCap-400%2C-and-S-P-SmallCap-600",
+    "https://press.spglobal.com/2026-06-23-Honeywell-Aerospace-Set-to-Join-S-P-500-S-P-100-Others-to-Join-S-P-MidCap-400-and-S-P-SmallCap-600"
+  ],
+  "zero_action_declaration": {
+    "external_provider_or_llm_calls": 0,
+    "data_purchases_or_subscriptions": 0,
+    "bulk_downloads": 0,
+    "news_originals_entered_repo": 0,
+    "universe_changes": 0,
+    "implementation_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  }
+}
