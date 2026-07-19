@@ -56,6 +56,8 @@ EXCLUDED_USER_PATHS = frozenset(
         "docs/r03-news-reasoning-p5-zero-call-manifest.json",
         "docs/r03-news-reasoning-provider-free-coverage-audit.json",
         "docs/r03-news-reasoning-provider-free-preregistration-draft.md",
+        "docs/r03-pit-universe-feasibility-evidence.json",
+        "docs/r03-pit-universe-feasibility.md",
     }
 )
 FORBIDDEN_IMPORT_ROOTS = frozenset({"anthropic", "httpx", "openai", "requests", "socket", "subprocess", "urllib"})
