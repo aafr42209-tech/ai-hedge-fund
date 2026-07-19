@@ -1,0 +1,103 @@
+{
+  "artifact_sha256": {
+    "docs/r03-news-reasoning-provider-free-implementation-plan.md": "324645be4e387a1706c5d40c5d188c4c01288163d72871700501475c745aa60d"
+  },
+  "artifact_pin_kind": {
+    "docs/r03-news-reasoning-provider-free-implementation-plan.md": "filesystem_sha256"
+  },
+  "authority": {
+    "commit_authorized": false,
+    "dependency_change_authorized": false,
+    "fixture_or_frame_materialization_authorized": false,
+    "gate_execution_authorized": false,
+    "implementation_authorized": false,
+    "local_inference_run_authorized_by_this_plan": false,
+    "provider_call_authorized": false,
+    "push_authorized": false,
+    "raw_source_scan_authorized_by_this_plan": false
+  },
+  "counters": {
+    "external_provider_calls": 0,
+    "fixture_materializations": 0,
+    "frame_materializations": 0,
+    "gate_executions": 0,
+    "implementation_files_created": 0,
+    "local_inference_calls": 0,
+    "network_attempts": 0,
+    "raw_article_text_bytes_copied_to_repository": 0,
+    "raw_article_text_bytes_emitted": 0,
+    "raw_source_files_opened_during_plan_drafting": 0
+  },
+  "created_date": "2026-07-19",
+  "git": {
+    "base_commit": "52bf68805cb42f5b06c39de09cc6201e6e093834",
+    "branch": "codex/llm-overlay-research-01",
+    "commit_created": false,
+    "push_performed": false
+  },
+  "g1_contract": {
+    "certificate": "valid-name-set digest + sorted-return-order digest + selected legs; exact deterministic replay",
+    "dependency_added": false,
+    "exact_coupled_optimizer": "CONSIDERED_AND_DESELECTED",
+    "failure_label": "G1_INVALID_NO_DECISION",
+    "name": "G1_DECOUPLED_ZERO_COST_SORT_RELAXATION_V1",
+    "solver": "NONE_DETERMINISTIC_SORT_ONLY"
+  },
+  "mandatory_future_negative_tests": [
+    "recompute_payload_retention_from_read_only_raw_source",
+    "reject_article_byte_cap_perturbation",
+    "reject_ticker_session_byte_cap_perturbation",
+    "reject_article_ordering_perturbation",
+    "reject_early_close_cutoff_perturbation",
+    "reject_duplicate_selection_perturbation",
+    "reject_raw_text_emission",
+    "reject_nonzero_provider_counter"
+  ],
+  "phase": "R03",
+  "plan_status": "REVIEW_ACCEPTED_RESEALED_IMPLEMENTATION_STILL_NO_GO",
+  "review": {
+    "organizational_independence_established": false,
+    "technical_verdict": "ACCEPTED_WITH_NONBLOCKING_FINDINGS",
+    "unresolved_blocking_findings": 0
+  },
+  "research_scope": {
+    "historical_option": "c",
+    "historical_status": "EXPLORATORY_SURVIVOR_PANEL",
+    "options_a_b": "FROZEN",
+    "prospective_option_d": "USER_RATIFIED_DESIGN_DEFERRED",
+    "t3_execution_candidate": "LOCAL_INFERENCE_PREFERRED_AFTER_SEPARATE_APPROVAL"
+  },
+  "sealed_input_sha256": {
+    "docs/news-llm-reasoning-reuse-feasibility-handoff.md": "4fec8ae4afbd04147933068d3a34b844f9cc653df27658a4ae435fedea6b5c9d",
+    "docs/r02-overlay-v2-implementation-evidence.json": "3af3a5c0bafec0888ce5ef2f434f8186ac71c18c074f70b2aed3cb4beeb3fbbc",
+    "docs/r02-overlay-v2-implementation-review-handoff.md": "d044f1773ad2fd66eba4900d8d94927a17c6ab0690cb5997cdaaa7ee31ef4f55",
+    "docs/r02-overlay-v2-implementation-zero-call-manifest.json": "76817f60c8b932ae0d9419213042bf0ba4c4706a6952976f02a765a3b31f8d23",
+    "docs/r02-overlay-v2-provider-free-implementation.md": "3490c72154d03c038148f81f4d096150affcea2db5c40d863708b29d7f74f867",
+    "docs/r03-news-reasoning-charter-draft.md": "e5527c13a14b86dbeba6a1ee9d7290ebcbd0eb53e5d0c1c8ae512672f2710724",
+    "docs/r03-news-reasoning-data-reuse-decision.md": "097e6df5ed4aafccc1031cfb3ab7f0639dce439d84b5f57e968fb4462cd58a0a",
+    "docs/r03-news-reasoning-p5-review-handoff.md": "07cadebb5040e26d36f179a5ec190c23addc6001260f1ba54d784e0554516864",
+    "docs/r03-news-reasoning-p5-zero-call-manifest.json": "b7488afd71ee0f30fe5cd0d10b782e88ecae5335385f55b8077920a4ff14d4e3",
+    "docs/r03-news-reasoning-provider-free-coverage-audit.json": "6275292839b9446825bc8d05cc334a82dc7fe865067501895fd0f2c15c821984",
+    "docs/r03-news-reasoning-provider-free-preregistration-draft.md": "629d282b71fc19f5db691de47c325f195d01c4ec1ae96686b3e4c7bb75f200a2",
+    "docs/r03-pit-universe-feasibility-evidence.json": "4797ab56e451432ed82aa0f9155dbb8ceee426451736490a17aa9f8b062c24bf",
+    "docs/r03-pit-universe-feasibility.md": "0e3acae592ab80a3ffbf7744f59dce00a8fea505239759277c68dd51a63a2095",
+    "scripts/r02_overlay_v2_implementation_verify.py": "33183170190cb20d0e0750141031693b0165ddde3c4a8cda9eaaabca7c4e4059"
+  },
+  "sealed_input_pin_kind": {
+    "docs/news-llm-reasoning-reuse-feasibility-handoff.md": "filesystem_sha256",
+    "docs/r02-overlay-v2-implementation-evidence.json": "filesystem_sha256",
+    "docs/r02-overlay-v2-implementation-review-handoff.md": "filesystem_sha256",
+    "docs/r02-overlay-v2-implementation-zero-call-manifest.json": "filesystem_sha256",
+    "docs/r02-overlay-v2-provider-free-implementation.md": "filesystem_sha256",
+    "docs/r03-news-reasoning-charter-draft.md": "filesystem_sha256",
+    "docs/r03-news-reasoning-data-reuse-decision.md": "filesystem_sha256",
+    "docs/r03-news-reasoning-p5-review-handoff.md": "filesystem_sha256",
+    "docs/r03-news-reasoning-p5-zero-call-manifest.json": "filesystem_sha256",
+    "docs/r03-news-reasoning-provider-free-coverage-audit.json": "filesystem_sha256",
+    "docs/r03-news-reasoning-provider-free-preregistration-draft.md": "filesystem_sha256",
+    "docs/r03-pit-universe-feasibility-evidence.json": "filesystem_sha256",
+    "docs/r03-pit-universe-feasibility.md": "filesystem_sha256",
+    "scripts/r02_overlay_v2_implementation_verify.py": "filesystem_sha256"
+  },
+  "zero_call_assertion": "Planning artifacts only. No raw source opened, no model invoked, no provider or network called, no implementation or data artifact materialized."
+}
