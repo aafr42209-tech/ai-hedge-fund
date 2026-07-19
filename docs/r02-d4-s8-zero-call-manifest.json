@@ -1,0 +1,47 @@
+{
+  "schema_version": "r02-d4-s8-zero-call-manifest-v1",
+  "status": "PASS_PROVIDER_FREE_S8_FREEZE",
+  "run_id": "r02-d4-s8-20260719",
+  "provider_calls": 0,
+  "codex_exec_invocations": 0,
+  "live_runs": 0,
+  "production_root_materializations": 0,
+  "micro_pilot_runs": 0,
+  "retry_runs": 0,
+  "replacement_runs": 0,
+  "resume_runs": 0,
+  "production_roots": {
+    "s6_audit_root": ".research_artifacts/r02-d4-s6-r02-d4-s8-20260719",
+    "s7_transport_root": ".research_artifacts/r02-d4-s7-transport-r02-d4-s8-20260719",
+    "state": "ABSENT_NOT_MATERIALIZED",
+    "created_by_s8": false,
+    "distinct": true,
+    "same_run_id": true
+  },
+  "sealed_constraints": {
+    "attempt_count": 69,
+    "aggregate_token_cap": 2208000,
+    "per_attempt_timeout_ms": 900000,
+    "settled_failure_cap": 6,
+    "execution_order": "ELIGIBLE_CASES_BY_FRAME_ORDINAL_ASCENDING",
+    "micro_pilot_attempts": 0,
+    "retry_cap": 0,
+    "replacement_cap": 0,
+    "resume_cap": 0
+  },
+  "negative_tests": [
+    "reject_noncanonical_json_bytes",
+    "reject_s6_s7_run_id_mismatch",
+    "reject_s7_unbound_s6_digest",
+    "reject_s7_review_or_contract_digest_drift",
+    "reject_micro_pilot_or_retry_replacement_resume_capabilities",
+    "reject_nonempty_production_root",
+    "reject_dirty_or_wrong_repository_head"
+  ],
+  "artifact_files": [
+    "docs/r02-d4-s6-live-authorization.json",
+    "docs/r02-d4-s7-live-authorization.json",
+    "docs/r02-d4-s8-freeze-manifest.json",
+    "docs/r02-d4-s8-zero-call-manifest.json"
+  ]
+}
