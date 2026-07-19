@@ -77,8 +77,14 @@ reuse on 2026-07-19. The ratification preserves every blocked use below.
 - Years: 2016–2025
 - Declared fetched articles: 436,916
 - Manifest policy: `alpaca-benzinga-news` on 1,000 / 1,000 manifests
-- Aggregate identity over sorted `relative_path + manifest_bytes`:
-  `4ae2f978424802852613720a4ec45c630424b3d701626473bc15843d7766ee0d`
+- Portable aggregate contract:
+  `sha256(sorted_utf8(relative_path + NUL + decimal_size + NUL + file_sha256 + LF))`
+- All 10,270 JSON files:
+  `56f1a5567c1aa5ed5b327201d36f1ca5833381fd3b389279298acdd3a6c1e9d3`
+- 9,269 raw page files:
+  `4723720c1384723f09c26e9f77941f77a76f1c33d2620e466535eec133213bd9`
+- 1,000 ticker-year manifests:
+  `dbb5c4110cc2a198ed506cfb6f38b7db172805f46dc1237c5b6de58f9b7fb894`
 
 Important correction: `data/raw/documents.parquet` contains 987 metadata rows
 and no article-body column. R4 text lives in `data/news_raw/**/page_NNNN.json`.

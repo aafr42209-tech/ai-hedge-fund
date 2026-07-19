@@ -1,0 +1,55 @@
+{
+  "artifact_sha256": {
+    "docs/r03-news-reasoning-charter-draft.md": "e5527c13a14b86dbeba6a1ee9d7290ebcbd0eb53e5d0c1c8ae512672f2710724",
+    "docs/r03-news-reasoning-data-reuse-decision.md": "097e6df5ed4aafccc1031cfb3ab7f0639dce439d84b5f57e968fb4462cd58a0a",
+    "docs/r03-news-reasoning-p5-review-handoff.md": "07cadebb5040e26d36f179a5ec190c23addc6001260f1ba54d784e0554516864",
+    "docs/r03-news-reasoning-provider-free-coverage-audit.json": "6275292839b9446825bc8d05cc334a82dc7fe865067501895fd0f2c15c821984",
+    "docs/r03-news-reasoning-provider-free-preregistration-draft.md": "629d282b71fc19f5db691de47c325f195d01c4ec1ae96686b3e4c7bb75f200a2"
+  },
+  "base_commit": "37009acf4b65232230b6d4b3fcf03428ba3c70da",
+  "commit_authorized": false,
+  "commit_created_at_manifest_seal": false,
+  "confirmatory_live_runs": 0,
+  "external_provider_transmissions": 0,
+  "fixture_or_frame_materializations": 0,
+  "gate_executions": 0,
+  "implementation_authorized": false,
+  "implementation_files_created": 0,
+  "live_runs": 0,
+  "negative_test_requirements": [
+    "recompute_payload_retention_from_read_only_raw_source",
+    "reject_article_byte_cap_perturbation",
+    "reject_ticker_session_byte_cap_perturbation",
+    "reject_article_ordering_perturbation",
+    "reject_early_close_cutoff_perturbation",
+    "reject_duplicate_selection_perturbation",
+    "reject_raw_text_emission",
+    "reject_nonzero_provider_counter"
+  ],
+  "organizational_independence_established": false,
+  "provider_calls": 0,
+  "push_authorized": false,
+  "push_performed_at_manifest_seal": false,
+  "raw_article_text_copied_to_repository": 0,
+  "raw_article_text_emitted": 0,
+  "raw_source_mode": "READ_ONLY_IN_PLACE_USER_RATIFIED",
+  "review": {
+    "blocking_findings": 0,
+    "corrected_nonblocking_findings": 5,
+    "disposition": "ACCEPTED_WITH_NONBLOCKING_FINDINGS",
+    "relationship": "SAME_SESSION_LINEAGE_TECHNICAL_VERIFICATION",
+    "reviewer": "Claude (Fable 5)"
+  },
+  "schema_version": "r03-news-reasoning-p5-zero-call-v1",
+  "status": "P5_ACCEPTED_WITH_NONBLOCKING_FINDINGS_CORRECTED_PROVIDER_FREE",
+  "t2_model_id_implementation_requirements": [
+    "python_version",
+    "numpy_identifier_and_version",
+    "scipy_identifier_and_version",
+    "scikit_learn_identifier_and_version",
+    "hashing_vectorizer_implementation_identifier",
+    "tfidf_transformer_implementation_identifier",
+    "ridge_implementation_identifier",
+    "output_relevant_solver_and_blas_identity"
+  ]
+}

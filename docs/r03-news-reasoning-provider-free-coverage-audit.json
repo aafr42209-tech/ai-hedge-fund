@@ -1,0 +1,150 @@
+{
+  "schema_version": "r03.news_coverage_audit.v1",
+  "phase_id": "R03",
+  "status": "P5_PROVIDER_FREE_EVIDENCE_PENDING_INDEPENDENT_REVIEW",
+  "created_at": "2026-07-19",
+  "provider_calls": 0,
+  "raw_text_emitted": false,
+  "source": {
+    "access_mode": "READ_ONLY_IN_PLACE",
+    "root": "C:\\Users\\User\\Desktop\\FinGPT\\data\\news_raw",
+    "license_policy": "alpaca-benzinga-news",
+    "aggregate_hash_contract": "sha256(sorted_utf8(relative_path + NUL + decimal_size + NUL + file_sha256 + LF))",
+    "all_json": {
+      "count": 10270,
+      "bytes": 2668932157,
+      "sha256": "56f1a5567c1aa5ed5b327201d36f1ca5833381fd3b389279298acdd3a6c1e9d3"
+    },
+    "page_json": {
+      "count": 9269,
+      "bytes": 2667356649,
+      "sha256": "4723720c1384723f09c26e9f77941f77a76f1c33d2620e466535eec133213bd9"
+    },
+    "ticker_year_manifests": {
+      "count": 1000,
+      "complete": 1000,
+      "bytes": 1573509,
+      "sha256": "dbb5c4110cc2a198ed506cfb6f38b7db172805f46dc1237c5b6de58f9b7fb894"
+    },
+    "other_json": [
+      {
+        "relative_path": "run_manifest.json",
+        "bytes": 1999
+      }
+    ]
+  },
+  "capture_census": {
+    "declared_and_observed_records": 436916,
+    "parse_errors": 0,
+    "empty_pages": 54,
+    "headline_present": 436913,
+    "summary_present": 172084,
+    "body_present": 289317,
+    "headline_pct": 100.0,
+    "summary_pct": 39.39,
+    "body_pct": 66.22
+  },
+  "unique_article_census": {
+    "article_ids": 290858,
+    "duplicate_query_captures": 146058,
+    "duplicate_query_capture_pct": 33.43,
+    "distinct_text_input_hashes": 288527,
+    "cross_id_text_duplicates": 2331,
+    "same_id_payload_variant_count": 0,
+    "headline_present": 290855,
+    "summary_present": 93381,
+    "body_present": 164564,
+    "headline_pct": 100.0,
+    "summary_pct": 32.11,
+    "body_pct": 56.58,
+    "multi_symbol_pct": 45.0,
+    "updated_after_created_pct": 53.35
+  },
+  "eligible_primary_payload_census": {
+    "rule": "available_at in 2016-2025; headline present; 1 <= distinct source symbols <= 5; at least one symbol in frozen 100-name universe",
+    "unique_articles": 247976,
+    "ticker_article_events": 301541,
+    "headline_present": 247976,
+    "summary_present": 72729,
+    "body_present": 126217,
+    "headline_only": 121759,
+    "headline_pct": 100.0,
+    "summary_pct": 29.33,
+    "body_pct": 50.9,
+    "headline_only_pct": 49.1,
+    "headline_missing_rejected": 3,
+    "over_five_symbols_rejected": 42879,
+    "available_at_outside_2016_2025": 0
+  },
+  "text_length_chars_unique_nonempty": {
+    "headline": {
+      "p10": 43,
+      "p50": 76,
+      "p90": 133,
+      "p99": 241
+    },
+    "summary": {
+      "p10": 99,
+      "p50": 159,
+      "p90": 254,
+      "p99": 345
+    },
+    "body": {
+      "p10": 1705,
+      "p50": 3572,
+      "p90": 7750.7,
+      "p99": 20040.55,
+      "max": 2877616
+    }
+  },
+  "available_year_coverage": [
+    {"year": 2016, "articles": 20717, "summary_pct": 0.0, "body_pct": 55.95},
+    {"year": 2017, "articles": 16943, "summary_pct": 0.0, "body_pct": 52.6},
+    {"year": 2018, "articles": 16813, "summary_pct": 0.0, "body_pct": 33.83},
+    {"year": 2019, "articles": 18846, "summary_pct": 0.0, "body_pct": 38.66},
+    {"year": 2020, "articles": 24237, "summary_pct": 32.3, "body_pct": 43.82},
+    {"year": 2021, "articles": 33277, "summary_pct": 50.18, "body_pct": 57.81},
+    {"year": 2022, "articles": 38734, "summary_pct": 56.22, "body_pct": 64.53},
+    {"year": 2023, "articles": 40888, "summary_pct": 36.39, "body_pct": 63.47},
+    {"year": 2024, "articles": 40907, "summary_pct": 40.68, "body_pct": 62.67},
+    {"year": 2025, "articles": 39496, "summary_pct": 39.39, "body_pct": 62.41}
+  ],
+  "decision_frame_census": {
+    "market_sessions": 2514,
+    "ticker_sessions": 251400,
+    "news_positive_ticker_sessions": 151820,
+    "early_close_adjusted_sessions": 21,
+    "window_hours": 72,
+    "events_per_news_positive_ticker_session": {
+      "mean": 4.6271,
+      "p50": 2,
+      "p90": 11,
+      "p95": 17,
+      "p99": 35,
+      "max": 166
+    }
+  },
+  "selected_payload_budget": {
+    "article_text_bytes": 32768,
+    "ticker_session_text_bytes": 131072,
+    "ordering": "available_at descending, then article_id ascending",
+    "truncation": "largest valid UTF-8 prefix of content after preserving headline, summary/null marker, and presence flags",
+    "news_positive_frames_evaluated": 151820,
+    "fully_preserved_frame_pct": 99.06,
+    "article_retention_pct": 99.06,
+    "text_byte_retention_pct": 97.03
+  },
+  "pit": {
+    "available_at_rule": "max(created_at, updated_at)",
+    "invalid_created_at_records": 0,
+    "invalid_updated_at_records": 0,
+    "unique_articles_with_created_year_different_from_available_year": 108,
+    "unique_articles_created_before_2016_but_available_during_2016_2025": 9
+  },
+  "interpretation": [
+    "The earlier 60-page body-coverage estimate was not representative of the full eligible corpus.",
+    "Raw fetch count is not an independent article count because ticker queries duplicate articles.",
+    "Headline-only records are operationally material and must remain in full-frame ITT.",
+    "The selected payload budget is an information-parity and cost-control rule, not evidence of signal."
+  ]
+}
