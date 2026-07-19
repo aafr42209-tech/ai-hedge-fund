@@ -1,6 +1,6 @@
 # R02 overlay v2 — I0–I5 provider-free implementation
 
-Status: `REMEDIATED_RESEALED_PROVIDER_FREE_REVIEW_REQUIRED`
+Status: `TECHNICALLY_ACCEPTED_PROVIDER_FREE_IMPLEMENTATION_FIXTURE_AND_LIVE_NO_GO`
 
 Base and authority: implementation started from accepted implementation-plan commit `245adc2d1f023a87d1cbfd86a7b726aec810bd78` under the user's explicit I0–I5 provider-free implementation approval. This approval did not authorize fixture materialization, provider or Codex execution, private-data export, pilot or confirmatory LIVE work, retry/replacement/resume, or commit/push.
 
@@ -26,4 +26,9 @@ The machine-readable evidence is `docs/r02-overlay-v2-implementation-evidence.js
 
 ## State and next order
 
-This is an implementation freeze awaiting technical review. Organizational independence is not established. Required order: provider-free independent review, finding resolution if any, explicit implementation acceptance, then separately authorized commit/push. Fixture generation and any provider/LIVE activity remain separately gated after that and are not implied by implementation acceptance.
+The user technically accepted the provider-free I0–I5 implementation on
+2026-07-19 after the clean verifier and 433-test review record. Organizational
+independence is not established. This acceptance authorizes no fixture/root
+materialization, private-data export, provider call, pilot or confirmatory LIVE
+work, retry, replacement, or resume. Status-promotion commit/push remains a
+separate authorization.

@@ -14,10 +14,10 @@ Implementation change set: two modified dependency files plus 22 new files: eigh
 
 ## 2. Pinned review artifacts
 
-- implementation narrative: `docs/r02-overlay-v2-provider-free-implementation.md` — `33181409f44e0965b494c5773918138411bd13aaa0a44a4c9650c06ad1df153b`
-- canonical evidence: `docs/r02-overlay-v2-implementation-evidence.json` — `adad6d3173a92d59234c527bd3ed6c697e189fe01951ba51bd232d1e172fdc35`
-- zero-call manifest: `docs/r02-overlay-v2-implementation-zero-call-manifest.json` — `3a2a8665e74f9fb1e1a5bdd02bebaefef6d2133e86f2f54e343b4ad8ba648db4`
-- provider-free verifier: `scripts/r02_overlay_v2_implementation_verify.py` — `401e2a08806c3992ca9855e883393c02b82780101a3b12405658270142c61b2e`
+- implementation narrative: `docs/r02-overlay-v2-provider-free-implementation.md` — `3490c72154d03c038148f81f4d096150affcea2db5c40d863708b29d7f74f867`
+- canonical evidence: `docs/r02-overlay-v2-implementation-evidence.json` — `3af3a5c0bafec0888ce5ef2f434f8186ac71c18c074f70b2aed3cb4beeb3fbbc`
+- zero-call manifest: `docs/r02-overlay-v2-implementation-zero-call-manifest.json` — `76817f60c8b932ae0d9419213042bf0ba4c4706a6952976f02a765a3b31f8d23`
+- provider-free verifier: `scripts/r02_overlay_v2_implementation_verify.py` — `33183170190cb20d0e0750141031693b0165ddde3c4a8cda9eaaabca7c4e4059`
 
 The canonical evidence pins all eight implementation modules, all nine test/helper files, `pyproject.toml`, `poetry.lock`, accepted schemas, preregistration, and accepted implementation-plan artifacts.
 
@@ -273,3 +273,65 @@ Record blocking and nonblocking findings in this handoff or a separately pinned 
   Implementation acceptance, status promotion, and the exact 24-file
   commit/push remain user decisions; fixture/provider/LIVE work stays
   separately gated and is not implied by acceptance.
+
+## 12. User acceptance and provider-free status promotion (2026-07-19)
+
+- The user explicitly accepted the R02 overlay-v2 I0–I5 provider-free
+  implementation and authorized this status-promotion reseal. The accepted
+  implementation commit is `8bf074818bb780baa3a2954685af74659bc19f3b`.
+- Narrative, canonical evidence, zero-call manifest, and verifier now share
+  `TECHNICALLY_ACCEPTED_PROVIDER_FREE_IMPLEMENTATION_FIXTURE_AND_LIVE_NO_GO`.
+  §2 pins were regenerated; no implementation module, test, dependency,
+  accepted input, schema, preregistration, or statistical policy changed.
+- The evidence/manifest `authorization_boundary` preserves the original seal-
+  time record. A separate `technical_acceptance` object records the completed
+  implementation commit/push and keeps this status-promotion commit/push false
+  until separately authorized.
+- The worktree policy text is normalized from the stale five-path wording to the
+  exact nine-path R03 isolation set already enforced by the verifier.
+- Static reseal checks passed on exactly five modified status artifacts:
+  narrative/evidence/manifest/verifier status alignment, acceptance-object
+  equality, all cross-pins, canonical JSON bytes, and zero counters. The main
+  verifier failed closed only because post-commit intended R02 paths were dirty,
+  as designed.
+- A local diagnostic clone committed those exact five paths and reproduced the
+  official exit-0 PASS marker. Because mixed historical Windows line-ending pins
+  are checkout-sensitive, the clone used the main seal's byte-identical 19/19
+  pinned files while keeping its diagnostic Git status clean. No source/test
+  content or accepted pin changed; this validates status and cross-pin logic but
+  does not claim fresh-clone byte portability.
+- Fixture/root materialization, private-data export, provider calls, pilot or
+  confirmatory LIVE work, retries, replacements, and resumes remain unauthorized
+  with zero counters. Organizational independence remains not established.
+- Disposition:
+  `TECHNICALLY_ACCEPTED_PROVIDER_FREE_IMPLEMENTATION_FIXTURE_AND_LIVE_NO_GO_RESEALED_COMMIT_PUSH_PENDING`.
+
+## 13. Fourth technical review record — status-promotion reseal verified (2026-07-19)
+
+- Reviewer: Claude (Fable 5), same session lineage as §6/§9/§11 — technical
+  verification only; organizational independence NOT established.
+- All five claimed artifact hashes recomputed — 0 mismatches. Evidence
+  `file_sha256` 19/19 vs working tree — 0 mismatches. Manifest cross-pins
+  verified. `git diff 8bf0748` confirms exactly the five status artifacts (plus
+  the separately committed PIT docs) — no implementation module, test, or
+  dependency change.
+- Commit trail verified: `da338ad` (nine-path isolation reseal, 4 files) and
+  `7310f33` (exactly the two reviewed PIT-feasibility docs) match their stated
+  scopes; both pushed; acceptance object correctly records implementation
+  commit `8bf0748…`, promotion commit/push still false, organizational
+  independence false.
+- **Independent diagnostic-clone reproduction:** fresh clone at `7310f33`
+  (`core.autocrlf=false`), the five promotion files applied and committed, and
+  the two checkout-sensitive dependency pins committed as byte-identical
+  worktree copies (per §12's documented method); git status 0 entries.
+  Verifier: **exit 0** with the exact expected PASS marker. Main-worktree
+  verifier failing closed on dirty intended paths pre-commit was also
+  confirmed — as designed.
+- Blocking findings: **0**. Nonblocking findings: **1** — this handoff now
+  contains two sections numbered `## 11` (the path-isolation follow-up and the
+  third review record); renumber in a future edit for citation clarity. Content
+  is unambiguous by title.
+- Disposition: **`PROMOTION_RESEAL_VERIFIED_RECOMMEND_COMMIT`** — the five-file
+  status-promotion commit/push is ready for user authorization.
+  Fixture/root materialization, private-data export, provider calls, pilot or
+  confirmatory LIVE, retry/replacement/resume remain unauthorized.

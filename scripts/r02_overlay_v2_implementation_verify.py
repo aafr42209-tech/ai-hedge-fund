@@ -176,7 +176,11 @@ def require_static_boundaries() -> None:
 def require_evidence(evidence: dict[str, Any]) -> None:
     require(evidence["schema_version"] == "r02-overlay-v2-provider-free-implementation-evidence-v1", "schema version mismatch")
     require(evidence["base_head"] == BASE_HEAD, "base HEAD mismatch")
-    require(evidence["status"] == "REMEDIATED_RESEALED_PROVIDER_FREE_REVIEW_REQUIRED", "implementation status mismatch")
+    require(
+        evidence["status"]
+        == "TECHNICALLY_ACCEPTED_PROVIDER_FREE_IMPLEMENTATION_FIXTURE_AND_LIVE_NO_GO",
+        "implementation status mismatch",
+    )
     require(evidence["implementation_file_count"] == 8, "implementation file count mismatch")
     require(tuple(evidence["implementation_files"]) == SOURCE_PATHS, "implementation file list mismatch")
     require(tuple(evidence["test_and_helper_files"]) == TEST_PATHS, "test file list mismatch")
@@ -209,6 +213,17 @@ def require_evidence(evidence: dict[str, Any]) -> None:
     require(boundary["confirmatory_live_authorized"] is False, "confirmatory LIVE authorized")
     require(boundary["commit_authorized"] is False, "implementation commit authorized")
     require(boundary["push_authorized"] is False, "implementation push authorized")
+    acceptance = evidence["technical_acceptance"]
+    require(acceptance["accepted"] is True, "technical acceptance missing")
+    require(acceptance["blocking_findings_open"] == 0, "blocking findings remain")
+    require(
+        acceptance["accepted_implementation_commit"]
+        == "8bf074818bb780baa3a2954685af74659bc19f3b",
+        "accepted implementation commit mismatch",
+    )
+    require(acceptance["organizational_independence_established"] is False, "independence overclaim")
+    require(acceptance["status_promotion_commit_authorized"] is False, "status promotion commit authorized")
+    require(acceptance["status_promotion_push_authorized"] is False, "status promotion push authorized")
 
 
 def require_zero_call_manifest(zero: dict[str, Any], evidence: dict[str, Any]) -> None:
@@ -224,7 +239,13 @@ def require_zero_call_manifest(zero: dict[str, Any], evidence: dict[str, Any]) -
     )
     require(zero["zero_call_counters"] == evidence["zero_call_counters"], "zero-call counter drift")
     require(zero["authorization_boundary"] == evidence["authorization_boundary"], "authorization boundary drift")
+    require(zero["technical_acceptance"] == evidence["technical_acceptance"], "technical acceptance drift")
     require(zero["power_gate_policy"] == evidence["power_gate_policy"], "power-gate policy drift")
+    require(
+        zero["worktree_policy"]
+        == "BASE_OR_DESCENDANT_WITH_ONLY_NINE_ENUMERATED_USER_PATHS_COMMITTED_MODIFIED_OR_UNTRACKED_AND_EXACT_TWO_MODIFIED_PLUS_TWENTY_TWO_NEW_IMPLEMENTATION_PATHS; POST_COMMIT_DIFF_MUST_ADD_EXACT_TWENTY_FOUR_IMPLEMENTATION_PATHS",
+        "worktree policy drift",
+    )
     require(len(zero["negative_tests"]) == 10, "negative-test declaration mismatch")
 
 
@@ -278,7 +299,7 @@ def run_negative_tests(evidence: dict[str, Any]) -> int:
     assert_raises(AssertionError, lambda: require_evidence(changed))
 
     changed = copy.deepcopy(evidence)
-    changed["status"] = "IMPLEMENTED_PROVIDER_FREE_REVIEW_REQUIRED"
+    changed["status"] = "REMEDIATED_RESEALED_PROVIDER_FREE_REVIEW_REQUIRED"
     assert_raises(AssertionError, lambda: require_evidence(changed))
     return 10
 
