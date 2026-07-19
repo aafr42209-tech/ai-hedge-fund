@@ -53,6 +53,30 @@ Final technical disposition after re-verification:
 - commit and push of exactly these ten drafts are separately authorized;
 - implementation, fixtures, provider calls, pilot, and LIVE remain unauthorized.
 
+Implementation-planning status normalization (2026-07-19):
+
+- the accepted commit `69bdac5bbad9c41f3ae1bd769a83faa699ead950`
+  remains the immutable pre-normalization anchor;
+- the nonblocking stale `analysis_status` observation was resolved by changing
+  only the headroom/power component status to
+  `TECHNICALLY_ACCEPTED_PROVIDER_FREE_IMPLEMENTATION_PLANNING_INPUT`;
+- dependent preregistration and zero-call hashes were regenerated;
+- scientific values and the accepted authorization boundary did not change;
+- implementation planning is authorized, but implementation, fixture
+  materialization, provider calls, LIVE, commit, and push remain unauthorized.
+
+Implementation-plan final disposition (2026-07-19):
+
+- Claude (Fable 5), same-session lineage and not organizationally independent,
+  reproduced the implementation-plan verifier and returned `ACCEPT` with zero
+  blocking findings and two informational implementation obligations;
+- the accepted pre-promotion implementation-plan review-handoff SHA-256 is
+  `9d9440d8e0b53a3734b963657a6d9e33b9defd2d97cecf32879165c6e8a0b830`;
+- the user explicitly accepted the plan and authorized commit and push of the
+  exact nine-file planning change set;
+- implementation, fixtures, provider calls, private-data export, pilot, and
+  LIVE remain unauthorized.
+
 ## 1. Reviewer provenance record
 
 The reviewer must record:
@@ -75,17 +99,17 @@ organizationally independent review.
 - `docs/r02-overlay-v2-deterministic-comparator-design.md`:
   `3952c505b998f397c9aa7b72f8ad0b6e8e48dd4081b297cdca2652a319705676`
 - `docs/r02-overlay-v2-headroom-and-power-design.json`:
-  `30f79b7b87580586b44a9b829f32ec97c59f263db45c7b22e133b54e7e55d356`
+  `933de346ed9a1482521e1c35c18f367f494f5f9fa32458c575526dff1c2c1d94`
 - `docs/r02-overlay-v2-payload-schema-draft.json`:
   `6a827af6ff6c56f2b4db1c575a1fe2890417ac8feba1ffbb0feb9bec3e1456d5`
 - `docs/r02-overlay-v2-preregistration-draft.json`:
-  `31ffd014e7342efcb0fd0efbfd06336d929d9dee00590fda45ffc46a1ca8eb69`
+  `14503448dc6f5f7ca5b43ef093d6470852029089abb117fa06dcbfdfc43adc88`
 - `docs/r02-overlay-v2-preregistration-draft.md`:
   `566f59fd6f5a98dca1f7af972bd1ce206c5c36b3ce9f3bc85dd6f9b86174f3d7`
 - `docs/r02-overlay-v2-response-schema-draft.json`:
   `963a7fb8ddfa002402e44e94518c6fd4ba3aa964b5a5d353eae09480bd9859c1`
 - `docs/r02-overlay-v2-zero-call-manifest.json`:
-  `bd98b9e75b4e8f41b7796cd7089eeb39aa990140c11b08788de41bbc431fd1bf`
+  `65a3fc3f7634b80e25a765054752690608e0f65818d39dc50d62f670f815d151`
 - `scripts/r02_overlay_v2_preregistration_verify.py`:
   `611bed57203ffc6bfe3fb3609b08b3932947f02845395dc6791d278c3820c0ad`
 
