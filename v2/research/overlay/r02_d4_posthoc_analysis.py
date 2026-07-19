@@ -353,7 +353,7 @@ def build_report(repository_root: str | Path) -> dict[str, Any]:
     debits = tuple(row["debit_tokens"] for row in eligible_rows.values())
     return {
         "schema_version": "r02-d4-live-posthoc-v1",
-        "status": "PROVIDER_FREE_POSTHOC_COMPLETE_PENDING_INDEPENDENT_REVIEW",
+        "status": "PROVIDER_FREE_POSTHOC_COMPLETE_INDEPENDENT_REVIEW_ACCEPTED",
         "run_id": RUN_ID,
         "analysis_provider_calls": 0,
         "analysis_codex_exec_invocations": 0,
@@ -482,7 +482,7 @@ def render_markdown(report: dict[str, Any]) -> str:
             "",
             "The confirmatory full-frame ITT endpoint uses all 200 frozen fixtures, with zero contribution for the 131 non-eligible fixtures. The LLM selected the deterministic parsimony candidate in every eligible fixture, so the primary and parsimony vectors are byte-for-byte numerically identical. The frozen discordance floor is not met; incremental LLM value is therefore not identified, not evidence of benefit or harm.",
             "",
-            "Independent review remains required before treating this report as accepted.",
+            "Independent review reproduced every reported number and frozen label with no blocking finding; this report is accepted.",
             "",
         ]
     )

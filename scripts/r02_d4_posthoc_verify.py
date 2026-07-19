@@ -16,7 +16,7 @@ from v2.research.overlay.canonical import canonical_json_bytes
 from v2.research.overlay.r02_d4_posthoc_analysis import build_report
 
 REPORT_PATH = ROOT / "docs/r02-d4-live-posthoc.json"
-REPORT_SHA256 = "1556ca1bf3585d765e7d4627ef1b0425848729cfca857910d218f89227627177"
+REPORT_SHA256 = "623b8888a90af34bf7f0be20cf45ff19691e8c1545de76d00534102643b71042"
 
 
 def _weighted_mean(rep: list[int], challenge: list[int]) -> int:
@@ -35,6 +35,7 @@ def main() -> int:
     report = json.loads(report_bytes)
     assert canonical_json_bytes(report) == report_bytes
     assert canonical_json_bytes(build_report(ROOT)) == report_bytes
+    assert report["status"] == "PROVIDER_FREE_POSTHOC_COMPLETE_INDEPENDENT_REVIEW_ACCEPTED"
 
     frame = json.loads(
         (ROOT / ".research_artifacts/r02-d4-s2a-frame-0716a1b9c13a/frame_manifest.json").read_text(

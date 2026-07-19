@@ -1,8 +1,10 @@
 # R02 D4 LIVE post-hoc independent-review handoff
 
-Status: `PENDING_INDEPENDENT_REVIEW`
+Status: `INDEPENDENT_REVIEW_ACCEPTED`
 
 This handoff covers provider-free statistical analysis of the already completed sealed run `r02-d4-s8-20260719`. It authorizes no new LIVE run, provider call, Codex execution, retry, replacement, or resume.
+
+Independent review reproduced every reported number, frozen label, seed, and pinned input with no blocking finding. The accepted review of analysis commit `1950e8bded6a581f4a0806c6fa44637505f96913` is sealed in `docs/r02-d4-live-posthoc-independent-review.json`.
 
 ## Review targets
 
@@ -31,11 +33,12 @@ PASS_R02_D4_LIVE_POSTHOC_INDEPENDENT_PROVIDER_FREE_VERIFY
 
 ## Pinned files
 
-- `docs/r02-d4-live-posthoc.json`: `1556ca1bf3585d765e7d4627ef1b0425848729cfca857910d218f89227627177`
-- `docs/r02-d4-live-posthoc.md`: `03a036c00853b5a8f040a5b9e74cfa7c086854aec9b4a8359b34848952782ab7`
-- `v2/research/overlay/r02_d4_posthoc_analysis.py`: `73cac6e77fa25cd53e4442e68f04e4e6eda52cb8f446f42f965969700698c795`
+- `docs/r02-d4-live-posthoc.json`: `623b8888a90af34bf7f0be20cf45ff19691e8c1545de76d00534102643b71042`
+- `docs/r02-d4-live-posthoc.md`: `79bb4d4ce54a96e5a0168276a7d9e6b78ce83dda8af89c352af3d417ee964f48`
+- `docs/r02-d4-live-posthoc-independent-review.json`: `efc668d817f2b344568ad549550d2dadaa8aa918c6180d5cb6ca753eabd80496`
+- `v2/research/overlay/r02_d4_posthoc_analysis.py`: `52c64dba878d7489166224d0f80cb7f85ecb795a5a5bf56cdcd501afc07ec248`
 - `scripts/r02_d4_posthoc.py`: `71158d25ee81ee184f1892d01da606641be9568a3995fc1f77da27c460e5dab8`
-- `scripts/r02_d4_posthoc_verify.py`: `14dcb8e7f47c7924ae71730de8f4f72920e7cca37b47ef6b867e3b596038b627`
+- `scripts/r02_d4_posthoc_verify.py`: `31de78adb84de5b6473ece7a50a7cb6f7e265a83197f24e63e67398a5883e53f`
 - `v2/research/overlay/test_r02_d4_posthoc_analysis.py`: `a923d8e45f042ecbd7255ad8696a03b227ccb2c92aadc30ccd7b733c168fede9`
 
 ## Expected endpoint results

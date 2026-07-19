@@ -1,7 +1,7 @@
 # R02 D4 LIVE post-hoc analysis
 
 - Run: `r02-d4-s8-20260719`
-- Status: `PROVIDER_FREE_POSTHOC_COMPLETE_PENDING_INDEPENDENT_REVIEW`
+- Status: `PROVIDER_FREE_POSTHOC_COMPLETE_INDEPENDENT_REVIEW_ACCEPTED`
 - Valid sealed run: `true`
 - Analysis boundary: provider-free; no new LIVE run, retry, replacement, or resume
 
@@ -30,4 +30,4 @@
 
 The confirmatory full-frame ITT endpoint uses all 200 frozen fixtures, with zero contribution for the 131 non-eligible fixtures. The LLM selected the deterministic parsimony candidate in every eligible fixture, so the primary and parsimony vectors are byte-for-byte numerically identical. The frozen discordance floor is not met; incremental LLM value is therefore not identified, not evidence of benefit or harm.
 
-Independent review remains required before treating this report as accepted.
+Independent review reproduced every reported number and frozen label with no blocking finding; this report is accepted.
