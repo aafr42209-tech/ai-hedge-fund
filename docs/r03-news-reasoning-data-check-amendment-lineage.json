@@ -1,0 +1,82 @@
+{
+  "schema_version": "r03-data-check-amendment-lineage-v1",
+  "status": "N1_SUPERSEDING_LINEAGE_SEALED",
+  "authority": "R03_DATA_CHECK_AMENDMENT_CODE_AUTHORIZED",
+  "source_evidence": {
+    "path": ".research_artifacts/r03-news-reasoning/read-only-data-check.json",
+    "git_ignored": true,
+    "filesystem_sha256": "1a725db609350bd5d4f1ea404040a132f5aed29a2e7775cfa0f0debd4ed9d791",
+    "canonical_result_sha256": "24423b02034a00caf614361aabde1b84d16610c102faf18dcfb937bd4b1e2c04",
+    "status": "COMPLETED_FAIL_CLOSED_N1_TEXT_RETENTION_MISMATCH"
+  },
+  "supersedes": {
+    "path": "docs/r03-news-reasoning-provider-free-coverage-audit.json",
+    "filesystem_sha256": "6275292839b9446825bc8d05cc334a82dc7fe865067501895fd0f2c15c821984",
+    "scope": "selected_payload_budget retention expectations only",
+    "original_preserved_byte_for_byte": true
+  },
+  "implementation_pins": {
+    "plan_commit": "6da16688b3da581d1a919d7c75e285827ed10e85",
+    "implementation_commit": "4c47ec61d85e3382c4dd4acfaa0281ca8a1950cd"
+  },
+  "normative_contract": {
+    "article_byte_cap": 32768,
+    "ticker_session_byte_cap": 131072,
+    "article_ordering": "available_at_desc_article_id_asc",
+    "truncation_semantics": "headline_summary_then_utf8_content_prefix_omit_after_session_truncation",
+    "rounding_rule": "ROUND_HALF_EVEN_2DP"
+  },
+  "retention": {
+    "full_frames": {
+      "numerator": 150394,
+      "denominator": 151820,
+      "display_pct_2dp": "99.06"
+    },
+    "article_appearances": {
+      "numerator": 695948,
+      "denominator": 702489,
+      "display_pct_2dp": "99.07"
+    },
+    "text_bytes": {
+      "numerator": 1435742878,
+      "denominator": 1585976846,
+      "display_pct_2dp": "90.53"
+    }
+  },
+  "provenance": {
+    "superseded_display_pct": "97.03",
+    "diagnostic_article_cap_only_appearance_byte_pct": "97.0815",
+    "error_class": "ARTICLE_CAP_ONLY_CALCULATION_OMITTED_SESSION_CAP_AND_LATER_ARTICLE_OMISSION",
+    "session_cap_affected_frames": 664,
+    "session_truncation_distinct_articles": 616,
+    "disposition": "P5_VALUE_RETAINED_AS_HISTORICAL_PROVENANCE_NOT_NORMATIVE"
+  },
+  "rerun_boundary": {
+    "production_permit_committed": false,
+    "required_authority": "READ_ONLY_DATA_CHECK_RERUN_AUTHORIZED",
+    "required_unresolved_pins": [
+      "root_path_sha256",
+      "permit_sha256",
+      "early_close_sessions_sha256",
+      "calendar_sha256"
+    ]
+  },
+  "organizational_independence_established": false,
+  "boundary_counters": {
+    "raw_source_traversals": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "lineage_sha256": "eec62df18f1e5cd4d896274c54b0734fd32d34d92fd6dbefbecf2a50f404b881"
+}

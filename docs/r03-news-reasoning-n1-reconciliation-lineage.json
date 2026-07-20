@@ -1,0 +1,107 @@
+{
+  "schema_version": "r03-n1-reconciliation-lineage-v1",
+  "authority": "R03_N1_RECONCILIATION_CODE_ONLY_AUTHORIZED",
+  "scope": {
+    "allowed": [
+      "versioned reconciliation contracts",
+      "runtime behavior binding",
+      "synthetic-only tests",
+      "aggregate-only paired-frame evidence schema",
+      "new reconciliation verifier and handoff"
+    ],
+    "forbidden": [
+      "raw-source access",
+      "sealed retention value modification",
+      "frame or fixture materialization",
+      "fitting or gates",
+      "OOS access",
+      "inference or model download",
+      "provider or network access",
+      "dependency changes",
+      "commit or push"
+    ]
+  },
+  "canonical_classification": {
+    "path": "provenance_classification.classification",
+    "value": "FIRST_V2_RAW_MEASUREMENT_EXPOSED_UNVERIFIED_SEAL",
+    "cause_status_path": "investigation_note.classification",
+    "cause_status_is_normative": false
+  },
+  "historical_amendment_pins": {
+    "lineage_canonical_sha256": "eec62df18f1e5cd4d896274c54b0734fd32d34d92fd6dbefbecf2a50f404b881",
+    "evidence_canonical_sha256": "5d0b57d8230e929db49e1c03dfbb97cfab7548750265759a37e97b3f4b931eda",
+    "manifest_filesystem_sha256": "3205bcfd43ffbb02ddccb3a51b4747efa6ab0a82ca3a3481637a936b2b91adc2",
+    "temporal_scope": "PRE_RERUN_AMENDMENT_CODE_ONLY_SESSION",
+    "boundary_counters_are_historical": true
+  },
+  "rerun_attestation_pins": {
+    "canonical_sha256": "a21be7bc0a614b6b87ceef9ac3bf9cc89d25d40215dc67d7344994ce834034a0",
+    "filesystem_sha256": "680e4634a40d2eaf96a19cc75dfa37db8e66375368e04cf05cc3d1a989c01c2a",
+    "temporal_scope": "POST_AMENDMENT_AUTHORIZED_RERUN_ATTEMPTS"
+  },
+  "runtime_contract_pins": {
+    "normalization_semantics_id": "preserve-whitespace-nfc-lf-reject-nul-v1",
+    "normalization_implementation_sha256": "c4a77fc184ac2bf3766ef0949584c43294f5d28de1083b9d0112ac95209d0bae",
+    "decoder_semantics_id": "strict-string-or-null-preserve-codepoints-v1",
+    "decoder_implementation_sha256": "c0030fa39c1d6f47d62a052cde757c30af12f0e8d3c295a7951a8825fd0d7780",
+    "article_record_semantics_id": "strict-record-no-implicit-text-strip-v1",
+    "article_record_implementation_sha256": "6f54ba168db4322c93576d46133e9f6364497873869e528ea5acecf3c00f33e4",
+    "version_tie_break_id": "max-available-updated-input-payload-text-sha256-v1",
+    "version_implementation_sha256": "53e02571f782c3a8df45437cef6bc64dc7835917f693c5e593135e51994bb810",
+    "retained_predicate_id": "included-flag-with-zero-byte-diagnostics-v2",
+    "retained_predicate_implementation_sha256": "5fb5d814483b001bcdea9e7c701007ab8f3d01be45fdd5b7f021d4c7b1368116",
+    "input_byte_measurement_id": "appearance-weighted-canonical-hsc-utf8-before-caps-v2",
+    "input_byte_measurement_implementation_sha256": "70cad6961d40343cfbfc0777e6c266fdc176aca04de15e29637dc0ce42ef10ec",
+    "paired_diff_schema_sha256": "9e04049787ef73d3845cc0b55614109245e9804ac21d14afae2d17bdad99e1c9",
+    "paired_diff_implementation_sha256": "1e48e4e9f5906223f8b9edd8536ad4963978065d4aa5679b87f684e21fc622de"
+  },
+  "contract_policies": {
+    "decoder": "strict string or null with provider codepoints preserved",
+    "whitespace": "preserve leading trailing and internal whitespace",
+    "newline": "CRLF and CR normalize to LF",
+    "unicode": "NFC",
+    "nul": "reject",
+    "content_version": "canonical payload-text SHA-256 is final deterministic version tie-break",
+    "retained_predicate": "included flag is normative; included zero-byte and zero-source appearances are accepted and separately counted; omitted appearances with nonzero retained bytes are rejected",
+    "input_byte_measurement": "appearance-weighted canonical headline summary content UTF-8 bytes before caps"
+  },
+  "paired_frame_evidence": {
+    "schema_version": "r03-n1-paired-frame-diff-v1",
+    "selection": "session_cap_affected_frames_only",
+    "direct_identifiers_and_raw_text_absent": true,
+    "numeric_values_may_be_quasi_identifiers": true,
+    "raw_text_emitted": false,
+    "pair_multiset_sha256_required": true,
+    "required_for_any_future_reconciliation_rerun": true,
+    "diagnostic_counters": [
+      "zero_source_appearances",
+      "prior_included_zero_byte_appearances",
+      "reconciliation_included_zero_byte_appearances",
+      "prior_appearance_byte_inconsistency_frames",
+      "reconciliation_appearance_byte_inconsistency_frames"
+    ],
+    "cross_invariants": [
+      "affected_frame_count <= total_news_positive_frames",
+      "reconciliation zero appearances imply zero retained bytes",
+      "prior appearance-byte inconsistency is recorded rather than rejected"
+    ]
+  },
+  "normative_retention_disposition": "UNRESOLVED_NO_VALUE_RESEALED",
+  "boundary_counters": {
+    "raw_source_traversals": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "lineage_sha256": "60bbbd2d2e16235689f2df5cb3871f891ac8d92b7f2260cc13bb116947833aa8"
+}

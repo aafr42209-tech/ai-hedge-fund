@@ -1,0 +1,31 @@
+{
+  "schema_version": "r03-n1-reconciliation-zero-call-manifest-v1",
+  "authority": "R03_N1_RECONCILIATION_CODE_ONLY_AUTHORIZED",
+  "temporal_scope": "N1_RECONCILIATION_CODE_ONLY_SESSION",
+  "historical_zero_call_manifest_scope": "PRE_RERUN_AMENDMENT_CODE_ONLY_SESSION",
+  "rerun_execution_scope_source": "docs/r03-news-reasoning-data-check-rerun-attestation.json",
+  "artifact_sha256": {
+    "docs/r03-news-reasoning-n1-reconciliation-code-only-evidence.json": "3512e5813a72110bcbd9010476f62f052f688b26eb5c378ac1c3ad5a24610f84",
+    "docs/r03-news-reasoning-n1-reconciliation-lineage.json": "8f2db652f49466022f3b8c5acc5ba57d3fc08d0e52b88f5c2694767e56da0af1",
+    "v2/research/news_reasoning/r03_reconciliation.py": "cdc0a7044ea542567bec7028ad01daf81c7ffbd03f0542c3c9342a3556d9e05f",
+    "scripts/r03_news_reasoning_reconciliation_verify.py": "6d50bb91c15d4ae8a3359457d94910cc582cf4642b5492752c1d2117b9594ccb",
+    "docs/r03-news-reasoning-data-check-rerun-attestation.json": "680e4634a40d2eaf96a19cc75dfa37db8e66375368e04cf05cc3d1a989c01c2a"
+  },
+  "boundary_counters": {
+    "raw_source_traversals": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "statement": "No raw-source, frame, fixture, fit, gate, OOS, inference, model-download, provider, network, dependency, commit, or push action occurred within this reconciliation code-only temporal scope. Historical rerun attempts remain separately recorded in the pinned attestation."
+}

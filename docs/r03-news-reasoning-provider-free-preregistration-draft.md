@@ -243,7 +243,12 @@ articles are omitted and counted. T2/T3 canonical bytes and flags must match.
 
 Coverage evidence: 247,976 eligible unique articles, 301,541 ticker-events,
 50.90% body present, 29.33% summary present, 49.10% headline-only. The selected
-budget fully preserves 99.06% of news-positive frames and 97.03% of text bytes.
+budget fully preserves 150,394/151,820 news-positive frames (99.06%), retains
+695,948/702,489 article appearances (99.07%), and retains
+1,435,742,878/1,585,976,846 text bytes (90.53%), using round-half-even to two
+decimal places. These N1 expectations are governed by
+`r03-news-reasoning-data-check-amendment-lineage.json`, which supersedes the
+P5-era 97.03% article-cap-only calculation without modifying the P5 artifact.
 
 ### 14.3 T0/T1/T2 and actions
 

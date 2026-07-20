@@ -1,0 +1,103 @@
+{
+  "schema_version": "r03-data-check-amendment-evidence-v1",
+  "status": "AMENDMENT_IMPLEMENTED_REVIEW_REQUIRED_RERUN_NO_GO",
+  "authority": "R03_DATA_CHECK_AMENDMENT_CODE_AUTHORIZED",
+  "implementation_pins": {
+    "plan_commit": "6da16688b3da581d1a919d7c75e285827ed10e85",
+    "implementation_commit": "4c47ec61d85e3382c4dd4acfaa0281ca8a1950cd",
+    "amendment_pin_kind": "filesystem_sha256_until_separate_commit_authority"
+  },
+  "artifact_pin_kind": {
+    "v2/research/news_reasoning/r03_source.py": "filesystem_sha256",
+    "tests/test_r03_source.py": "filesystem_sha256",
+    "scripts/r03_news_reasoning_data_check_verify.py": "filesystem_sha256",
+    "tests/test_r03_data_check_verify.py": "filesystem_sha256",
+    "docs/r03-news-reasoning-charter-draft.md": "filesystem_sha256",
+    "docs/r03-news-reasoning-provider-free-preregistration-draft.md": "filesystem_sha256",
+    "docs/r03-news-reasoning-data-check-amendment-lineage.json": "filesystem_sha256"
+  },
+  "artifact_sha256": {
+    "v2/research/news_reasoning/r03_source.py": "a470473d2ddfe67e37a7ad109ec727ae3c5679f4df650ca1b364a59dad230c68",
+    "tests/test_r03_source.py": "fa524178a7860534517227a6810259e278756372b9f4a04fe47aadd8543529b9",
+    "scripts/r03_news_reasoning_data_check_verify.py": "08d5347a301dfdc89417e26f8bea0c9549a3f191acce4596b701ecd1f844d924",
+    "tests/test_r03_data_check_verify.py": "d8646d4f007546e8c8613fc8fcfb0dfcf1d5d49ad9665bfa20f64fc23de38e6e",
+    "docs/r03-news-reasoning-charter-draft.md": "a96766f5b15fdecc839c07d3f66a1cc78e40d778050a3eae2623d77ffdb90329",
+    "docs/r03-news-reasoning-provider-free-preregistration-draft.md": "741fc091e689ac4a848cd2ea43fc99f26295b632831d33426028769b31bde211",
+    "docs/r03-news-reasoning-data-check-amendment-lineage.json": "8c514ea72f35fd0a93d8d74a6afdfa8547b81ff5fae26d9a7e75831ec0ce38d4"
+  },
+  "lineage_canonical_sha256": "eec62df18f1e5cd4d896274c54b0734fd32d34d92fd6dbefbecf2a50f404b881",
+  "immutable_artifacts": {
+    "docs/r03-news-reasoning-provider-free-coverage-audit.json": "6275292839b9446825bc8d05cc334a82dc7fe865067501895fd0f2c15c821984"
+  },
+  "negative_tests": [
+    "separate_frame_and_appearance_denominators",
+    "round_half_even_tie_down_and_tie_up",
+    "reject_float_and_inconsistent_appearance_rows",
+    "reject_missing_or_unpinned_rerun_permit_before_callback",
+    "reject_authorization_plan_and_implementation_pin_perturbation",
+    "reject_early_close_count_and_hash_perturbation",
+    "reject_calendar_count_and_hash_perturbation",
+    "reject_article_and_ticker_session_cap_perturbation",
+    "reject_ordering_omit_and_rounding_perturbation",
+    "reject_root_identity_perturbation_before_callback",
+    "reject_permit_self_hash_perturbation_before_callback",
+    "reject_model_copy_normative_bypass_with_recomputed_hashes_before_callback",
+    "reject_raw_text_emission",
+    "preserve_immutable_p5_audit_hash"
+  ],
+  "test_results": {
+    "r03_focused": {
+      "command": ".venv/Scripts/python.exe -m pytest -q tests/test_r03_contracts.py tests/test_r03_source.py tests/test_r03_payload.py tests/test_r03_frames.py tests/test_r03_tiers.py tests/test_r03_headroom.py tests/test_r03_power.py tests/test_r03_audit.py tests/test_r03_data_check_verify.py",
+      "exit_code": 0,
+      "passed": 72
+    },
+    "r02_api": {
+      "command": ".venv/Scripts/python.exe -m pytest -q v2/research/overlay/test_r02_v2_contracts.py v2/research/overlay/test_r02_v2_payload.py v2/research/overlay/test_r02_v2_grounding.py v2/research/overlay/test_r02_v2_comparator.py v2/research/overlay/test_r02_v2_selection.py v2/research/overlay/test_r02_v2_headroom.py v2/research/overlay/test_r02_v2_power.py v2/research/overlay/test_r02_v2_audit.py",
+      "exit_code": 0,
+      "passed": 27
+    },
+    "r02_full_overlay": {
+      "command": ".venv/Scripts/python.exe -m pytest -q v2/research/overlay",
+      "exit_code": 0,
+      "passed": 433
+    }
+  },
+  "style_results": {
+    "black_exit_code": 0,
+    "isort_exit_code": 0,
+    "flake8_exit_code": 0,
+    "flake8_max_line_length": 420
+  },
+  "production_authority": {
+    "read_only_data_check_rerun_authorized": false,
+    "production_permit_present": false,
+    "raw_source_access_authorized": false,
+    "frame_or_fixture_materialization_authorized": false,
+    "model_fitting_authorized": false,
+    "research_gate_authorized": false,
+    "oos_access_authorized": false,
+    "local_inference_authorized": false,
+    "provider_or_network_authorized": false,
+    "dependency_change_authorized": false,
+    "commit_authorized": false,
+    "push_authorized": false
+  },
+  "organizational_independence_established": false,
+  "boundary_counters": {
+    "raw_source_traversals": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "evidence_sha256": "5d0b57d8230e929db49e1c03dfbb97cfab7548750265759a37e97b3f4b931eda"
+}

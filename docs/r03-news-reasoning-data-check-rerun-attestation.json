@@ -1,0 +1,116 @@
+{
+  "schema_version": "r03-data-check-rerun-attestation-v1",
+  "authority": "READ_ONLY_DATA_CHECK_RERUN_AUTHORIZED",
+  "disposition": "FAIL_CLOSED_SEALED_AGGREGATE_MISMATCH",
+  "commit_gate": "CLOSED",
+  "provenance_classification": {
+    "classification": "FIRST_V2_RAW_MEASUREMENT_EXPOSED_UNVERIFIED_SEAL",
+    "sealed_values_origin": "PRE_AMENDMENT_CENSUS_CARRIED_FORWARD_WITHOUT_V2_RAW_EXECUTION",
+    "not_classified_as": "V2_REPRODUCTION_FAILURE"
+  },
+  "pins": {
+    "permit_sha256": "a6d32b93c9351b05211f43d9dabbac1cf78ca915ba2022d30b0bcb222d8db718",
+    "root_path_sha256": "6d91b6f6cf116cc868ebb532a729ad78d95e52521be3d2e8cbc593ef88559f84",
+    "calendar_session_count": 2514,
+    "calendar_sha256": "c2fba202f2efbe462a44ac13ac6e99a235c0fc18851d894cc2b5f4ab5c30b34c",
+    "early_close_session_count": 21,
+    "early_close_sessions_sha256": "d796bb76e4a2408244739e271260c20a02f20ff93db75bd4ee8e8166e1e79a47",
+    "article_byte_cap": 32768,
+    "ticker_session_byte_cap": 131072
+  },
+  "inventory": {
+    "matches_frozen": true,
+    "json_file_count": 10270,
+    "total_bytes": 2668932157,
+    "page_count": 9269,
+    "manifest_count": 1000,
+    "all_json_sha256": "56f1a5567c1aa5ed5b327201d36f1ca5833381fd3b389279298acdd3a6c1e9d3",
+    "page_sha256": "4723720c1384723f09c26e9f77941f77a76f1c33d2620e466535eec133213bd9",
+    "manifest_sha256": "dbb5c4110cc2a198ed506cfb6f38b7db172805f46dc1237c5b6de58f9b7fb894"
+  },
+  "source_counts": {
+    "capture_records": 436916,
+    "declared_capture_records": 436916,
+    "unique_articles": 290858,
+    "selected_articles": 247976,
+    "ticker_article_events": 301541
+  },
+  "sealed_retention": {
+    "full_frames_total": 151820,
+    "full_frames_retained": 150394,
+    "article_appearances_total": 702489,
+    "article_appearances_retained": 695948,
+    "input_text_bytes": 1585976846,
+    "retained_text_bytes": 1435742878,
+    "full_frame_retention_pct_2dp": "99.06",
+    "article_appearance_retention_pct_2dp": "99.07",
+    "text_byte_retention_pct_2dp": "90.53"
+  },
+  "observed_retention": {
+    "full_frames_total": 151820,
+    "full_frames_retained": 150394,
+    "article_appearances_total": 702489,
+    "article_appearances_retained": 695953,
+    "input_text_bytes": 1585509260,
+    "retained_text_bytes": 1514942360,
+    "full_frame_retention_pct_2dp": "99.06",
+    "article_appearance_retention_pct_2dp": "99.07",
+    "text_byte_retention_pct_2dp": "95.55",
+    "retention_sha256": "975967b64ae0a72f5085ef31cc4cc43cd7ece44a78bba04289b6c54b22812e42"
+  },
+  "mismatches": {
+    "article_appearances_retained": 5,
+    "input_text_bytes": -467586,
+    "retained_text_bytes": 79199482,
+    "text_byte_retention_pct_2dp": {
+      "sealed": "90.53",
+      "observed": "95.55"
+    }
+  },
+  "diagnostics": {
+    "article_cap_affected_appearances": 849,
+    "session_cap_affected_frames": 664,
+    "session_truncated_distinct_articles": 659,
+    "utf8_prefix_requests": 618,
+    "utf8_boundary_adjustment_bytes": 0
+  },
+  "investigation_note": {
+    "classification": "UNRESOLVED_ADAPTER_OR_PRIOR_CENSUS_SEMANTICS_DIVERGENCE",
+    "retained_byte_delta_per_session_cap_affected_frame": "119276.328313253",
+    "hypothesis": "prior census may have omitted previously included article bytes when accumulating truncated-frame retained bytes",
+    "paired_frame_diff_available_from_saved_artifacts": false,
+    "paired_frame_diff_limitation": "saved census and rerun outputs contain aggregate-only totals and no per-frame retained-byte pairs",
+    "denominator_blocker": "v2 record construction does not strip text, while the rerun adapter applied FinGPT boundary stripping to content; permit does not pin decoder, whitespace, or content provenance semantics",
+    "zero_byte_retained_rows_possible_in_rerun_adapter": false,
+    "appearance_delta_status": "unresolved; the observed plus-five cannot arise from retained true with zero bytes in this adapter",
+    "utf8_boundary_counter_scope": "only the 618 session-prefix cut points; zero does not establish an ASCII-only corpus",
+    "status": "requires decoder and content-version semantics to be pinned and independently reviewed before any N1 reseal"
+  },
+  "execution": {
+    "completed_raw_source_scans": 3,
+    "aborted_partial_raw_source_scan_attempts": 1,
+    "raw_source_traversal_attempts": 4,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits_during_rerun": 0,
+    "pushes": 0
+  },
+  "artifacts": {
+    "rerun_result_filesystem_sha256": "dcef496af24482462dcd43a3207b8dc12d727fb23c27b362957b7ebc41585f12",
+    "rerun_result_canonical_sha256": "a104b30d520f31e9a2ce996743f66e23be501cde15fc90bf24dcb5d7c609a157",
+    "permit_filesystem_sha256": "4b8fcc04e95bd9d447ad48ab44fa378b591e09087505d73b6e7b9a5d0cdced69",
+    "driver_filesystem_sha256": "f64ba0a137151127d5956fd90713a31708da64e15e5dbd101bfee37c162d31af",
+    "prior_census_filesystem_sha256": "1a725db609350bd5d4f1ea404040a132f5aed29a2e7775cfa0f0debd4ed9d791",
+    "prior_census_canonical_sha256": "24423b02034a00caf614361aabde1b84d16610c102faf18dcfb937bd4b1e2c04"
+  },
+  "attestation_sha256": "a21be7bc0a614b6b87ceef9ac3bf9cc89d25d40215dc67d7344994ce834034a0"
+}

@@ -1,0 +1,61 @@
+{
+  "schema_version": "r03-data-check-amendment-zero-call-manifest-v1",
+  "status": "AMENDMENT_CODE_ONLY_RESEALED_RERUN_NO_GO",
+  "current_authority": "R03_DATA_CHECK_AMENDMENT_CODE_AUTHORIZED",
+  "artifact_pin_kind": {
+    "docs/r03-news-reasoning-data-check-amendment-evidence.json": "filesystem_sha256",
+    "docs/r03-news-reasoning-data-check-amendment-lineage.json": "filesystem_sha256",
+    "v2/research/news_reasoning/r03_source.py": "filesystem_sha256",
+    "scripts/r03_news_reasoning_data_check_verify.py": "filesystem_sha256",
+    "docs/r03-news-reasoning-charter-draft.md": "filesystem_sha256",
+    "docs/r03-news-reasoning-provider-free-preregistration-draft.md": "filesystem_sha256"
+  },
+  "artifact_sha256": {
+    "docs/r03-news-reasoning-data-check-amendment-evidence.json": "905eecbdd2838e05e0d5b71a7353ad43c447f5186d7ea2f833831a7dcf672565",
+    "docs/r03-news-reasoning-data-check-amendment-lineage.json": "8c514ea72f35fd0a93d8d74a6afdfa8547b81ff5fae26d9a7e75831ec0ce38d4",
+    "v2/research/news_reasoning/r03_source.py": "a470473d2ddfe67e37a7ad109ec727ae3c5679f4df650ca1b364a59dad230c68",
+    "scripts/r03_news_reasoning_data_check_verify.py": "08d5347a301dfdc89417e26f8bea0c9549a3f191acce4596b701ecd1f844d924",
+    "docs/r03-news-reasoning-charter-draft.md": "a96766f5b15fdecc839c07d3f66a1cc78e40d778050a3eae2623d77ffdb90329",
+    "docs/r03-news-reasoning-provider-free-preregistration-draft.md": "741fc091e689ac4a848cd2ea43fc99f26295b632831d33426028769b31bde211"
+  },
+  "lineage_canonical_sha256": "eec62df18f1e5cd4d896274c54b0734fd32d34d92fd6dbefbecf2a50f404b881",
+  "test_results": {
+    "r03_focused_passed": 72,
+    "r02_api_passed": 27,
+    "r02_full_overlay_passed": 433,
+    "black_exit_code": 0,
+    "isort_exit_code": 0,
+    "flake8_exit_code": 0
+  },
+  "authority": {
+    "read_only_data_check_rerun_authorized": false,
+    "production_permit_present": false,
+    "raw_source_access_authorized": false,
+    "frame_or_fixture_materialization_authorized": false,
+    "model_fitting_authorized": false,
+    "research_gate_authorized": false,
+    "oos_access_authorized": false,
+    "local_inference_authorized": false,
+    "provider_or_network_authorized": false,
+    "dependency_change_authorized": false,
+    "commit_authorized": false,
+    "push_authorized": false
+  },
+  "boundary_counters": {
+    "raw_source_traversals": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "zero_call_assertion": "Synthetic code and aggregate-only document amendment; no raw source, frame, fitting, gate, OOS, inference, provider, network, dependency, commit, or push action occurred."
+}

@@ -230,15 +230,21 @@ descending then `article_id` ascending. Text budgets are:
 Headline is preserved first, then summary, then the largest valid UTF-8 content
 prefix. If the frame limit is reached, the final includable article may have only
 its content truncated; later articles are omitted and counted. The census shows
-this policy fully preserves 99.06% of news-positive frames, retains 99.06% of
-article appearances, and retains 97.03% of text bytes. T2 and T3 receive the
-same canonical bytes and truncation flags.
+this policy fully preserves 150,394/151,820 news-positive frames (99.06%),
+retains 695,948/702,489 article appearances (99.07%), and retains
+1,435,742,878/1,585,976,846 text bytes (90.53%). Percent displays use
+round-half-even to two decimal places. The superseding N1 lineage is
+`r03-news-reasoning-data-check-amendment-lineage.json`; the P5-era 97.03%
+figure is preserved only as superseded provenance because it did not apply the
+session cap and omit-after-truncation rule. T2 and T3 receive the same canonical
+bytes and truncation flags.
 
 The implementation verifier must recompute all three retention rates directly
 from the read-only raw source under the exact early-close calendar and payload
 rules. It must fail closed in negative tests that perturb the article cap, frame
-cap, article ordering, early-close cutoff, or duplicate-selection rule; verifier
-output may contain aggregates and hashes only.
+cap, article ordering, omit semantics, early-close/calendar pins, permit pins,
+rounding rule, or duplicate-selection rule; verifier output may contain counts,
+exact fractions, canonical decimal strings, reason codes, and hashes only.
 
 ### 12.3 T0 non-news comparator
 

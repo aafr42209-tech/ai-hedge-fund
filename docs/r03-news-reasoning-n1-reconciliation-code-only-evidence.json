@@ -1,0 +1,68 @@
+{
+  "schema_version": "r03-n1-reconciliation-code-only-evidence-v1",
+  "authority": "R03_N1_RECONCILIATION_CODE_ONLY_AUTHORIZED",
+  "lineage_canonical_sha256": "60bbbd2d2e16235689f2df5cb3871f891ac8d92b7f2260cc13bb116947833aa8",
+  "classification_assertion": {
+    "canonical_path": "provenance_classification.classification",
+    "canonical_value": "FIRST_V2_RAW_MEASUREMENT_EXPOSED_UNVERIFIED_SEAL",
+    "cause_status_path": "investigation_note.classification",
+    "cause_status_is_normative": false
+  },
+  "temporal_scope_assertion": {
+    "historical_zero_counters": "PRE_RERUN_AMENDMENT_CODE_ONLY_SESSION",
+    "rerun_attempt_counters": "POST_AMENDMENT_AUTHORIZED_RERUN_ATTEMPTS",
+    "current_zero_counters": "N1_RECONCILIATION_CODE_ONLY_SESSION"
+  },
+  "contract_coverage": {
+    "runtime_binding": [
+      "canonicalize_text behavior",
+      "R03ArticleRecord no-strip behavior",
+      "strict provider decoder",
+      "payload-text content version tie-break",
+      "retained appearance predicate with included-zero and zero-source diagnostics",
+      "paired-frame evidence schema with three-or-more-pair order probe",
+      "NFKC-sensitive and non-ASCII-whitespace normalization probes",
+      "non-null source exclusion byte probe",
+      "all-stage content-version precedence probes",
+      "aggregate numeric quasi-identifier disclosure"
+    ],
+    "future_rerun_requires_new_permit": true,
+    "normative_retention_value_selected": false
+  },
+  "artifact_sha256": {
+    "v2/research/news_reasoning/r03_reconciliation.py": "cdc0a7044ea542567bec7028ad01daf81c7ffbd03f0542c3c9342a3556d9e05f",
+    "tests/test_r03_reconciliation.py": "0fede185f719577f904485de9603e7d04fdd7d404a3d7d82582244a956ed26d7",
+    "scripts/r03_news_reasoning_reconciliation_verify.py": "6d50bb91c15d4ae8a3359457d94910cc582cf4642b5492752c1d2117b9594ccb",
+    "docs/r03-news-reasoning-data-check-rerun-attestation.json": "680e4634a40d2eaf96a19cc75dfa37db8e66375368e04cf05cc3d1a989c01c2a",
+    "docs/r03-news-reasoning-n1-reconciliation-lineage.json": "8f2db652f49466022f3b8c5acc5ba57d3fc08d0e52b88f5c2694767e56da0af1"
+  },
+  "test_results": {
+    "synthetic_reconciliation": {
+      "command": ".venv/Scripts/python.exe -m pytest -q tests/test_r03_reconciliation.py",
+      "passed": 28,
+      "failed": 0
+    },
+    "black_isort_flake8": {
+      "status": "PASS",
+      "max_line_length": 420
+    }
+  },
+  "boundary_counters": {
+    "raw_source_traversals": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "decision": "INDEPENDENT_RECONCILIATION_CONTRACT_REVIEW_APPROVED_NO_RERUN_AUTHORITY",
+  "evidence_sha256": "f5fe43827ad228405c83416ffdb26241cad8cba701dbe8c3c0307bdee3f79514"
+}

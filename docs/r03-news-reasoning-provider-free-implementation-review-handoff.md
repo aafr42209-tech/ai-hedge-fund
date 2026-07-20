@@ -271,3 +271,52 @@ This reseal requests lightweight independent re-review only. It does not grant `
 - Disposition: **`TECHNICAL_RE_REVIEW_PASSED_RECOMMEND_CODE_ONLY_ACCEPTED`**.
   `CODE_ONLY_ACCEPTED`, the 22-path commit/push, and
   `READ_ONLY_DATA_CHECK_AUTHORIZED` remain separate user decisions.
+
+## 12. READ_ONLY_DATA_CHECK review record (2026-07-19)
+
+- Reviewer: Claude (Fable 5), same-session lineage — technical verification
+  only. Review target: the git-ignored aggregate record
+  `.research_artifacts/r03-news-reasoning/read-only-data-check.json`
+  (filesystem `1a725db6…`, canonical `24423b02…` — both recomputed, match).
+- Verified: aggregates-only content (longest string = a 200-char observation
+  detail; zero raw text); census anchors and all three corpus digests match
+  the frozen values; every boundary counter zero; all three retention ratios
+  arithmetically exact (90.52735%, 99.06073%, 99.06888%).
+- **Root cause of the N1 mismatch, established from the recorded
+  diagnostics:** the sealed `97.03%` corresponds to **article-cap-only,
+  appearance-level byte retention** (97.08% under the corrected F1/F2
+  algorithm). The additional loss to **90.53%** is produced by the
+  session-cap plus the sealed omit-after-truncation rule: 664 frames exceed
+  the session cap after article caps; 616 articles are prefix-truncated and
+  all later articles in those frames are omitted. The P5-era calculator
+  therefore did not apply the sealed prose rule it declared. **The prose rule
+  is normative; the current code is correct; the sealed 97.03% figure is
+  superseded, and the fail-closed outcome is the intended behavior.**
+- Confirmed HIGH contract defect (first noted as a looseness in §9 review,
+  now confirmed material): `public_retention` assigns one `len(rows)` to both
+  `full_frames_total` and `article_appearances_total`; real denominators are
+  151,820 frames vs 702,489 appearances — one row stream cannot express both.
+- Reproducibility gap (MEDIUM): the data-check driver that produced this
+  record is not a committed artifact, and the 21 early-close sessions that
+  shape the decision clock are not pinned in the record. Plan §13 already
+  requires a separately authorized data-access verifier mode — implement it
+  so N1 becomes a committed, replayable verification rather than an ad-hoc
+  run.
+- Required remediation before any ladder advancement:
+  1. split the `public_retention` contract into distinct frame-level and
+     appearance-level accounting (HIGH);
+  2. implement the committed data-access verifier mode with the permit,
+     early-close session list, and exact rounding rule pinned;
+  3. reseal the N1 expected aggregates as a new lineage record (do not edit
+     the sealed P5 audit in place): exact fractions, explicit
+     round-half-even-to-2dp rule, `90.53%` byte / `99.06%` frame / `99.07%`
+     appearance retention, with a provenance note that `97.03%` was an
+     article-cap-only estimate;
+  4. obtain explicit user re-ratification of the 32,768/131,072 byte budgets
+     under the corrected retention figures (reviewer recommendation: keep
+     them — 99.06% full-frame preservation is the information-parity metric
+     that matters; byte loss concentrates in the 0.94% heaviest frames under
+     the preregistered newest-first priority, and larger caps inflate future
+     T3 payload cost).
+- Disposition: `DATA_CHECK_FAIL_CLOSED_CONFIRMED_REMEDIATION_REQUIRED`.
+  No frame, fitting, gate, OOS, inference, or provider authority is implied.
