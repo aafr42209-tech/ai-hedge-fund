@@ -1,0 +1,56 @@
+{
+  "schema_version": "r03-n1-v2-reference-propagation-lineage-v1",
+  "authority": "R03_N1_V2_NORMATIVE_REFERENCE_PROPAGATION_CODE_AUTHORIZED",
+  "status": "V2_NORMATIVE_REFERENCE_OVERLAY_IMPLEMENTED_PENDING_INDEPENDENT_REVIEW",
+  "base_preservation": {
+    "charter_path": "docs/r03-news-reasoning-charter-draft.md",
+    "charter_filesystem_sha256": "a96766f5b15fdecc839c07d3f66a1cc78e40d778050a3eae2623d77ffdb90329",
+    "preregistration_path": "docs/r03-news-reasoning-provider-free-preregistration-draft.md",
+    "preregistration_filesystem_sha256": "741fc091e689ac4a848cd2ea43fc99f26295b632831d33426028769b31bde211",
+    "base_documents_modified": false,
+    "historical_seals_preserved": true
+  },
+  "effective_contract": {
+    "path": "docs/r03-news-reasoning-n1-v2-effective-retention-contract.json",
+    "canonical_sha256": "7277792e284aaa90d8ca7bcef828102e28f587950f8a2ca7951b5dae93136704",
+    "filesystem_sha256": "d3081ef09d2f789671c75765374392ab01ea17333c594e40b5e1de2999313fa2"
+  },
+  "amendment_pins": {
+    "charter_path": "docs/r03-news-reasoning-charter-v2-retention-amendment.md",
+    "charter_filesystem_sha256": "71645e43aa1913cb8bc8ffb299e197e5434ca7edbf97fe6a7c341a757aab0464",
+    "preregistration_path": "docs/r03-news-reasoning-provider-free-preregistration-v2-retention-amendment.md",
+    "preregistration_filesystem_sha256": "1ad550dfdd728c6fe83008616f6facb01ef36aac970bc4a82cddebcf48a00a37"
+  },
+  "normative_source_pins": {
+    "v2_reseal_lineage_canonical_sha256": "8f3b3f0c25b3dd8b7c12af4232f6fb22b19db62e71b752d1555b9c114457a719",
+    "v2_reseal_attestation_canonical_sha256": "44002b7a56e3c2432b4b4abf62088241d83c397d96c1a7e33828f03eeb3659f6",
+    "v2_reseal_evidence_canonical_sha256": "a170b0bdabf967cef8f606a96bcce3f395bd90ada92a954b76bc0eeb1a7b2d6b",
+    "v2_reseal_manifest_filesystem_sha256": "37ea72d5de7996e35919c3a8332093b525df46cfa0b0302d21bf9dc6d7425f14",
+    "ancestor_fix_review_filesystem_sha256": "4c20f452c4f347457aa6f5f349af49f4f99f63f761bc3a1a5771d4db5d10deb7"
+  },
+  "propagation_resolution": {
+    "charter_selected_payload_retention": "EFFECTIVE_FROM_ADDITIVE_V2_AMENDMENT",
+    "preregistration_selected_payload_retention": "EFFECTIVE_FROM_ADDITIVE_V2_AMENDMENT",
+    "effective_text_byte_retention_pct_2dp": "95.55",
+    "legacy_90_53_references_in_base_documents": "PRESERVED_BUT_SUPERSEDED_AT_EFFECTIVE_CONTRACT_LAYER",
+    "prior_unresolved_dispositions": "PRESERVED_AS_HISTORICAL_STATE",
+    "replacement_mode": "REPLACE_NOT_RECONCILE"
+  },
+  "boundary_counters": {
+    "raw_source_traversals": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "lineage_sha256": "22d8da2c435b02778287ffefa7e98d6a04108f458ae4e8e0e0bafc1824c976ff"
+}

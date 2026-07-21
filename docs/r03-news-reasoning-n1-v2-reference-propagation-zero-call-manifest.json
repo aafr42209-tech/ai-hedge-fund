@@ -1,0 +1,38 @@
+{
+  "schema_version": "r03-n1-v2-reference-propagation-zero-call-manifest-v1",
+  "authority": "R03_N1_V2_NORMATIVE_REFERENCE_PROPAGATION_CODE_AUTHORIZED",
+  "temporal_scope": "N1_V2_NORMATIVE_REFERENCE_PROPAGATION_CODE_ONLY_SESSION",
+  "prior_scope_source": {
+    "v2_reseal_lineage_canonical_sha256": "8f3b3f0c25b3dd8b7c12af4232f6fb22b19db62e71b752d1555b9c114457a719",
+    "v2_reseal_evidence_canonical_sha256": "a170b0bdabf967cef8f606a96bcce3f395bd90ada92a954b76bc0eeb1a7b2d6b",
+    "prior_raw_scans_are_not_rewritten_as_zero": true
+  },
+  "artifact_sha256": {
+    "docs/r03-news-reasoning-charter-draft.md": "a96766f5b15fdecc839c07d3f66a1cc78e40d778050a3eae2623d77ffdb90329",
+    "docs/r03-news-reasoning-provider-free-preregistration-draft.md": "741fc091e689ac4a848cd2ea43fc99f26295b632831d33426028769b31bde211",
+    "docs/r03-news-reasoning-charter-v2-retention-amendment.md": "71645e43aa1913cb8bc8ffb299e197e5434ca7edbf97fe6a7c341a757aab0464",
+    "docs/r03-news-reasoning-provider-free-preregistration-v2-retention-amendment.md": "1ad550dfdd728c6fe83008616f6facb01ef36aac970bc4a82cddebcf48a00a37",
+    "docs/r03-news-reasoning-n1-v2-effective-retention-contract.json": "d3081ef09d2f789671c75765374392ab01ea17333c594e40b5e1de2999313fa2",
+    "docs/r03-news-reasoning-n1-v2-reference-propagation-lineage.json": "0e16c47b6e248f267ed78318af01fbcee40d94e60d76ad1e84f6996f055292cb",
+    "docs/r03-news-reasoning-n1-v2-reference-propagation-evidence.json": "a51808092b125b9b0713fea414110ce400989e2d056fd837a942a34a8f06166a",
+    "scripts/r03_news_reasoning_v2_reference_propagation_verify.py": "a2c42c343fc711d3de17d45e222282f8544f52f118c27828dbd468a246fbb3de",
+    "tests/test_r03_v2_reference_propagation_verify.py": "b362c6be0cdfd12ea05e24a9b0f4a97130a27a304da05a39ce4fa41d5e921950"
+  },
+  "boundary_counters": {
+    "raw_source_traversals": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "statement": "No raw-source traversal, copy, frame or fixture materialization, fit, G1-G3 execution, OOS access, inference, model download, provider or network call, dependency change, commit, or push occurred in this additive reference-propagation code-only scope. Base charter and preregistration files remain byte-for-byte unchanged."
+}

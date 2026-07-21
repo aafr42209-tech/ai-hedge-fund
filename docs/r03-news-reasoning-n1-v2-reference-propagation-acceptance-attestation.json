@@ -1,0 +1,95 @@
+{
+  "schema_version": "r03-n1-v2-reference-propagation-acceptance-attestation-v1",
+  "authority": "R03_N1_V2_REFERENCE_PROPAGATION_ACCEPTANCE_ATTESTATION_AND_COMPOSITION_INDEX_CODE_AUTHORIZED",
+  "mode": "APPEND_ONLY_ACCEPTANCE_OVERLAY_PRESERVING_REVIEWED_CONTRACT",
+  "accepted_disposition": "INDEPENDENT_TECHNICAL_REVIEW_ACCEPTED_NO_NEW_EXECUTION_AUTHORITY",
+  "reviewed_head": "605ef598446b851bce8def647f8769a885a6274c",
+  "accepted_contract": {
+    "path": "docs/r03-news-reasoning-n1-v2-effective-retention-contract.json",
+    "status_as_authored": "EFFECTIVE_V2_RETENTION_REFERENCE_OVERLAY_PENDING_INDEPENDENT_REVIEW",
+    "canonical_sha256": "7277792e284aaa90d8ca7bcef828102e28f587950f8a2ca7951b5dae93136704",
+    "filesystem_sha256": "d3081ef09d2f789671c75765374392ab01ea17333c594e40b5e1de2999313fa2"
+  },
+  "independent_review": {
+    "path": "docs/r03-news-reasoning-n1-v2-reference-propagation-independent-review.md",
+    "filesystem_sha256": "f6e710159840a96e16720aab54d046a3bcf45d3dd1a7271a190bfa9886f6449b",
+    "disposition": "INDEPENDENT_TECHNICAL_REVIEW_ACCEPTED_NO_NEW_EXECUTION_AUTHORITY"
+  },
+  "composition_index": {
+    "path": "docs/r03-news-reasoning-document-composition-index.md",
+    "filesystem_sha256": "923d06768141df9f7c0a275aa39ac415a77c5bc3765ce2c0765bf7a6971a92c5"
+  },
+  "reviewed_artifact_sha256": {
+    "docs/r03-news-reasoning-charter-v2-retention-amendment.md": "71645e43aa1913cb8bc8ffb299e197e5434ca7edbf97fe6a7c341a757aab0464",
+    "docs/r03-news-reasoning-n1-v2-effective-retention-contract.json": "d3081ef09d2f789671c75765374392ab01ea17333c594e40b5e1de2999313fa2",
+    "docs/r03-news-reasoning-n1-v2-reference-propagation-evidence.json": "a51808092b125b9b0713fea414110ce400989e2d056fd837a942a34a8f06166a",
+    "docs/r03-news-reasoning-n1-v2-reference-propagation-independent-review.md": "f6e710159840a96e16720aab54d046a3bcf45d3dd1a7271a190bfa9886f6449b",
+    "docs/r03-news-reasoning-n1-v2-reference-propagation-lineage.json": "0e16c47b6e248f267ed78318af01fbcee40d94e60d76ad1e84f6996f055292cb",
+    "docs/r03-news-reasoning-n1-v2-reference-propagation-review-handoff.md": "f1162f53a8a1dd5b9ea813a7fd9e16b81b0fd3c47215e3d7690bc5ee96249baa",
+    "docs/r03-news-reasoning-n1-v2-reference-propagation-zero-call-manifest.json": "654d696ae657ca6faed8bc47f72d9bcc80b5dc901c687e4650ceb5d578e0e0c9",
+    "docs/r03-news-reasoning-provider-free-preregistration-v2-retention-amendment.md": "1ad550dfdd728c6fe83008616f6facb01ef36aac970bc4a82cddebcf48a00a37",
+    "scripts/r03_news_reasoning_v2_reference_propagation_verify.py": "a2c42c343fc711d3de17d45e222282f8544f52f118c27828dbd468a246fbb3de",
+    "tests/test_r03_v2_reference_propagation_verify.py": "b362c6be0cdfd12ea05e24a9b0f4a97130a27a304da05a39ce4fa41d5e921950"
+  },
+  "base_document_sha256": {
+    "docs/r03-news-reasoning-charter-draft.md": "a96766f5b15fdecc839c07d3f66a1cc78e40d778050a3eae2623d77ffdb90329",
+    "docs/r03-news-reasoning-provider-free-preregistration-draft.md": "741fc091e689ac4a848cd2ea43fc99f26295b632831d33426028769b31bde211"
+  },
+  "effective_retention": {
+    "schema_version": "r03-public-retention-v2",
+    "full_frames_total": 151820,
+    "full_frames_retained": 150394,
+    "article_appearances_total": 702489,
+    "article_appearances_retained": 695948,
+    "input_text_bytes": 1585976846,
+    "retained_text_bytes": 1515387041,
+    "full_frame_retention_pct_2dp": "99.06",
+    "article_appearance_retention_pct_2dp": "99.07",
+    "text_byte_retention_pct_2dp": "95.55",
+    "retention_sha256": "8b659ac03fb4481ebbbcdc3579e484f5630d8e490d6981c0b4a7a2c3c02c1019"
+  },
+  "precedence": {
+    "composition": "BASE_DOCUMENT_PLUS_PINNED_ADDITIVE_AMENDMENT",
+    "scope": "SELECTED_PAYLOAD_RETENTION_ASSERTION_ONLY",
+    "action": "REPLACE_NOT_RECONCILE",
+    "legacy_90_53_role": "HISTORICAL_NON_NORMATIVE_ONLY",
+    "p5_97_03_role": "SUPERSEDED_HISTORICAL_ONLY",
+    "all_other_base_clauses_unchanged": true,
+    "effective_value_required_for_future_r03_decisions": true
+  },
+  "preservation": {
+    "reviewed_contract_modified": false,
+    "reviewed_artifacts_modified": false,
+    "base_documents_modified": false,
+    "acceptance_recorded_by_additive_composition": true
+  },
+  "boundary_counters": {
+    "raw_source_traversals": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "non_authority": {
+    "raw_source_access": false,
+    "frame_or_fixture_creation": false,
+    "fitting": false,
+    "g1_g2_g3_execution": false,
+    "oos_access": false,
+    "inference_or_model_download": false,
+    "provider_or_network_use": false,
+    "dependency_change": false,
+    "commit": false,
+    "push": false
+  },
+  "acceptance_attestation_sha256": "e9247117274a00365ea47e536c4ce338c9ccd38f59091ab01105f085863ab1aa"
+}

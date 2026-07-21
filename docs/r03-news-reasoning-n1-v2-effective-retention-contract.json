@@ -1,0 +1,72 @@
+{
+  "schema_version": "r03-n1-v2-effective-retention-contract-v1",
+  "authority": "R03_N1_V2_NORMATIVE_REFERENCE_PROPAGATION_CODE_AUTHORIZED",
+  "status": "EFFECTIVE_V2_RETENTION_REFERENCE_OVERLAY_PENDING_INDEPENDENT_REVIEW",
+  "base_documents": {
+    "charter": {
+      "path": "docs/r03-news-reasoning-charter-draft.md",
+      "filesystem_sha256": "a96766f5b15fdecc839c07d3f66a1cc78e40d778050a3eae2623d77ffdb90329",
+      "superseded_clause_utf8_sha256": "4ce3cb4f72abf0af9e551cb3cd68a5a0895da8739a07c1e328e3652c28932cf4",
+      "preserved_byte_for_byte": true
+    },
+    "preregistration": {
+      "path": "docs/r03-news-reasoning-provider-free-preregistration-draft.md",
+      "filesystem_sha256": "741fc091e689ac4a848cd2ea43fc99f26295b632831d33426028769b31bde211",
+      "superseded_clause_utf8_sha256": "5ab3b69d651b6c4cb456aabf1675c8bceaa152b04cdc97c8a1a03c7653cf4cc7",
+      "preserved_byte_for_byte": true
+    }
+  },
+  "amendments": {
+    "charter": {
+      "path": "docs/r03-news-reasoning-charter-v2-retention-amendment.md",
+      "filesystem_sha256": "71645e43aa1913cb8bc8ffb299e197e5434ca7edbf97fe6a7c341a757aab0464"
+    },
+    "preregistration": {
+      "path": "docs/r03-news-reasoning-provider-free-preregistration-v2-retention-amendment.md",
+      "filesystem_sha256": "1ad550dfdd728c6fe83008616f6facb01ef36aac970bc4a82cddebcf48a00a37"
+    }
+  },
+  "normative_source": {
+    "v2_reseal_lineage_canonical_sha256": "8f3b3f0c25b3dd8b7c12af4232f6fb22b19db62e71b752d1555b9c114457a719",
+    "v2_reseal_attestation_canonical_sha256": "44002b7a56e3c2432b4b4abf62088241d83c397d96c1a7e33828f03eeb3659f6",
+    "v2_reseal_evidence_canonical_sha256": "a170b0bdabf967cef8f606a96bcce3f395bd90ada92a954b76bc0eeb1a7b2d6b",
+    "v2_reseal_manifest_filesystem_sha256": "37ea72d5de7996e35919c3a8332093b525df46cfa0b0302d21bf9dc6d7425f14",
+    "ancestor_fix_review_filesystem_sha256": "4c20f452c4f347457aa6f5f349af49f4f99f63f761bc3a1a5771d4db5d10deb7",
+    "disposition": "INDEPENDENT_V2_NORMATIVE_RESEAL_AND_ANCESTOR_FIX_APPROVED"
+  },
+  "effective_retention": {
+    "schema_version": "r03-public-retention-v2",
+    "full_frames_total": 151820,
+    "full_frames_retained": 150394,
+    "article_appearances_total": 702489,
+    "article_appearances_retained": 695948,
+    "input_text_bytes": 1585976846,
+    "retained_text_bytes": 1515387041,
+    "full_frame_retention_pct_2dp": "99.06",
+    "article_appearance_retention_pct_2dp": "99.07",
+    "text_byte_retention_pct_2dp": "95.55",
+    "retention_sha256": "8b659ac03fb4481ebbbcdc3579e484f5630d8e490d6981c0b4a7a2c3c02c1019"
+  },
+  "precedence": {
+    "composition": "BASE_DOCUMENT_PLUS_PINNED_ADDITIVE_AMENDMENT",
+    "scope": "SELECTED_PAYLOAD_RETENTION_ASSERTION_ONLY",
+    "action": "REPLACE_NOT_RECONCILE",
+    "legacy_90_53_role": "HISTORICAL_NON_NORMATIVE_ONLY",
+    "p5_97_03_role": "SUPERSEDED_HISTORICAL_ONLY",
+    "all_other_base_clauses_unchanged": true,
+    "effective_value_required_for_future_r03_decisions": true
+  },
+  "non_authority": {
+    "raw_source_access": false,
+    "frame_or_fixture_creation": false,
+    "fitting": false,
+    "g1_g2_g3_execution": false,
+    "oos_access": false,
+    "inference_or_model_download": false,
+    "provider_or_network_use": false,
+    "dependency_change": false,
+    "commit": false,
+    "push": false
+  },
+  "effective_contract_sha256": "7277792e284aaa90d8ca7bcef828102e28f587950f8a2ca7951b5dae93136704"
+}
