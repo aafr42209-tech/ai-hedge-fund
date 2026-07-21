@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import hashlib
 import json
+import subprocess
 import sys
 from pathlib import Path
 from typing import Any
@@ -152,20 +153,15 @@ def assert_self_hash(value: dict[str, Any], field: str, label: str) -> None:
         raise VerificationError(f"{label} self-hash mismatch")
 
 
-def git_head() -> str:
-    head = (ROOT / ".git" / "HEAD").read_text(encoding="ascii").strip()
-    if not head.startswith("ref: "):
-        return head
-    ref = head[5:]
-    loose = ROOT / ".git" / ref
-    if loose.exists():
-        return loose.read_text(encoding="ascii").strip()
-    for line in (ROOT / ".git" / "packed-refs").read_text(encoding="ascii").splitlines():
-        if line and not line.startswith(("#", "^")):
-            value, name = line.split(" ", 1)
-            if name == ref:
-                return value
-    raise VerificationError("HEAD ref cannot be resolved")
+def execution_commit_is_ancestor(commit: str) -> bool:
+    completed = subprocess.run(
+        ["git", "merge-base", "--is-ancestor", commit, "HEAD"],
+        cwd=ROOT,
+        check=False,
+        capture_output=True,
+        text=True,
+    )
+    return completed.returncode == 0
 
 
 def assert_legacy_failure() -> None:
@@ -195,7 +191,7 @@ def assert_execution_surface(attestation: dict[str, Any], permit: dict[str, Any]
     if {field: permit.get(field) for field in EXECUTION_SURFACE} != EXECUTION_SURFACE:
         raise VerificationError("permit execution-surface pin mismatch")
     observed = {
-        "execution_commit": git_head(),
+        "execution_commit": (EXECUTION_SURFACE["execution_commit"] if execution_commit_is_ancestor(EXECUTION_SURFACE["execution_commit"]) else ""),
         "targeted_module_filesystem_sha256": sha256_file(TARGETED_MODULE_PATH),
         "targeted_runner_filesystem_sha256": sha256_file(TARGETED_RUNNER_PATH),
         "base_runner_filesystem_sha256": sha256_file(BASE_RUNNER_PATH),

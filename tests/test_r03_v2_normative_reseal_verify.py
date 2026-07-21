@@ -91,6 +91,16 @@ def test_resigned_attestation_semantic_tamper_fails_closed(
         verifier.assert_attestation(attestation, lineage)
 
 
+def test_execution_commit_must_be_an_ancestor_of_current_head(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    attestation = verifier.load_json(verifier.ATTESTATION_PATH)
+    permit = verifier.load_json(verifier.PERMIT_PATH)
+    monkeypatch.setattr(verifier, "execution_commit_is_ancestor", lambda commit: False)
+    with pytest.raises(verifier.VerificationError, match="observed execution surface"):
+        verifier.assert_execution_surface(attestation, permit)
+
+
 def _resign_targeted_result(result: dict[str, object]) -> tuple[str, str, str]:
     evidence = result["targeted_evidence"]
     assert isinstance(evidence, dict)

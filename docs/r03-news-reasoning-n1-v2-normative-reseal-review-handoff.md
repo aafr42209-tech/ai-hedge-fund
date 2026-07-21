@@ -52,14 +52,14 @@ provenance recovery. The lineage records the recovery as
 |---|---|---|
 | V2 reseal lineage | `8f3b3f0c25b3dd8b7c12af4232f6fb22b19db62e71b752d1555b9c114457a719` | `e7730dcc3e4b260f89ff3bbf1591fbe8cac15bc6386ac6fbd8eeb00dc860af24` |
 | Execution-surface attestation | `44002b7a56e3c2432b4b4abf62088241d83c397d96c1a7e33828f03eeb3659f6` | `1ae3e2af3f59feb08940615f6ac22a19542077b29ad95496b625d7f9e902dbe1` |
-| V2 reseal evidence | `fab5719680ee93581e8a849567d38267e31fc1f5de3cea576db83e778a31ac29` | `123a672929e826be28a9ac54fb47c7012705d59ba0b81351b587758e475a8e02` |
-| Zero-call manifest | n/a | `3147d55a5a15bd9cb736556e71d6fd75068f86b3eb85135c8a067423b2ab8db0` |
+| V2 reseal evidence | `a170b0bdabf967cef8f606a96bcce3f395bd90ada92a954b76bc0eeb1a7b2d6b` | `3c2b0c5d07859c367692067802824b74ead58cc1a17bba592f08dddb3d6349b0` |
+| Zero-call manifest | n/a | `37ea72d5de7996e35919c3a8332093b525df46cfa0b0302d21bf9dc6d7425f14` |
 | Targeted result | `797a960ed9a7a4e9b1fe3e2f7cf92957a3afcf47fb87df25456ee946f3fc8045` | review anchor `67214163917e631696edf7b7d564795430794b795ee5d282dbd5277ff34e2aaa` |
 | Targeted evidence | `06a059b1d7b869e4c567d109931faec9d491c84ba2c17f98a874f8f0237d4109` | nested |
 | Ledger multiset | `43029119e288584e6a516687e52d5cf35625806dd34f15d722c4ef2caf576f75` | nested |
 | Independent targeted-result review | n/a | `264ae4861d2ffb55983625cbe9db110bc3ebd5487f6392bf336efb030a4ea44f` |
-| Verifier | n/a | `30c1b697d28daed88a22b3b1ae394b49802aebd04c998e724e42312499f41f07` |
-| Tamper tests | n/a | `f674b9539e1a4794ab97712670edf53fde8fe89ec1c97fee04657c73cce6c6ab` |
+| Verifier | n/a | `49995cffa95f01146938254436375b9b1b7d9bcfb043ff70e7e411bc8a8b2d9e` |
+| Tamper tests | n/a | `ccbb398bfccf628505f25222494b0b09fce03ca038dd0f46a2a452b970dc25e0` |
 
 Canonical hashes are normative contract anchors. Filesystem hashes are file
 identity or review-session anchors only. In particular, the targeted result is
@@ -77,9 +77,18 @@ self-hashed attestation closes that review observation and pins:
 - targeted permit, result, evidence, and ledger canonical identities;
 - the independent 44-check result review.
 
-The verifier recomputes every execution-surface filesystem hash and resolves
-the current Git HEAD before accepting the attestation. It does not traverse the
-news raw root.
+The verifier recomputes every execution-surface filesystem hash and proves that
+the raw execution commit is an ancestor of the current Git HEAD before
+accepting the attestation. It does not traverse the news raw root.
+
+The initial reviewed verifier compared the raw execution commit directly with
+the then-current HEAD. The first seal commit `c38bdc3b3fa93288a5fbb8d93c83ac4c95611445`
+correctly moved HEAD and exposed that post-commit state bug. This corrected set
+uses ancestry instead of equality and adds a regression test that forces the
+non-ancestor case to fail closed. The correction changes only the verifier,
+tests, evidence, manifest, and this handoff; lineage, attestation, normative
+values, and raw results remain unchanged. A new independent review is required
+before a follow-up correction commit or push.
 
 ## 6. Byte-accounting closure
 
@@ -126,8 +135,8 @@ counters, ledger partition/order changes, and artifact-pin mutation.
 - Reconciliation contract verifier: pass.
 - Reconciliation rerun verifier: pass.
 - V2 normative reseal verifier: pass.
-- Focused V2 reseal tamper tests: 19 passed.
-- Broader R03 set covering six files: 107 passed.
+- Focused V2 reseal tamper tests: 20 passed.
+- Broader R03 set covering six files: 108 passed.
 - Black, isort, flake8 with line length 420, and `git diff --check`: pass.
 - Current reseal-scope raw traversals, copies, fits, gates, OOS, inference,
   provider/network calls, dependency changes, commits, and pushes: all zero.

@@ -44,8 +44,8 @@
     "docs/r03-news-reasoning-n1-v2-normative-reseal-attestation.json": "1ae3e2af3f59feb08940615f6ac22a19542077b29ad95496b625d7f9e902dbe1",
     "docs/r03-news-reasoning-n1-numerator-targeted-scan-independent-review.md": "264ae4861d2ffb55983625cbe9db110bc3ebd5487f6392bf336efb030a4ea44f",
     "v2/research/news_reasoning/r03_numerator_reconciliation.py": "43ada011967a532585ba0ea456a539515501c43c6b9b57d8111b0e24fd8a7efc",
-    "scripts/r03_news_reasoning_v2_normative_reseal_verify.py": "30c1b697d28daed88a22b3b1ae394b49802aebd04c998e724e42312499f41f07",
-    "tests/test_r03_v2_normative_reseal_verify.py": "f674b9539e1a4794ab97712670edf53fde8fe89ec1c97fee04657c73cce6c6ab"
+    "scripts/r03_news_reasoning_v2_normative_reseal_verify.py": "49995cffa95f01146938254436375b9b1b7d9bcfb043ff70e7e411bc8a8b2d9e",
+    "tests/test_r03_v2_normative_reseal_verify.py": "ccbb398bfccf628505f25222494b0b09fce03ca038dd0f46a2a452b970dc25e0"
   },
   "verification_commands": [
     "python scripts/r03_news_reasoning_v2_normative_reseal_verify.py",
@@ -68,5 +68,5 @@
     "commits": 0,
     "pushes": 0
   },
-  "evidence_sha256": "fab5719680ee93581e8a849567d38267e31fc1f5de3cea576db83e778a31ac29"
+  "evidence_sha256": "a170b0bdabf967cef8f606a96bcce3f395bd90ada92a954b76bc0eeb1a7b2d6b"
 }

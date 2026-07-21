@@ -12,11 +12,11 @@
   "artifact_sha256": {
     "docs/r03-news-reasoning-n1-v2-normative-reseal-lineage.json": "e7730dcc3e4b260f89ff3bbf1591fbe8cac15bc6386ac6fbd8eeb00dc860af24",
     "docs/r03-news-reasoning-n1-v2-normative-reseal-attestation.json": "1ae3e2af3f59feb08940615f6ac22a19542077b29ad95496b625d7f9e902dbe1",
-    "docs/r03-news-reasoning-n1-v2-normative-reseal-evidence.json": "123a672929e826be28a9ac54fb47c7012705d59ba0b81351b587758e475a8e02",
+    "docs/r03-news-reasoning-n1-v2-normative-reseal-evidence.json": "3c2b0c5d07859c367692067802824b74ead58cc1a17bba592f08dddb3d6349b0",
     "docs/r03-news-reasoning-n1-numerator-targeted-scan-independent-review.md": "264ae4861d2ffb55983625cbe9db110bc3ebd5487f6392bf336efb030a4ea44f",
     "v2/research/news_reasoning/r03_numerator_reconciliation.py": "43ada011967a532585ba0ea456a539515501c43c6b9b57d8111b0e24fd8a7efc",
-    "scripts/r03_news_reasoning_v2_normative_reseal_verify.py": "30c1b697d28daed88a22b3b1ae394b49802aebd04c998e724e42312499f41f07",
-    "tests/test_r03_v2_normative_reseal_verify.py": "f674b9539e1a4794ab97712670edf53fde8fe89ec1c97fee04657c73cce6c6ab"
+    "scripts/r03_news_reasoning_v2_normative_reseal_verify.py": "49995cffa95f01146938254436375b9b1b7d9bcfb043ff70e7e411bc8a8b2d9e",
+    "tests/test_r03_v2_normative_reseal_verify.py": "ccbb398bfccf628505f25222494b0b09fce03ca038dd0f46a2a452b970dc25e0"
   },
   "boundary_counters": {
     "raw_source_traversals": 0,
