@@ -1,0 +1,345 @@
+from __future__ import annotations
+
+import ast
+import hashlib
+import inspect
+import json
+from pathlib import Path
+from unittest.mock import mock_open
+
+import pytest
+from pydantic import ValidationError
+
+import v2.research.news_reasoning.r03_g1_execution as g1
+import v2.research.news_reasoning.r03_g1_stage2_runner as runner
+from v2.research.overlay.canonical import canonical_sha256
+
+ROOT = Path(__file__).resolve().parents[1]
+SNAPSHOT_PATH = ROOT / ".research_artifacts/r03-news-reasoning/universe-snapshot-v1.json"
+INCIDENT_PATH = ROOT / ".research_artifacts/r03-news-reasoning/g1-stage2-incident-01.json"
+FORMULA_AMENDMENT_PATH = ROOT / "docs/r03-news-reasoning-t0-feature-formula-amendment.md"
+
+
+def _pin_threads(monkeypatch: pytest.MonkeyPatch) -> None:
+    for key in g1.THREAD_ENV_KEYS:
+        monkeypatch.setenv(key, "1")
+    runtime = g1.installed_t0_runtime_identity()
+    monkeypatch.setattr(g1, "_T0_RUNTIME_CACHE", runtime)
+
+
+def test_protocol_binds_exact_external_assets_internal_universe_and_ordinal_clock() -> None:
+    protocol = runner.stage2_runner_protocol_identity()
+    assert tuple(pin.role for pin in protocol.external_asset_pins) == ("MARKET_BARS",)
+    assert tuple(pin.absolute_path for pin in protocol.external_asset_pins) == (runner.MARKET_BARS_PATH,)
+    assert protocol.asset_access_rule == g1.G1_STAGE2_ASSET_ACCESS_RULE
+    assert protocol.session_ordinal_rule == g1.G1_SESSION_ORDINAL_RULE
+    assert protocol.market_universe_ticker_rule == g1.G1_MARKET_UNIVERSE_TICKER_RULE
+    assert protocol.nominal_decision_time == runner.NOMINAL_DECISION_TIME
+    assert protocol.real_early_close_schedule_in_scope is False
+    assert protocol.universe_source_path not in {pin.absolute_path for pin in protocol.external_asset_pins}
+    with pytest.raises(runner.R03G1Stage2AccessError, match="unknown Stage 2 asset role"):
+        runner.stage2_asset_pin("ARTICLE_EVENTS")
+    assert canonical_sha256(protocol.model_dump(mode="json", exclude={"runner_protocol_sha256"})) == protocol.runner_protocol_sha256
+
+
+def test_internal_universe_snapshot_is_minimal_sorted_and_hash_pinned() -> None:
+    snapshot_text = SNAPSHOT_PATH.read_text(encoding="utf-8")
+    payload = json.loads(snapshot_text)
+    snapshot = runner.UniverseSnapshot.model_validate_json(snapshot_text)
+    assert len(snapshot.ticker_sector_mapping) == 100
+    assert tuple(entry.ticker for entry in snapshot.ticker_sector_mapping) == tuple(sorted(entry.ticker for entry in snapshot.ticker_sector_mapping))
+    assert snapshot.source_sha256 == g1.T0_UNIVERSE_SOURCE_SHA256
+    assert snapshot.snapshot_sha256 == g1.T0_UNIVERSE_SNAPSHOT_SHA256
+    assert set(payload) == {
+        "schema_version",
+        "source_path",
+        "source_sha256",
+        "ticker_sector_mapping",
+        "snapshot_sha256",
+    }
+
+
+def test_universe_snapshot_mutations_fail_closed() -> None:
+    payload = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    payload["ticker_sector_mapping"][0]["sector"] = "MUTATED"
+    with pytest.raises(runner.R03G1Stage2AccessError, match="snapshot hash"):
+        runner.UniverseSnapshot.model_validate_json(json.dumps(payload))
+    payload = json.loads(SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    payload["source_sha256"] = "0" * 64
+    with pytest.raises(runner.R03G1Stage2AccessError, match="source hash"):
+        runner.UniverseSnapshot.model_validate_json(json.dumps(payload))
+
+
+def test_formula_amendment_and_protocol_rules_are_hash_pinned() -> None:
+    assert hashlib.sha256(FORMULA_AMENDMENT_PATH.read_bytes()).hexdigest() == g1.T0_FEATURE_FORMULA_AMENDMENT_SHA256
+    protocol = g1.t0_protocol_identity()
+    assert protocol.feature_formula_contract == "R03_T0_FEATURE_FORMULA_AMENDMENT_V1"
+    assert protocol.feature_formula_amendment_path == ("docs/r03-news-reasoning-t0-feature-formula-amendment.md")
+    assert protocol.raw_feature_formula_rule == g1.T0_RAW_FEATURE_FORMULA_RULE
+    assert protocol.label_formula_rule == g1.T0_LABEL_FORMULA_RULE
+    assert protocol.raw_missing_rule == g1.T0_RAW_MISSING_RULE
+
+
+def test_disallowed_raw_news_path_is_rejected_before_filesystem_resolution(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    counters = runner.Stage2AccessCounters()
+
+    def forbidden_resolution(*args, **kwargs):
+        raise AssertionError("disallowed path reached filesystem resolution")
+
+    monkeypatch.setattr(Path, "resolve", forbidden_resolution)
+    with pytest.raises(runner.R03G1Stage2AccessError, match="exact allowlist"):
+        runner.load_stage2_asset(
+            "MARKET_BARS",
+            "C:/Users/User/Desktop/FinGPT/data/news_preflight/AAPL_2025/page_0032.json",
+            counters,
+        )
+    assert counters.raw_news_access_attempts == 1
+    assert counters.disallowed_path_attempts == 1
+    assert counters.allowed_asset_reads == 0
+
+
+def test_prefix_and_relative_path_near_misses_fail_closed() -> None:
+    for near_miss in (
+        "C:/Users/User/Desktop/FinGPT/data/raw",
+        "C:/Users/User/Desktop/FinGPT/data/raw/market_bars_real.parquet.bak",
+        "data/raw/market_bars_real.parquet",
+    ):
+        counters = runner.Stage2AccessCounters()
+        with pytest.raises(runner.R03G1Stage2AccessError, match="exact allowlist"):
+            runner.load_stage2_asset("MARKET_BARS", near_miss, counters)
+        assert counters.disallowed_path_attempts == 1
+        assert counters.raw_news_access_attempts == 1
+        assert counters.allowed_asset_reads == 0
+
+
+def test_resolved_path_alias_is_rejected_before_open(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    counters = runner.Stage2AccessCounters()
+    monkeypatch.setattr(
+        Path,
+        "resolve",
+        lambda self, strict=True: Path("C:/Users/User/Desktop/FinGPT/alias.parquet"),
+    )
+    with pytest.raises(runner.R03G1Stage2AccessError, match="resolved asset path"):
+        runner.load_stage2_asset(
+            "MARKET_BARS",
+            runner.MARKET_BARS_PATH,
+            counters,
+        )
+    assert counters.disallowed_path_attempts == 1
+    assert counters.allowed_asset_reads == 0
+
+
+def test_hash_mismatch_stops_before_parquet_decode(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    counters = runner.Stage2AccessCounters()
+    monkeypatch.setattr(
+        Path,
+        "resolve",
+        lambda self, strict=True: Path(runner.MARKET_BARS_PATH),
+    )
+    monkeypatch.setattr("builtins.open", mock_open(read_data=b"mutated"))
+
+    def forbidden_decode(*args, **kwargs):
+        raise AssertionError("hash mismatch reached parquet decoder")
+
+    import pyarrow.parquet as parquet
+
+    monkeypatch.setattr(parquet, "read_table", forbidden_decode)
+    with pytest.raises(runner.R03G1Stage2AccessError, match="content hash"):
+        runner.load_stage2_asset(
+            "MARKET_BARS",
+            runner.MARKET_BARS_PATH,
+            counters,
+        )
+    assert counters.allowed_asset_reads == 0
+
+
+def test_synthetic_gateway_success_returns_aggregate_receipt(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    import pyarrow as pa
+    import pyarrow.parquet as parquet
+
+    payload_bytes = b"synthetic parquet bytes"
+    synthetic_table = pa.table(
+        {
+            "ticker": pa.array(["AAPL"], type=pa.string()),
+            "timestamp": pa.array([0], type=pa.timestamp("ns", tz="UTC")),
+            "open": pa.array([1.0], type=pa.float64()),
+            "high": pa.array([1.0], type=pa.float64()),
+            "low": pa.array([1.0], type=pa.float64()),
+            "close": pa.array([1.0], type=pa.float64()),
+            "volume": pa.array([1], type=pa.int64()),
+        }
+    )
+    synthetic_pin = runner.Stage2AssetPin(
+        role="MARKET_BARS",
+        location="EXTERNAL",
+        absolute_path=runner.MARKET_BARS_PATH,
+        sha256=hashlib.sha256(payload_bytes).hexdigest(),
+    )
+    monkeypatch.setattr(runner, "stage2_asset_pin", lambda role: synthetic_pin)
+    monkeypatch.setattr(
+        Path,
+        "resolve",
+        lambda self, strict=True: Path(runner.MARKET_BARS_PATH),
+    )
+    monkeypatch.setattr("builtins.open", mock_open(read_data=payload_bytes))
+    decoded_bytes: list[bytes] = []
+
+    def _decode_verified_buffer(source: object, *args: object, **kwargs: object) -> object:
+        assert isinstance(source, pa.BufferReader)
+        decoded_bytes.append(source.read())
+        return synthetic_table
+
+    monkeypatch.setattr(parquet, "read_table", _decode_verified_buffer)
+    counters = runner.Stage2AccessCounters()
+    loaded = runner.load_stage2_asset(
+        "MARKET_BARS",
+        runner.MARKET_BARS_PATH,
+        counters,
+    )
+    assert loaded.payload is synthetic_table
+    assert loaded.receipt.row_count == 1
+    assert loaded.receipt.byte_count == len(payload_bytes)
+    assert loaded.receipt.column_names == (
+        "ticker",
+        "timestamp",
+        "open",
+        "high",
+        "low",
+        "close",
+        "volume",
+    )
+    assert counters.allowed_asset_reads == 1
+    assert counters.disallowed_path_attempts == 0
+    assert decoded_bytes == [payload_bytes]
+
+
+def test_zero_call_manifest_refuses_any_contaminated_counter() -> None:
+    clean = runner.Stage2AccessCounters()
+    manifest = runner.build_zero_call_manifest(clean)
+    assert manifest.raw_news_access_attempts == 0
+    assert canonical_sha256(manifest.model_dump(mode="json", exclude={"manifest_sha256"})) == manifest.manifest_sha256
+    dirty = runner.Stage2AccessCounters(raw_news_access_attempts=1)
+    with pytest.raises(runner.R03G1Stage2AccessError, match="contaminated"):
+        runner.build_zero_call_manifest(dirty)
+
+
+def test_synthetic_market_and_article_schemas(monkeypatch: pytest.MonkeyPatch) -> None:
+    _pin_threads(monkeypatch)
+    import pyarrow as pa
+
+    market = pa.table(
+        {
+            "ticker": pa.array(["AAPL"], type=pa.string()),
+            "timestamp": pa.array([0], type=pa.timestamp("ns", tz="UTC")),
+            "open": pa.array([1.0], type=pa.float64()),
+            "high": pa.array([1.0], type=pa.float64()),
+            "low": pa.array([1.0], type=pa.float64()),
+            "close": pa.array([1.0], type=pa.float64()),
+            "volume": pa.array([1], type=pa.int64()),
+        }
+    )
+    assert runner._validate_market_bars_table(market) == (
+        1,
+        ("ticker", "timestamp", "open", "high", "low", "close", "volume"),
+    )
+    article = pa.table(
+        {
+            "ticker": pa.array(["AAPL"]),
+            "published_at": pa.array([0], type=pa.timestamp("ns", tz="UTC")),
+        }
+    )
+    assert runner._validate_article_events_table(article)[0] == 1
+    raw_article = article.append_column("headline", pa.array(["forbidden"]))
+    with pytest.raises(runner.R03G1Stage2AccessError, match="raw-text"):
+        runner._validate_article_events_table(raw_article)
+
+
+def test_market_universe_requires_exact_ticker_set(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _pin_threads(monkeypatch)
+    import pyarrow as pa
+
+    snapshot = runner.UniverseSnapshot.model_validate_json(SNAPSHOT_PATH.read_text(encoding="utf-8"))
+    exact = pa.table({"ticker": pa.array([entry.ticker for entry in snapshot.ticker_sector_mapping])})
+    runner._assert_exact_market_universe_tickers(exact, snapshot)
+    same_count_wrong_set = pa.table({"ticker": pa.array([entry.ticker for entry in snapshot.ticker_sector_mapping[1:]] + ["ZZZZ"])})
+    with pytest.raises(runner.R03G1Stage2AccessError, match="ticker sets"):
+        runner._assert_exact_market_universe_tickers(same_count_wrong_set, snapshot)
+
+
+def test_pyarrow_runtime_identity_binds_numeric_runtime(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _pin_threads(monkeypatch)
+    identity = runner.installed_stage2_io_runtime_identity()
+    assert identity.pyarrow_version
+    assert identity.t0_numeric_runtime_sha256 == g1.initialize_t0_numeric_runtime().runtime_sha256
+    assert canonical_sha256(identity.model_dump(mode="json", exclude={"runtime_sha256"})) == identity.runtime_sha256
+
+
+def test_runner_has_one_io_gateway_and_no_recursive_discovery_surface() -> None:
+    module_path = Path(inspect.getsourcefile(runner) or "")
+    tree = ast.parse(module_path.read_text(encoding="utf-8"))
+    io_owners: dict[str, set[str]] = {}
+    forbidden_calls = {"glob", "iglob", "rglob", "walk"}
+    seen_forbidden = set()
+    for node in tree.body:
+        if not isinstance(node, (ast.FunctionDef, ast.AsyncFunctionDef)):
+            continue
+        calls = set()
+        for child in ast.walk(node):
+            if not isinstance(child, ast.Call):
+                continue
+            if isinstance(child.func, ast.Name):
+                name = child.func.id
+            elif isinstance(child.func, ast.Attribute):
+                name = child.func.attr
+            else:
+                continue
+            if name in {"open", "read_table", "resolve"}:
+                calls.add(name)
+            if name in forbidden_calls:
+                seen_forbidden.add(name)
+        if calls:
+            io_owners[node.name] = calls
+    assert io_owners == {
+        "load_stage2_asset": {"open", "read_table", "resolve"},
+    }
+    assert seen_forbidden == set()
+    imports = {alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names}
+    assert imports.isdisjoint({"requests", "httpx", "socket", "subprocess"})
+
+
+def test_incident_record_is_aggregate_only_and_closes_both_kb_copies() -> None:
+    incident = json.loads(INCIDENT_PATH.read_text(encoding="utf-8"))
+    assert incident["accessed_file_count"] == 1
+    assert incident["matched_line_count"] == 1
+    assert incident["raw_news_access_attempts"] == 1
+    assert incident["raw_content_present_in_incident_record"] is False
+    assert incident["raw_content_reopened_for_incident_record"] is False
+    assert incident["raw_content_hash_computed_for_incident_record"] is False
+    assert incident["frame_materializations_after_incident"] == 0
+    assert incident["fitting_calls_after_incident"] == 0
+    assert incident["g1_gate_decisions_after_incident"] == 0
+    assert incident["provider_calls"] == incident["network_calls"] == 0
+    assert incident["codex_project_kb_purge"]["status"] == "COMPLETE"
+    assert incident["independent_session_project_kb_purge"]["status"] == "COMPLETE"
+    serialized = json.dumps(incident, sort_keys=True).lower()
+    assert all(token not in serialized for token in ("article_body", "content_excerpt", "headline_text", "raw_text_value"))
+
+
+def test_protocol_mutation_requires_rehash() -> None:
+    protocol = runner.stage2_runner_protocol_identity()
+    mutated = protocol.model_dump(mode="json")
+    mutated["nominal_decision_time"] = "MUTATED"
+    with pytest.raises(ValidationError):
+        runner.Stage2RunnerProtocolIdentity.model_validate(mutated)

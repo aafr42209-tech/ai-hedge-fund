@@ -1,0 +1,38 @@
+{
+  "schema_version": "r03-g1-stage2-incident-v1",
+  "incident_id": "R03_G1_STAGE2_RAW_NEWS_ACCESS_INCIDENT_01",
+  "accessed_path": "C:/Users/User/Desktop/FinGPT/data/news_preflight/AAPL_2025/page_0032.json",
+  "accessed_file_count": 1,
+  "matched_line_count": 1,
+  "raw_news_access_attempts": 1,
+  "transient_context_index_match_lines": 1,
+  "raw_content_present_in_incident_record": false,
+  "raw_content_reopened_for_incident_record": false,
+  "raw_content_hash_computed_for_incident_record": false,
+  "repository_raw_text_artifacts_created": 0,
+  "frame_materializations_after_incident": 0,
+  "fitting_calls_after_incident": 0,
+  "g1_gate_decisions_after_incident": 0,
+  "oos_accesses_after_incident": 0,
+  "provider_calls": 0,
+  "network_calls": 0,
+  "codex_project_kb_purge": {
+    "status": "COMPLETE",
+    "deleted": [
+      "FTS5_KNOWLEDGE_BASE",
+      "SESSION_EVENT_DB",
+      "SESSION_STATS"
+    ],
+    "contaminated_content_requeried": false
+  },
+  "independent_session_project_kb_purge": {
+    "status": "COMPLETE",
+    "deleted": [
+      "FTS5_KNOWLEDGE_BASE",
+      "SESSION_EVENT_DB",
+      "SESSION_STATS"
+    ],
+    "contaminated_content_requeried": false
+  },
+  "disposition": "FAIL_CLOSED_ABORTED_NO_MODEL_OR_GATE_DECISION"
+}
