@@ -49,9 +49,20 @@ G1_SEED_DOMAIN = "R03_G1_STATIONARY_BOOTSTRAP_V1"
 G1_BOOTSTRAP_PRIMITIVE = "R03_HEADROOM_STATIONARY_BOOTSTRAP_MEANS_E12_V1"
 G1_BOOTSTRAP_DOMAIN_SEED_RULE = "SHA256_SEED_BYTES_CONCAT_LABEL_UTF8_NO_SEPARATOR_FIRST_16_BYTES_BIG_ENDIAN"
 G1_GOVERNING_COST_CELL_RULE = "MAX_UPPER_95_THEN_LARGER_COST_BPS"
-G1_STAGE2_ASSET_ACCESS_RULE = "EXACT_RESOLVED_ABSOLUTE_PATH_MATCH_ONLY_NO_PREFIX_NO_RECURSION"
+G1_GATE_RECONCILIATION_RULE = "ZERO_COST_TIME_DECOUPLED_SORTING_RELAXATION_MINUS_IDENTICAL_B0_T0_GOVERNS_STOP_GREEDY_COST_BEARING_FEASIBLE_BRACKET_DIAGNOSTIC_ONLY_V1"
+G1_PRE_EXECUTION_POWER_PREDICTION_RULE = "CONFIGURED_G1_EXPECTED_TO_RETURN_CONTINUE_WITH_NEAR_CERTAINTY_INSTRUMENT_PROPERTY_NOT_FINDING_V1"
+G1_CONTINUE_EVIDENTIAL_WEIGHT_RULE = "G1_CONTINUE_NOT_SUPPORT_FOR_NEWS_TEXT_OR_LLM_CONTRIBUTION_AND_MUST_NOT_BE_CITED_AS_SUCH_V1"
+G1_SANDWICH_REPORTING_RULE = "REPORT_GREEDY_COST_BEARING_LOWER_AND_ZERO_COST_TIME_DECOUPLED_POINT_AND_UPPER_95_WITH_DECISION_BAND_WIDTH_AND_BAND_UNDETERMINED_BY_COST_CELL_V1"
+G1_BOUND_CERTIFICATE_DECISION_ID_RULE = "CALIBRATION_PIPE_DECISION_ORDINAL_06D_PIPE_DECISION_DATE_YYYY_MM_DD_V1"
+G1_BOUND_CERTIFICATE_ROOT_RULE = "CANONICAL_SHA256_ORDERED_TUPLE_OF_PER_DECISION_CERTIFICATE_SHA256_IN_DECISION_ORDER_V1"
+G1_STAGE2_ASSET_ACCESS_RULE = "EXECUTION_PATH_EXACT_RESOLVED_ABSOLUTE_PATH_MATCH_ONLY_NO_PREFIX_NO_RECURSION_TEST_DOUBLES_AND_INTEGRITY_HASH_INVENTORIES_OUT_OF_SCOPE_V2"
 G1_SESSION_ORDINAL_RULE = "PINNED_MARKET_BAR_SESSION_ORDINALS_NOMINAL_1530_ET_EARLY_CLOSE_DEFERRED_TO_T2_T3"
 G1_MARKET_UNIVERSE_TICKER_RULE = "EXACT_TICKER_SET_EQUALITY_MARKET_BARS_TO_PINNED_UNIVERSE_SNAPSHOT"
+G1_GATE_RECONCILIATION_AMENDMENT_PATH = "docs/r03-news-reasoning-g1-gate-definition-reconciliation-amendment.md"
+G1_GATE_RECONCILIATION_AMENDMENT_SHA256 = "47e42e2920fae2da6ef4c6383216e361dfcc524b4d8e519c2c40d4828d3fbdfe"
+T0_FOLD_VALIDATION_WINDOW_RULE = "DEVELOPMENT_DECISION_SESSIONS_WITH_CALENDAR_YEAR_EQUAL_FOLD_END_YEAR_EXPANDING_STRICTLY_EARLIER_MATURED_HISTORY_BEFORE_EACH_MONTHLY_REFIT_V1"
+T0_TIMESTAMP_RULE = "UTC_SESSION_DATE_NOMINAL_1530_AMERICA_NEW_YORK_DECISION_T_FEATURE_T_MINUS_1_LABEL_T_PLUS_5_V1"
+T0_ROW_ID_RULE = "SPLIT_PIPE_DECISION_ORDINAL_06D_PIPE_DECISION_DATE_YYYY_MM_DD_PIPE_TICKER_V1"
 T0_UNIVERSE_SOURCE_PATH = "C:/Users/User/Desktop/FinGPT/configs/universe.json"
 T0_UNIVERSE_SOURCE_SHA256 = "3017ce3138887867ae238ece81dc7fa6db6c646014554cc07408abbd64b356fe"
 T0_UNIVERSE_SNAPSHOT_PATH = ".research_artifacts/r03-news-reasoning/universe-snapshot-v1.json"
@@ -148,7 +159,7 @@ def t0_alpha_from_e1(t0_alpha_e1: int) -> float:
 
 
 class T0ProtocolIdentity(StrictModel):
-    schema_version: Literal["r03-t0-protocol-identity-v1"] = "r03-t0-protocol-identity-v1"
+    schema_version: Literal["r03-t0-protocol-identity-v2"] = "r03-t0-protocol-identity-v2"
     execution_status: Literal["BLOCKED_PENDING_SEPARATE_EXECUTION_AUTHORITY"] = T0_EXECUTION_STATUS
     base_features: tuple[str, ...]
     design_columns: tuple[str, ...]
@@ -168,7 +179,10 @@ class T0ProtocolIdentity(StrictModel):
     selection_cells: tuple[str, ...]
     candidate_run_order: tuple[str, ...]
     alpha_selection_rule: Literal["MAXIMIZE_MIN_OVER_FOLD_X_COST_THEN_LARGER_T0_ALPHA_E1"]
+    fold_validation_window_rule: Literal["DEVELOPMENT_DECISION_SESSIONS_WITH_CALENDAR_YEAR_EQUAL_FOLD_END_YEAR_EXPANDING_STRICTLY_EARLIER_MATURED_HISTORY_BEFORE_EACH_MONTHLY_REFIT_V1"]
     refit_protocol: Literal["MONTHLY_EXPANDING_FIXED_ALPHA_MATURED_LABELS_ONLY_V1"]
+    timestamp_rule: Literal["UTC_SESSION_DATE_NOMINAL_1530_AMERICA_NEW_YORK_DECISION_T_FEATURE_T_MINUS_1_LABEL_T_PLUS_5_V1"]
+    row_id_rule: Literal["SPLIT_PIPE_DECISION_ORDINAL_06D_PIPE_DECISION_DATE_YYYY_MM_DD_PIPE_TICKER_V1"]
     effective_interval: Literal["LEFT_CLOSED_RIGHT_OPEN"]
     label_rule: Literal["H5_MATURED_AT_OR_BEFORE_REFIT"]
     purge_decision_rows: Literal["ALWAYS_EXCLUDED"]
@@ -178,7 +192,15 @@ class T0ProtocolIdentity(StrictModel):
     g1_bootstrap_primitive: Literal["R03_HEADROOM_STATIONARY_BOOTSTRAP_MEANS_E12_V1"]
     g1_bootstrap_domain_seed_rule: Literal["SHA256_SEED_BYTES_CONCAT_LABEL_UTF8_NO_SEPARATOR_FIRST_16_BYTES_BIG_ENDIAN"]
     governing_cost_cell_rule: Literal["MAX_UPPER_95_THEN_LARGER_COST_BPS"]
-    stage2_asset_access_rule: Literal["EXACT_RESOLVED_ABSOLUTE_PATH_MATCH_ONLY_NO_PREFIX_NO_RECURSION"]
+    gate_reconciliation_rule: Literal["ZERO_COST_TIME_DECOUPLED_SORTING_RELAXATION_MINUS_IDENTICAL_B0_T0_GOVERNS_STOP_GREEDY_COST_BEARING_FEASIBLE_BRACKET_DIAGNOSTIC_ONLY_V1"]
+    pre_execution_power_prediction_rule: Literal["CONFIGURED_G1_EXPECTED_TO_RETURN_CONTINUE_WITH_NEAR_CERTAINTY_INSTRUMENT_PROPERTY_NOT_FINDING_V1"]
+    continue_evidential_weight_rule: Literal["G1_CONTINUE_NOT_SUPPORT_FOR_NEWS_TEXT_OR_LLM_CONTRIBUTION_AND_MUST_NOT_BE_CITED_AS_SUCH_V1"]
+    sandwich_reporting_rule: Literal["REPORT_GREEDY_COST_BEARING_LOWER_AND_ZERO_COST_TIME_DECOUPLED_POINT_AND_UPPER_95_WITH_DECISION_BAND_WIDTH_AND_BAND_UNDETERMINED_BY_COST_CELL_V1"]
+    bound_certificate_decision_id_rule: Literal["CALIBRATION_PIPE_DECISION_ORDINAL_06D_PIPE_DECISION_DATE_YYYY_MM_DD_V1"]
+    bound_certificate_root_rule: Literal["CANONICAL_SHA256_ORDERED_TUPLE_OF_PER_DECISION_CERTIFICATE_SHA256_IN_DECISION_ORDER_V1"]
+    gate_reconciliation_amendment_path: Literal["docs/r03-news-reasoning-g1-gate-definition-reconciliation-amendment.md"]
+    gate_reconciliation_amendment_sha256: str = Field(pattern=SHA256_PATTERN)
+    stage2_asset_access_rule: Literal["EXECUTION_PATH_EXACT_RESOLVED_ABSOLUTE_PATH_MATCH_ONLY_NO_PREFIX_NO_RECURSION_TEST_DOUBLES_AND_INTEGRITY_HASH_INVENTORIES_OUT_OF_SCOPE_V2"]
     g1_session_ordinal_rule: Literal["PINNED_MARKET_BAR_SESSION_ORDINALS_NOMINAL_1530_ET_EARLY_CLOSE_DEFERRED_TO_T2_T3"]
     market_universe_ticker_rule: Literal["EXACT_TICKER_SET_EQUALITY_MARKET_BARS_TO_PINNED_UNIVERSE_SNAPSHOT"]
     universe_source_path: Literal["C:/Users/User/Desktop/FinGPT/configs/universe.json"]
@@ -218,7 +240,7 @@ class T0ProtocolIdentity(StrictModel):
 
 def t0_protocol_identity() -> T0ProtocolIdentity:
     unsigned = {
-        "schema_version": "r03-t0-protocol-identity-v1",
+        "schema_version": "r03-t0-protocol-identity-v2",
         "execution_status": T0_EXECUTION_STATUS,
         "base_features": T0_BASE_FEATURES,
         "design_columns": T0_DESIGN_COLUMNS,
@@ -238,7 +260,10 @@ def t0_protocol_identity() -> T0ProtocolIdentity:
         "selection_cells": T0_SELECTION_CELLS,
         "candidate_run_order": T0_CANDIDATE_RUN_ORDER,
         "alpha_selection_rule": T0_ALPHA_SELECTION_RULE,
+        "fold_validation_window_rule": T0_FOLD_VALIDATION_WINDOW_RULE,
         "refit_protocol": T0_REFIT_PROTOCOL,
+        "timestamp_rule": T0_TIMESTAMP_RULE,
+        "row_id_rule": T0_ROW_ID_RULE,
         "effective_interval": "LEFT_CLOSED_RIGHT_OPEN",
         "label_rule": "H5_MATURED_AT_OR_BEFORE_REFIT",
         "purge_decision_rows": "ALWAYS_EXCLUDED",
@@ -248,6 +273,14 @@ def t0_protocol_identity() -> T0ProtocolIdentity:
         "g1_bootstrap_primitive": G1_BOOTSTRAP_PRIMITIVE,
         "g1_bootstrap_domain_seed_rule": G1_BOOTSTRAP_DOMAIN_SEED_RULE,
         "governing_cost_cell_rule": G1_GOVERNING_COST_CELL_RULE,
+        "gate_reconciliation_rule": G1_GATE_RECONCILIATION_RULE,
+        "pre_execution_power_prediction_rule": G1_PRE_EXECUTION_POWER_PREDICTION_RULE,
+        "continue_evidential_weight_rule": G1_CONTINUE_EVIDENTIAL_WEIGHT_RULE,
+        "sandwich_reporting_rule": G1_SANDWICH_REPORTING_RULE,
+        "bound_certificate_decision_id_rule": G1_BOUND_CERTIFICATE_DECISION_ID_RULE,
+        "bound_certificate_root_rule": G1_BOUND_CERTIFICATE_ROOT_RULE,
+        "gate_reconciliation_amendment_path": G1_GATE_RECONCILIATION_AMENDMENT_PATH,
+        "gate_reconciliation_amendment_sha256": G1_GATE_RECONCILIATION_AMENDMENT_SHA256,
         "stage2_asset_access_rule": G1_STAGE2_ASSET_ACCESS_RULE,
         "g1_session_ordinal_rule": G1_SESSION_ORDINAL_RULE,
         "market_universe_ticker_rule": G1_MARKET_UNIVERSE_TICKER_RULE,
@@ -1175,6 +1208,43 @@ class G1CostCellResult(StrictModel):
         return self
 
 
+class G1PowerDisclosureCell(StrictModel):
+    cost_bps_per_side: int
+    decision_count: int = Field(gt=0)
+    greedy_cost_bearing_lower_point_estimate_e12: int
+    zero_cost_decoupled_upper_point_estimate_e12: int
+    zero_cost_decoupled_upper_95_e12: int
+    decision_band_width_e12: int = Field(ge=0)
+    lower_exceeds_delta_star: bool
+    upper_95_at_or_below_delta_star: bool
+    band_undetermined: bool
+    disclosure_sha256: str = Field(pattern=SHA256_PATTERN)
+
+    @model_validator(mode="after")
+    def validate_disclosure(self) -> "G1PowerDisclosureCell":
+        if self.cost_bps_per_side not in T0_COST_CELLS_BPS:
+            raise R03G1PreparationError("G1 power disclosure uses an unregistered cost cell")
+        lower = self.greedy_cost_bearing_lower_point_estimate_e12
+        point = self.zero_cost_decoupled_upper_point_estimate_e12
+        upper_95 = self.zero_cost_decoupled_upper_95_e12
+        if not lower <= point <= upper_95:
+            raise R03G1PreparationError("G1 power-disclosure bracket is malformed")
+        if self.decision_band_width_e12 != upper_95 - lower:
+            raise R03G1PreparationError("G1 power-disclosure width mismatch")
+        lower_exceeds = lower > DELTA_STAR_E12
+        upper_stops = upper_95 <= DELTA_STAR_E12
+        if self.lower_exceeds_delta_star != lower_exceeds:
+            raise R03G1PreparationError("G1 lower-bracket state mismatch")
+        if self.upper_95_at_or_below_delta_star != upper_stops:
+            raise R03G1PreparationError("G1 upper-bracket state mismatch")
+        if self.band_undetermined != (not lower_exceeds and not upper_stops):
+            raise R03G1PreparationError("G1 undetermined-band state mismatch")
+        unsigned = self.model_dump(mode="json", exclude={"disclosure_sha256"})
+        if canonical_sha256(unsigned) != self.disclosure_sha256:
+            raise R03G1PreparationError("G1 power-disclosure hash mismatch")
+        return self
+
+
 class G1ExecutionRecord(StrictModel):
     schema_version: Literal["r03-g1-calibration-execution-record-v1"] = "r03-g1-calibration-execution-record-v1"
     preparation_commit_sha: str = Field(pattern=COMMIT_SHA_PATTERN)
@@ -1185,14 +1255,21 @@ class G1ExecutionRecord(StrictModel):
     t0_protocol_id: str = Field(pattern=SHA256_PATTERN)
     t0_model_series_id: str = Field(pattern=SHA256_PATTERN)
     bound_certificate_root_sha256: str = Field(pattern=SHA256_PATTERN)
+    gate_reconciliation_rule: Literal["ZERO_COST_TIME_DECOUPLED_SORTING_RELAXATION_MINUS_IDENTICAL_B0_T0_GOVERNS_STOP_GREEDY_COST_BEARING_FEASIBLE_BRACKET_DIAGNOSTIC_ONLY_V1"] = G1_GATE_RECONCILIATION_RULE
+    pre_execution_power_prediction_rule: Literal["CONFIGURED_G1_EXPECTED_TO_RETURN_CONTINUE_WITH_NEAR_CERTAINTY_INSTRUMENT_PROPERTY_NOT_FINDING_V1"] = G1_PRE_EXECUTION_POWER_PREDICTION_RULE
+    continue_evidential_weight_rule: Literal["G1_CONTINUE_NOT_SUPPORT_FOR_NEWS_TEXT_OR_LLM_CONTRIBUTION_AND_MUST_NOT_BE_CITED_AS_SUCH_V1"] = G1_CONTINUE_EVIDENTIAL_WEIGHT_RULE
+    sandwich_reporting_rule: Literal["REPORT_GREEDY_COST_BEARING_LOWER_AND_ZERO_COST_TIME_DECOUPLED_POINT_AND_UPPER_95_WITH_DECISION_BAND_WIDTH_AND_BAND_UNDETERMINED_BY_COST_CELL_V1"] = G1_SANDWICH_REPORTING_RULE
+    bound_certificate_root_rule: Literal["CANONICAL_SHA256_ORDERED_TUPLE_OF_PER_DECISION_CERTIFICATE_SHA256_IN_DECISION_ORDER_V1"] = G1_BOUND_CERTIFICATE_ROOT_RULE
     g1_bootstrap_primitive: Literal["R03_HEADROOM_STATIONARY_BOOTSTRAP_MEANS_E12_V1"] = G1_BOOTSTRAP_PRIMITIVE
     g1_bootstrap_domain_seed_rule: Literal["SHA256_SEED_BYTES_CONCAT_LABEL_UTF8_NO_SEPARATOR_FIRST_16_BYTES_BIG_ENDIAN"] = G1_BOOTSTRAP_DOMAIN_SEED_RULE
     block_length: Literal[10] = G1_BLOCK_LENGTH
     resamples: Literal[10000] = G1_RESAMPLES
     cost_cells: tuple[G1CostCellResult, ...]
+    power_disclosure_cells: tuple[G1PowerDisclosureCell, ...]
     governing_cost_cell_rule: Literal["MAX_UPPER_95_THEN_LARGER_COST_BPS"] = G1_GOVERNING_COST_CELL_RULE
     governing_cost_bps_per_side: int
     label: Literal["STOP_NO_ECONOMIC_HEADROOM", "G1_CONTINUE_NO_FUTILITY_PROOF"]
+    band_undetermined: bool
     raw_news_access_attempts: Literal[0] = 0
     provider_calls: Literal[0] = 0
     network_attempts: Literal[0] = 0
@@ -1204,6 +1281,15 @@ class G1ExecutionRecord(StrictModel):
             raise R03G1PreparationError("G1 seed is not derived from the preparation commit")
         if tuple(cell.cost_bps_per_side for cell in self.cost_cells) != T0_COST_CELLS_BPS:
             raise R03G1PreparationError("G1 execution requires ordered 5/10/15 bp cells")
+        if tuple(cell.cost_bps_per_side for cell in self.power_disclosure_cells) != T0_COST_CELLS_BPS:
+            raise R03G1PreparationError("G1 power disclosure requires ordered 5/10/15 bp cells")
+        for result, disclosure in zip(self.cost_cells, self.power_disclosure_cells):
+            if result.decision_count != disclosure.decision_count:
+                raise R03G1PreparationError("G1 power-disclosure decision count mismatch")
+            if result.point_estimate_e12 != disclosure.zero_cost_decoupled_upper_point_estimate_e12:
+                raise R03G1PreparationError("G1 power-disclosure point estimate mismatch")
+            if result.upper_95_e12 != disclosure.zero_cost_decoupled_upper_95_e12:
+                raise R03G1PreparationError("G1 power-disclosure upper bound mismatch")
         governing = max(
             self.cost_cells,
             key=lambda cell: (cell.upper_95_e12, cell.cost_bps_per_side),
@@ -1213,6 +1299,9 @@ class G1ExecutionRecord(StrictModel):
         expected_label = "STOP_NO_ECONOMIC_HEADROOM" if governing.upper_95_e12 <= DELTA_STAR_E12 else "G1_CONTINUE_NO_FUTILITY_PROOF"
         if self.label != expected_label:
             raise R03G1PreparationError("G1 gate label mismatch")
+        governing_disclosure = next(item for item in self.power_disclosure_cells if item.cost_bps_per_side == self.governing_cost_bps_per_side)
+        if self.band_undetermined != governing_disclosure.band_undetermined:
+            raise R03G1PreparationError("G1 governing undetermined-band state mismatch")
         unsigned = self.model_dump(mode="json", exclude={"record_sha256"})
         if canonical_sha256(unsigned) != self.record_sha256:
             raise R03G1PreparationError("G1 execution record hash mismatch")
@@ -1222,6 +1311,7 @@ class G1ExecutionRecord(StrictModel):
 def evaluate_g1_cost_cells(
     differences_by_cost_e12: Mapping[int, tuple[int, ...]],
     *,
+    greedy_feasible_lower_by_cost_e12: Mapping[int, int],
     preparation_commit_sha: str,
     t0_model_series_id: str,
     bound_certificate_root_sha256: str,
@@ -1231,6 +1321,8 @@ def evaluate_g1_cost_cells(
     protocol = protocol or t0_protocol_identity()
     if set(differences_by_cost_e12) != set(T0_COST_CELLS_BPS):
         raise R03G1PreparationError("G1 requires exact 5/10/15 bp paired series")
+    if set(greedy_feasible_lower_by_cost_e12) != set(T0_COST_CELLS_BPS):
+        raise R03G1PreparationError("G1 requires exact 5/10/15 bp greedy lower brackets")
     lengths = {len(values) for values in differences_by_cost_e12.values()}
     if len(lengths) != 1 or not lengths or next(iter(lengths)) == 0:
         raise R03G1PreparationError("G1 paired cost-cell series must align and be nonempty")
@@ -1261,7 +1353,30 @@ def evaluate_g1_cost_cells(
                 cell_result_sha256=canonical_sha256(unsigned_cell),
             )
         )
+    disclosures = []
+    for cell in cells:
+        lower = greedy_feasible_lower_by_cost_e12[cell.cost_bps_per_side]
+        if isinstance(lower, bool) or not isinstance(lower, int):
+            raise R03G1PreparationError("G1 greedy lower brackets must be e12 integers")
+        unsigned_disclosure = {
+            "cost_bps_per_side": cell.cost_bps_per_side,
+            "decision_count": cell.decision_count,
+            "greedy_cost_bearing_lower_point_estimate_e12": lower,
+            "zero_cost_decoupled_upper_point_estimate_e12": cell.point_estimate_e12,
+            "zero_cost_decoupled_upper_95_e12": cell.upper_95_e12,
+            "decision_band_width_e12": cell.upper_95_e12 - lower,
+            "lower_exceeds_delta_star": lower > DELTA_STAR_E12,
+            "upper_95_at_or_below_delta_star": cell.upper_95_e12 <= DELTA_STAR_E12,
+            "band_undetermined": lower <= DELTA_STAR_E12 < cell.upper_95_e12,
+        }
+        disclosures.append(
+            G1PowerDisclosureCell(
+                **unsigned_disclosure,
+                disclosure_sha256=canonical_sha256(unsigned_disclosure),
+            )
+        )
     governing = max(cells, key=lambda cell: (cell.upper_95_e12, cell.cost_bps_per_side))
+    governing_disclosure = next(item for item in disclosures if item.cost_bps_per_side == governing.cost_bps_per_side)
     unsigned = {
         "schema_version": "r03-g1-calibration-execution-record-v1",
         "preparation_commit_sha": preparation_commit_sha,
@@ -1272,14 +1387,21 @@ def evaluate_g1_cost_cells(
         "t0_protocol_id": protocol.protocol_sha256,
         "t0_model_series_id": t0_model_series_id,
         "bound_certificate_root_sha256": bound_certificate_root_sha256,
+        "gate_reconciliation_rule": G1_GATE_RECONCILIATION_RULE,
+        "pre_execution_power_prediction_rule": G1_PRE_EXECUTION_POWER_PREDICTION_RULE,
+        "continue_evidential_weight_rule": G1_CONTINUE_EVIDENTIAL_WEIGHT_RULE,
+        "sandwich_reporting_rule": G1_SANDWICH_REPORTING_RULE,
+        "bound_certificate_root_rule": G1_BOUND_CERTIFICATE_ROOT_RULE,
         "g1_bootstrap_primitive": G1_BOOTSTRAP_PRIMITIVE,
         "g1_bootstrap_domain_seed_rule": G1_BOOTSTRAP_DOMAIN_SEED_RULE,
         "block_length": G1_BLOCK_LENGTH,
         "resamples": G1_RESAMPLES,
         "cost_cells": tuple(cells),
+        "power_disclosure_cells": tuple(disclosures),
         "governing_cost_cell_rule": G1_GOVERNING_COST_CELL_RULE,
         "governing_cost_bps_per_side": governing.cost_bps_per_side,
         "label": ("STOP_NO_ECONOMIC_HEADROOM" if governing.upper_95_e12 <= DELTA_STAR_E12 else "G1_CONTINUE_NO_FUTILITY_PROOF"),
+        "band_undetermined": governing_disclosure.band_undetermined,
         "raw_news_access_attempts": 0,
         "provider_calls": 0,
         "network_attempts": 0,

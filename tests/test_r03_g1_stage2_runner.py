@@ -4,6 +4,7 @@ import ast
 import hashlib
 import inspect
 import json
+from datetime import datetime, timezone
 from pathlib import Path
 from unittest.mock import mock_open
 
@@ -18,6 +19,7 @@ ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT_PATH = ROOT / ".research_artifacts/r03-news-reasoning/universe-snapshot-v1.json"
 INCIDENT_PATH = ROOT / ".research_artifacts/r03-news-reasoning/g1-stage2-incident-01.json"
 FORMULA_AMENDMENT_PATH = ROOT / "docs/r03-news-reasoning-t0-feature-formula-amendment.md"
+RECONCILIATION_AMENDMENT_PATH = ROOT / "docs/r03-news-reasoning-g1-gate-definition-reconciliation-amendment.md"
 
 
 def _pin_threads(monkeypatch: pytest.MonkeyPatch) -> None:
@@ -29,6 +31,7 @@ def _pin_threads(monkeypatch: pytest.MonkeyPatch) -> None:
 
 def test_protocol_binds_exact_external_assets_internal_universe_and_ordinal_clock() -> None:
     protocol = runner.stage2_runner_protocol_identity()
+    assert protocol.schema_version == "r03-g1-stage2-runner-protocol-v2"
     assert tuple(pin.role for pin in protocol.external_asset_pins) == ("MARKET_BARS",)
     assert tuple(pin.absolute_path for pin in protocol.external_asset_pins) == (runner.MARKET_BARS_PATH,)
     assert protocol.asset_access_rule == g1.G1_STAGE2_ASSET_ACCESS_RULE
@@ -36,6 +39,16 @@ def test_protocol_binds_exact_external_assets_internal_universe_and_ordinal_cloc
     assert protocol.market_universe_ticker_rule == g1.G1_MARKET_UNIVERSE_TICKER_RULE
     assert protocol.nominal_decision_time == runner.NOMINAL_DECISION_TIME
     assert protocol.real_early_close_schedule_in_scope is False
+    assert protocol.gate_reconciliation_rule == g1.G1_GATE_RECONCILIATION_RULE
+    assert protocol.pre_execution_power_prediction_rule == g1.G1_PRE_EXECUTION_POWER_PREDICTION_RULE
+    assert protocol.continue_evidential_weight_rule == g1.G1_CONTINUE_EVIDENTIAL_WEIGHT_RULE
+    assert protocol.sandwich_reporting_rule == g1.G1_SANDWICH_REPORTING_RULE
+    assert protocol.bound_certificate_root_rule == g1.G1_BOUND_CERTIFICATE_ROOT_RULE
+    assert protocol.driver_entrypoint == "run_g1_stage2"
+    assert protocol.aggregate_output_path == runner.G1_AGGREGATE_OUTPUT_PATH
+    assert protocol.aggregate_serialization_rule == runner.G1_AGGREGATE_SERIALIZATION_RULE
+    assert protocol.t0_protocol_id == runner.G1_REVIEWED_T0_PROTOCOL_ID
+    assert protocol.runner_protocol_sha256 == runner.G1_REVIEWED_STAGE2_RUNNER_PROTOCOL_ID
     assert protocol.universe_source_path not in {pin.absolute_path for pin in protocol.external_asset_pins}
     with pytest.raises(runner.R03G1Stage2AccessError, match="unknown Stage 2 asset role"):
         runner.stage2_asset_pin("ARTICLE_EVENTS")
@@ -78,6 +91,23 @@ def test_formula_amendment_and_protocol_rules_are_hash_pinned() -> None:
     assert protocol.raw_feature_formula_rule == g1.T0_RAW_FEATURE_FORMULA_RULE
     assert protocol.label_formula_rule == g1.T0_LABEL_FORMULA_RULE
     assert protocol.raw_missing_rule == g1.T0_RAW_MISSING_RULE
+    assert hashlib.sha256(RECONCILIATION_AMENDMENT_PATH.read_bytes()).hexdigest() == g1.G1_GATE_RECONCILIATION_AMENDMENT_SHA256
+    amendment = RECONCILIATION_AMENDMENT_PATH.read_text(encoding="utf-8")
+    assert g1.G1_PRE_EXECUTION_POWER_PREDICTION_RULE in amendment
+    assert g1.G1_CONTINUE_EVIDENTIAL_WEIGHT_RULE in amendment
+    assert g1.G1_SANDWICH_REPORTING_RULE in amendment
+
+
+def test_frozen_fold_timestamp_row_and_certificate_conventions() -> None:
+    decisions = tuple(datetime(year, month, day, 15, 30, tzinfo=timezone.utc) for year in g1.T0_FOLD_END_YEARS for month, day in ((1, 2), (12, 29)))
+    windows = runner._fold_validation_windows(decisions)
+    assert tuple(window.fold_end_year for window in windows) == g1.T0_FOLD_END_YEARS
+    assert tuple(window.decision_count for window in windows) == (2, 2, 2, 2)
+    assert tuple(window.first_validation_at.month for window in windows) == (1, 1, 1, 1)
+    assert tuple(window.last_validation_at.month for window in windows) == (12, 12, 12, 12)
+    decision_date = decisions[0].date()
+    assert runner.t0_row_id("DEVELOPMENT", 7, decision_date, "AAPL") == "DEVELOPMENT|000007|2017-01-02|AAPL"
+    assert runner.g1_bound_decision_id(7, decision_date) == "CALIBRATION|000007|2017-01-02"
 
 
 def test_disallowed_raw_news_path_is_rejected_before_filesystem_resolution(
@@ -286,7 +316,7 @@ def test_pyarrow_runtime_identity_binds_numeric_runtime(
     assert canonical_sha256(identity.model_dump(mode="json", exclude={"runtime_sha256"})) == identity.runtime_sha256
 
 
-def test_runner_has_one_io_gateway_and_no_recursive_discovery_surface() -> None:
+def test_runner_has_one_read_gateway_one_exclusive_writer_and_no_recursive_discovery_surface() -> None:
     module_path = Path(inspect.getsourcefile(runner) or "")
     tree = ast.parse(module_path.read_text(encoding="utf-8"))
     io_owners: dict[str, set[str]] = {}
@@ -312,11 +342,70 @@ def test_runner_has_one_io_gateway_and_no_recursive_discovery_surface() -> None:
         if calls:
             io_owners[node.name] = calls
     assert io_owners == {
+        "_write_g1_stage2_aggregate": {"open"},
         "load_stage2_asset": {"open", "read_table", "resolve"},
     }
     assert seen_forbidden == set()
+    assert 'open("xb")' in inspect.getsource(runner._write_g1_stage2_aggregate)
     imports = {alias.name for node in ast.walk(tree) if isinstance(node, ast.Import) for alias in node.names}
     assert imports.isdisjoint({"requests", "httpx", "socket", "subprocess"})
+
+
+def test_driver_has_one_fixed_entrypoint_and_reviewed_step_order() -> None:
+    assert tuple(inspect.signature(runner.run_g1_stage2).parameters) == ("preparation_commit_sha",)
+    source = inspect.getsource(runner.run_g1_stage2)
+    ordered_calls = (
+        "assert_single_thread_environment",
+        "load_g1_stage2_inputs",
+        "build_g1_prepared_frame",
+        "select_g1_development_alpha",
+        "fit_t0_calibration_series",
+        "make_bound_certificate",
+        "_t0_utility_series",
+        "evaluate_g1_cost_cells",
+        "_build_aggregate_record",
+        "_write_g1_stage2_aggregate",
+    )
+    positions = tuple(source.index(name) for name in ordered_calls)
+    assert positions == tuple(sorted(positions))
+
+
+def test_driver_refuses_reviewed_protocol_drift_before_asset_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _pin_threads(monkeypatch)
+    protocol = runner.stage2_runner_protocol_identity().model_copy(update={"runner_protocol_sha256": "0" * 64})
+    monkeypatch.setattr(runner, "stage2_runner_protocol_identity", lambda: protocol)
+    monkeypatch.setattr(
+        runner,
+        "load_g1_stage2_inputs",
+        lambda counters: pytest.fail("asset read reached after protocol drift"),
+    )
+    with pytest.raises(runner.R03G1Stage2AccessError, match="reviewed runner"):
+        runner.run_g1_stage2("a" * 40)
+
+
+def test_driver_refuses_bad_preparation_commit_before_asset_read(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _pin_threads(monkeypatch)
+    monkeypatch.setattr(
+        runner,
+        "load_g1_stage2_inputs",
+        lambda counters: pytest.fail("asset read reached after bad commit"),
+    )
+    with pytest.raises(g1.R03G1PreparationError, match="commit"):
+        runner.run_g1_stage2("INVALID")
+
+
+def test_aggregate_serialization_is_canonical_and_single_lf() -> None:
+    class SyntheticRecord:
+        def model_dump(self, *, mode: str) -> dict[str, int]:
+            assert mode == "json"
+            return {"z": 2, "a": 1}
+
+    payload = runner.serialize_g1_stage2_aggregate(SyntheticRecord())  # type: ignore[arg-type]
+    assert payload == b'{"a":1,"z":2}\n'
 
 
 def test_incident_record_is_aggregate_only_and_closes_both_kb_copies() -> None:

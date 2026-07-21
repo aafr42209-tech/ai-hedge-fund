@@ -89,6 +89,7 @@ def _snapshot(
 
 def test_protocol_freezes_preprocessing_scale_solver_and_refit() -> None:
     protocol = g1.t0_protocol_identity()
+    assert protocol.schema_version == "r03-t0-protocol-identity-v2"
     assert protocol.base_features == g1.T0_BASE_FEATURES
     assert len(protocol.base_features) == 9
     assert len(protocol.design_columns) == 18
@@ -101,11 +102,21 @@ def test_protocol_freezes_preprocessing_scale_solver_and_refit() -> None:
     assert "ASSUME_A_POS" in protocol.solver_contract
     assert "NO_FALLBACK" in protocol.solver_contract
     assert protocol.refit_protocol == g1.T0_REFIT_PROTOCOL
+    assert protocol.fold_validation_window_rule == g1.T0_FOLD_VALIDATION_WINDOW_RULE
+    assert protocol.timestamp_rule == g1.T0_TIMESTAMP_RULE
+    assert protocol.row_id_rule == g1.T0_ROW_ID_RULE
     assert protocol.purge_decision_rows == "ALWAYS_EXCLUDED"
     assert protocol.calibration_alpha_reselection == "FORBIDDEN"
     assert protocol.g1_bootstrap_primitive == g1.G1_BOOTSTRAP_PRIMITIVE
     assert protocol.g1_bootstrap_domain_seed_rule == g1.G1_BOOTSTRAP_DOMAIN_SEED_RULE
     assert protocol.governing_cost_cell_rule == g1.G1_GOVERNING_COST_CELL_RULE
+    assert protocol.gate_reconciliation_rule == g1.G1_GATE_RECONCILIATION_RULE
+    assert protocol.pre_execution_power_prediction_rule == g1.G1_PRE_EXECUTION_POWER_PREDICTION_RULE
+    assert protocol.continue_evidential_weight_rule == g1.G1_CONTINUE_EVIDENTIAL_WEIGHT_RULE
+    assert protocol.sandwich_reporting_rule == g1.G1_SANDWICH_REPORTING_RULE
+    assert protocol.bound_certificate_decision_id_rule == g1.G1_BOUND_CERTIFICATE_DECISION_ID_RULE
+    assert protocol.bound_certificate_root_rule == g1.G1_BOUND_CERTIFICATE_ROOT_RULE
+    assert protocol.stage2_asset_access_rule == g1.G1_STAGE2_ASSET_ACCESS_RULE
     assert protocol.market_universe_ticker_rule == g1.G1_MARKET_UNIVERSE_TICKER_RULE
     assert protocol.feature_formula_contract == g1.T0_FEATURE_FORMULA_CONTRACT
     assert g1.T0_RAW_FEATURE_FORMULA_RULE == ("FLOAT64_LOG_RETURN_WINDOWS_SR_SUM_VOL_DDOF0_DOWNSIDE_ZERO_SEALED_SECTOR_BETA_EXPLICIT_DEPARTURE_" "TO_UNIVERSE_BETA_VALID_NAMES_MIN1_SPLIT_ADJUSTED_CLOSE_ASSUMED_UNCERTIFIED_LOG_DOLLAR_VOLUME_" "LOG_MEAN_VOLUME_RATIO_V2")
@@ -114,10 +125,18 @@ def test_protocol_freezes_preprocessing_scale_solver_and_refit() -> None:
     assert protocol.raw_feature_formula_rule == g1.T0_RAW_FEATURE_FORMULA_RULE
     assert protocol.label_formula_rule == g1.T0_LABEL_FORMULA_RULE
     assert protocol.raw_missing_rule == g1.T0_RAW_MISSING_RULE
-    assert protocol.protocol_sha256 == "b8f9439f34891471003e276f561b2d85b279dbf460790ababd89fcf61ae563e8"
+    assert protocol.protocol_sha256 == "b754d194339d0a4131d0832785991b2360d83513f99ff86379ffdcf898e29e53"
     assert canonical_sha256(protocol.model_dump(mode="json", exclude={"protocol_sha256"})) == protocol.protocol_sha256
     amendment_path = Path(__file__).resolve().parents[1] / g1.T0_FEATURE_FORMULA_AMENDMENT_PATH
     assert hashlib.sha256(amendment_path.read_bytes()).hexdigest() == g1.T0_FEATURE_FORMULA_AMENDMENT_SHA256
+    reconciliation_path = Path(__file__).resolve().parents[1] / g1.G1_GATE_RECONCILIATION_AMENDMENT_PATH
+    assert hashlib.sha256(reconciliation_path.read_bytes()).hexdigest() == g1.G1_GATE_RECONCILIATION_AMENDMENT_SHA256
+    amendment = reconciliation_path.read_text(encoding="utf-8")
+    assert "H_clairvoyant = U_clairvoyant_feasible - U_B0" in amendment
+    assert "G1 calibration `U_clairvoyant_feasible - U_T0`" in amendment
+    assert "G1 is expected to return" in amendment
+    assert "band_undetermined: true" in amendment
+    assert "before any G1 number or output existed" in amendment
 
 
 def test_preprocessing_is_impute_clip_demean_zscore_with_unscaled_missing_flags(
@@ -427,6 +446,7 @@ def test_synthetic_g1_record_uses_all_cost_cells_and_zero_forbidden_counters(mon
             10: (200_000_000,) * 8,
             15: (300_000_000,) * 8,
         },
+        greedy_feasible_lower_by_cost_e12={5: 0, 10: 0, 15: 0},
         preparation_commit_sha="a" * 40,
         t0_model_series_id="b" * 64,
         bound_certificate_root_sha256="c" * 64,
@@ -438,10 +458,49 @@ def test_synthetic_g1_record_uses_all_cost_cells_and_zero_forbidden_counters(mon
     assert record.g1_bootstrap_primitive == g1.G1_BOOTSTRAP_PRIMITIVE
     assert record.g1_bootstrap_domain_seed_rule == g1.G1_BOOTSTRAP_DOMAIN_SEED_RULE
     assert record.governing_cost_cell_rule == g1.G1_GOVERNING_COST_CELL_RULE
+    assert record.gate_reconciliation_rule == g1.G1_GATE_RECONCILIATION_RULE
+    assert record.pre_execution_power_prediction_rule == g1.G1_PRE_EXECUTION_POWER_PREDICTION_RULE
+    assert record.continue_evidential_weight_rule == g1.G1_CONTINUE_EVIDENTIAL_WEIGHT_RULE
+    assert record.sandwich_reporting_rule == g1.G1_SANDWICH_REPORTING_RULE
+    assert record.bound_certificate_root_rule == g1.G1_BOUND_CERTIFICATE_ROOT_RULE
+    assert tuple(cell.cost_bps_per_side for cell in record.power_disclosure_cells) == g1.T0_COST_CELLS_BPS
+    assert record.power_disclosure_cells[-1].decision_band_width_e12 == 300_000_000
+    assert record.band_undetermined is False
     assert record.thread_environment_preconfigured_before_process_start is True
     assert record.raw_news_access_attempts == 0
     assert record.provider_calls == record.network_attempts == 0
     assert canonical_sha256(record.model_dump(mode="json"))
+
+
+def test_synthetic_g1_record_discloses_undetermined_middle_band(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    _pin_threads(monkeypatch)
+    record = g1.evaluate_g1_cost_cells(
+        {cost: (1_000_000_000,) * 8 for cost in g1.T0_COST_CELLS_BPS},
+        greedy_feasible_lower_by_cost_e12={cost: 0 for cost in g1.T0_COST_CELLS_BPS},
+        preparation_commit_sha="a" * 40,
+        t0_model_series_id="b" * 64,
+        bound_certificate_root_sha256="c" * 64,
+        thread_environment_preconfigured_before_process_start=True,
+    )
+    assert record.label == "G1_CONTINUE_NO_FUTILITY_PROOF"
+    assert record.band_undetermined is True
+    assert all(cell.band_undetermined for cell in record.power_disclosure_cells)
+    assert all(not cell.lower_exceeds_delta_star for cell in record.power_disclosure_cells)
+    assert all(not cell.upper_95_at_or_below_delta_star for cell in record.power_disclosure_cells)
+
+    headroom_record = g1.evaluate_g1_cost_cells(
+        {cost: (1_000_000_000,) * 8 for cost in g1.T0_COST_CELLS_BPS},
+        greedy_feasible_lower_by_cost_e12={cost: 800_000_000 for cost in g1.T0_COST_CELLS_BPS},
+        preparation_commit_sha="a" * 40,
+        t0_model_series_id="b" * 64,
+        bound_certificate_root_sha256="c" * 64,
+        thread_environment_preconfigured_before_process_start=True,
+    )
+    assert headroom_record.label == "G1_CONTINUE_NO_FUTILITY_PROOF"
+    assert headroom_record.band_undetermined is False
+    assert all(cell.lower_exceeds_delta_star for cell in headroom_record.power_disclosure_cells)
 
 
 def test_g1_bootstrap_delegates_exactly_to_sealed_headroom_primitive(monkeypatch: pytest.MonkeyPatch) -> None:
