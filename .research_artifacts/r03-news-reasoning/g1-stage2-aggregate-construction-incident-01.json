@@ -1,0 +1,6 @@
+{
+  "schema_version": "r03-g1-stage2-aggregate-construction-incident-v1",
+  "incident_id": "R03_G1_STAGE2_AGGREGATE_CONSTRUCTION_INCIDENT_01",
+  "aggregate_output_path": ".research_artifacts/r03-news-reasoning/g1-stage2-execution-record-v1.json",
+  "note": "G1 cost cells were computed in memory and the run then failed during aggregate record construction. No G1 value was emitted, observed, or persisted, and no execution record exists."
+}
