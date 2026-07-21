@@ -4,8 +4,9 @@ import ast
 import hashlib
 import inspect
 import json
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
+from types import SimpleNamespace
 from unittest.mock import mock_open
 
 import pytest
@@ -18,6 +19,7 @@ from v2.research.overlay.canonical import canonical_sha256
 ROOT = Path(__file__).resolve().parents[1]
 SNAPSHOT_PATH = ROOT / ".research_artifacts/r03-news-reasoning/universe-snapshot-v1.json"
 INCIDENT_PATH = ROOT / ".research_artifacts/r03-news-reasoning/g1-stage2-incident-01.json"
+AGGREGATE_INCIDENT_PATH = ROOT / ".research_artifacts/r03-news-reasoning/g1-stage2-aggregate-construction-incident-01.json"
 FORMULA_AMENDMENT_PATH = ROOT / "docs/r03-news-reasoning-t0-feature-formula-amendment.md"
 RECONCILIATION_AMENDMENT_PATH = ROOT / "docs/r03-news-reasoning-g1-gate-definition-reconciliation-amendment.md"
 
@@ -408,6 +410,95 @@ def test_aggregate_serialization_is_canonical_and_single_lf() -> None:
     assert payload == b'{"a":1,"z":2}\n'
 
 
+def test_synthetic_full_driver_validates_serializes_and_writes_exclusively(
+    monkeypatch: pytest.MonkeyPatch,
+    tmp_path: Path,
+) -> None:
+    _pin_threads(monkeypatch)
+    preparation_commit_sha = "fecd81298e289c114e4954e3b2fca1e654594abd"
+    development_decisions = tuple(datetime(year, month, day, 15, 30, tzinfo=timezone.utc) for year in g1.T0_FOLD_END_YEARS for month, day in ((1, 2), (12, 29)))
+    calibration_decisions = tuple(datetime(2022, 1, 3 + index, 15, 30, tzinfo=timezone.utc) for index in range(8))
+    tickers = tuple(f"T{index:02d}" for index in range(20))
+    prepared = runner.G1PreparedFrame(
+        session_dates=tuple(decision.date() for decision in development_decisions + calibration_decisions),
+        rows=(
+            g1.T0FitRowMetadata(
+                row_id="synthetic-row",
+                decision_at=development_decisions[0],
+                feature_cutoff_at=development_decisions[0] - timedelta(days=1),
+                label_maturity_at=development_decisions[0] + timedelta(days=7),
+                decision_session_ordinal=100,
+                feature_session_ordinal=99,
+                label_session_ordinal=105,
+                split_name="DEVELOPMENT",
+                phase_book=0,
+            ),
+        ),
+        row_tickers=(tickers[0],),
+        feature_matrix=((0.0,) * 18,),
+        target_e12=(0,),
+        decision_ordinals={decision: 200 + index for index, decision in enumerate(calibration_decisions)},
+        realized_by_decision={decision: {ticker: (index - 10) * 1_000_000 for index, ticker in enumerate(tickers)} for decision in calibration_decisions},
+        development_decisions=development_decisions,
+        calibration_decisions=calibration_decisions,
+        calibration_coverage_end_exclusive_at=calibration_decisions[-1] + timedelta(days=1),
+        fold_validation_windows=runner._fold_validation_windows(development_decisions),
+    )
+    cells = {(fold, cost) for fold in g1.T0_FOLD_END_YEARS for cost in g1.T0_COST_CELLS_BPS}
+    utilities = {alpha: {cell: alpha for cell in cells} for alpha in g1.T0_ALPHA_E1_GRID}
+    run_hashes = {alpha: {fold: format(1 + alpha_index * len(g1.T0_FOLD_END_YEARS) + fold_index, "064x") for fold_index, fold in enumerate(g1.T0_FOLD_END_YEARS)} for alpha_index, alpha in enumerate(g1.T0_ALPHA_E1_GRID)}
+    alpha_selection = g1.select_t0_alpha(utilities, run_hashes)
+    model_series = SimpleNamespace(t0_model_series_id="b" * 64)
+
+    def synthetic_load(counters: runner.Stage2AccessCounters) -> runner.G1Stage2LoadedInputs:
+        counters.allowed_asset_reads = 2
+        receipts = []
+        for pin in runner.stage2_asset_pins():
+            unsigned = {
+                "schema_version": "r03-g1-stage2-asset-load-receipt-v1",
+                "role": pin.role,
+                "resolved_path": pin.absolute_path,
+                "sha256": pin.sha256,
+                "byte_count": 1,
+                "row_count": 0,
+                "column_names": (),
+            }
+            receipts.append(
+                runner.Stage2AssetLoadReceipt(
+                    **unsigned,
+                    receipt_sha256=canonical_sha256(unsigned),
+                )
+            )
+        return runner.G1Stage2LoadedInputs(
+            market_bars=object(),
+            universe_snapshot=object(),  # type: ignore[arg-type]
+            receipts=tuple(receipts),
+        )
+
+    monkeypatch.setattr(runner, "load_g1_stage2_inputs", synthetic_load)
+    monkeypatch.setattr(runner, "build_g1_prepared_frame", lambda market_bars, universe_snapshot: prepared)
+    monkeypatch.setattr(runner, "select_g1_development_alpha", lambda prepared, runtime: alpha_selection)
+    monkeypatch.setattr(runner, "fit_t0_calibration_series", lambda *args, **kwargs: model_series)
+    monkeypatch.setattr(
+        runner,
+        "_calibration_scores",
+        lambda prepared, model_series: {decision: {ticker: float(index) for index, ticker in enumerate(tickers)} for decision in calibration_decisions},
+    )
+    monkeypatch.setattr(runner, "WORKSPACE_ROOT", str(tmp_path))
+    output_path = tmp_path / runner.G1_AGGREGATE_OUTPUT_PATH
+    output_path.parent.mkdir(parents=True)
+
+    aggregate = runner.run_g1_stage2(preparation_commit_sha)
+
+    payload = output_path.read_bytes()
+    assert payload.endswith(b"\n") and not payload.endswith(b"\n\n")
+    persisted = runner.G1Stage2AggregateRecord.model_validate_json(payload)
+    assert persisted == aggregate
+    assert persisted.aggregate_sha256 == canonical_sha256(persisted.model_dump(mode="json", exclude={"aggregate_sha256"}))
+    with pytest.raises(runner.R03G1Stage2AccessError, match="refusing to overwrite"):
+        runner._write_g1_stage2_aggregate(aggregate)
+
+
 def test_incident_record_is_aggregate_only_and_closes_both_kb_copies() -> None:
     incident = json.loads(INCIDENT_PATH.read_text(encoding="utf-8"))
     assert incident["accessed_file_count"] == 1
@@ -424,6 +515,16 @@ def test_incident_record_is_aggregate_only_and_closes_both_kb_copies() -> None:
     assert incident["independent_session_project_kb_purge"]["status"] == "COMPLETE"
     serialized = json.dumps(incident, sort_keys=True).lower()
     assert all(token not in serialized for token in ("article_body", "content_excerpt", "headline_text", "raw_text_value"))
+
+
+def test_aggregate_construction_incident_note_is_value_free() -> None:
+    incident = json.loads(AGGREGATE_INCIDENT_PATH.read_text(encoding="utf-8"))
+    assert incident == {
+        "schema_version": "r03-g1-stage2-aggregate-construction-incident-v1",
+        "incident_id": "R03_G1_STAGE2_AGGREGATE_CONSTRUCTION_INCIDENT_01",
+        "aggregate_output_path": runner.G1_AGGREGATE_OUTPUT_PATH,
+        "note": ("G1 cost cells were computed in memory and the run then failed during aggregate " "record construction. No G1 value was emitted, observed, or persisted, and no " "execution record exists."),
+    }
 
 
 def test_protocol_mutation_requires_rehash() -> None:

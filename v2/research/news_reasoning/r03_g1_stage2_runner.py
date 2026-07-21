@@ -1018,10 +1018,9 @@ def _build_aggregate_record(
         "greedy_feasible_diagnostics": greedy_diagnostics,
         "g1_execution_record": execution_record,
     }
-    return G1Stage2AggregateRecord(
-        **unsigned,
-        aggregate_sha256=canonical_sha256(unsigned),
-    )
+    candidate = G1Stage2AggregateRecord.model_construct(**unsigned, aggregate_sha256="0" * 64)
+    hash_input = candidate.model_dump(mode="json", exclude={"aggregate_sha256"})
+    return G1Stage2AggregateRecord(**unsigned, aggregate_sha256=canonical_sha256(hash_input))
 
 
 def serialize_g1_stage2_aggregate(record: G1Stage2AggregateRecord) -> bytes:
