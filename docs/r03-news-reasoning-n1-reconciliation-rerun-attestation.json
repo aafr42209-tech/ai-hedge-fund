@@ -1,0 +1,130 @@
+{
+  "schema_version": "r03-n1-reconciliation-rerun-attestation-v1",
+  "authority": "READ_ONLY_DATA_CHECK_RECONCILIATION_RERUN_AUTHORIZED",
+  "disposition": "FAIL_CLOSED_RETAINED_BYTE_NUMERATOR_UNRESOLVED",
+  "commit_gate": "CLOSED_PENDING_INDEPENDENT_RESULT_REVIEW",
+  "execution_commit": "e9109913a2cf198e63f5fbd116abc91c58fc6ee2",
+  "approved_contract": {
+    "lineage_canonical_sha256": "60bbbd2d2e16235689f2df5cb3871f891ac8d92b7f2260cc13bb116947833aa8",
+    "evidence_canonical_sha256": "f5fe43827ad228405c83416ffdb26241cad8cba701dbe8c3c0307bdee3f79514",
+    "manifest_filesystem_sha256": "35e62777d98e94723660dcdc86983b3d96743dd65c1fa7953216eea4b56d6d76",
+    "handoff_filesystem_sha256": "e30074f5a418a4c7d4f2424a4067fd8caf1f7afe3a148a78ab20ba3bb9993899"
+  },
+  "pins": {
+    "reconciliation_permit_sha256": "b33e735eeb848079a2acabeac8ccef6b9b45da1d090807934131d6138f00b5de",
+    "base_permit_sha256": "a6d32b93c9351b05211f43d9dabbac1cf78ca915ba2022d30b0bcb222d8db718",
+    "root_path_sha256": "6d91b6f6cf116cc868ebb532a729ad78d95e52521be3d2e8cbc593ef88559f84",
+    "calendar_session_count": 2514,
+    "calendar_sha256": "c2fba202f2efbe462a44ac13ac6e99a235c0fc18851d894cc2b5f4ab5c30b34c",
+    "early_close_session_count": 21,
+    "early_close_sessions_sha256": "d796bb76e4a2408244739e271260c20a02f20ff93db75bd4ee8e8166e1e79a47",
+    "article_byte_cap": 32768,
+    "ticker_session_byte_cap": 131072
+  },
+  "artifacts": {
+    "permit_path": ".research_artifacts/r03-news-reasoning/reconciliation-rerun-permit-v1.json",
+    "permit_filesystem_sha256": "acbf54985edb7a1d98a22c93e4d114d7479e91207c7d0a9c6a891a41ba9b098d",
+    "runner_path": ".research_artifacts/r03-news-reasoning/run_reconciliation_rerun_v1.py",
+    "runner_filesystem_sha256": "19ad8b083a7e3a3ba50c39676b032e302640f20f65fbe94839d1a84962487a52",
+    "prior_driver_path": "C:/Users/User/Desktop/ai-hedge-fund-fresh/.research_artifacts/r03-news-reasoning/run_read_only_data_check_v2.py",
+    "prior_driver_filesystem_sha256": "f64ba0a137151127d5956fd90713a31708da64e15e5dbd101bfee37c162d31af",
+    "event_index_path": "C:/Users/User/Desktop/FinGPT/artifacts/news_main/article_events.parquet",
+    "event_index_filesystem_sha256": "89bef1bc58bd2e9558f7af923b38c78c5a46135e71465bc83138042c8e95e060",
+    "calendar_input_path": "C:/Users/User/Desktop/FinGPT/data/raw/market_bars_real.parquet",
+    "calendar_input_filesystem_sha256": "9ae1625de0fb91e0c6abaab18b0637a0798abc035368622e5f1aba84e0dec011",
+    "result_path": ".research_artifacts/r03-news-reasoning/reconciliation-rerun-result-v1.json",
+    "result_canonical_sha256": "6046eab6643d31254c398ad1e4183931130acf0ca076cd5aa93b1a69902265eb",
+    "result_filesystem_sha256": "a6c943788f002bd630c45371d406c79dba04003d222d17d8881bc6a74f1b1df0",
+    "paired_evidence_sha256": "4669d70649ce94178194e85eb80a40fe4b49145cfb6835d1ba1f2083714f7bdf",
+    "pair_multiset_sha256": "86222a8b21e92b3f2ce9a43488ced629874af3c48946023b08c5e388a03b4b73"
+  },
+  "inventory": {
+    "json_file_count": 10270,
+    "total_bytes": 2668932157,
+    "page_count": 9269,
+    "manifest_count": 1000,
+    "all_json_sha256": "56f1a5567c1aa5ed5b327201d36f1ca5833381fd3b389279298acdd3a6c1e9d3",
+    "page_sha256": "4723720c1384723f09c26e9f77941f77a76f1c33d2620e466535eec133213bd9",
+    "manifest_sha256": "dbb5c4110cc2a198ed506cfb6f38b7db172805f46dc1237c5b6de58f9b7fb894"
+  },
+  "source_counts": {
+    "capture_records": 436916,
+    "declared_capture_records": 436916,
+    "unique_articles": 290858,
+    "selected_articles": 247976,
+    "ticker_article_events": 301541
+  },
+  "sealed_retention": {
+    "full_frames_total": 151820,
+    "full_frames_retained": 150394,
+    "article_appearances_total": 702489,
+    "article_appearances_retained": 695948,
+    "input_text_bytes": 1585976846,
+    "retained_text_bytes": 1435742878
+  },
+  "reconciliation_retention": {
+    "full_frames_total": 151820,
+    "full_frames_retained": 150394,
+    "article_appearances_total": 702489,
+    "article_appearances_retained": 695948,
+    "input_text_bytes": 1585976846,
+    "retained_text_bytes": 1515387041,
+    "full_frame_retention_pct_2dp": "99.06",
+    "article_appearance_retention_pct_2dp": "99.07",
+    "text_byte_retention_pct_2dp": "95.55",
+    "retention_sha256": "8b659ac03fb4481ebbbcdc3579e484f5630d8e490d6981c0b4a7a2c3c02c1019"
+  },
+  "resolved_findings": {
+    "input_text_bytes": "MATCHES_SEALED_EXACTLY_WHITESPACE_DENOMINATOR_BLOCKER_CLOSED",
+    "article_appearances_retained": "MATCHES_SEALED_EXACTLY_INCLUDED_ZERO_BYTE_SEMANTICS_CLOSED",
+    "full_frames": "MATCHES_SEALED_EXACTLY",
+    "session_cap_affected_frames": "MATCHES_PRIOR_PROVENANCE_AT_664"
+  },
+  "paired_frame_diff": {
+    "affected_frame_count": 664,
+    "changed_retained_text_frames": 664,
+    "equal_retained_text_frames": 0,
+    "reconciliation_retained_text_bytes_total": 87025931,
+    "triggering_article_only_retained_text_bytes_total": 1751549,
+    "retained_text_bytes_delta": 85274382,
+    "triggering_article_zero_retained_text_frames": 43,
+    "reconciliation_zero_retained_text_frames": 0,
+    "reconciliation_included_zero_byte_appearances_total": 0,
+    "zero_source_appearances_total": 0
+  },
+  "numerator_decomposition": {
+    "unaffected_frame_retained_text_bytes": 1428361110,
+    "sealed_implied_affected_frame_retained_text_bytes": 7381768,
+    "sealed_implied_affected_frame_average_bytes": "11117.120482",
+    "reconciliation_affected_frame_average_bytes": "131063.149096",
+    "triggering_article_only_average_bytes": "2637.875000",
+    "sealed_implied_minus_triggering_article_only_bytes": 5630219
+  },
+  "unresolved_finding": {
+    "classification": "PRIOR_CENSUS_AFFECTED_FRAME_ACCUMULATION_RULE_NOT_YET_IDENTIFIED",
+    "reconciliation_minus_sealed_retained_text_bytes": 79644163,
+    "triggering_article_only_reconstruction_retained_text_bytes": 1430112659,
+    "triggering_article_only_reconstruction_minus_sealed": -5630219,
+    "conclusion": "preserve-whitespace v2 measurement resolves denominator and appearance differences, but neither full accumulation nor triggering-article-only accumulation reproduces the sealed numerator",
+    "normative_retention_disposition": "UNRESOLVED_NO_VALUE_RESEALED",
+    "additional_raw_scan_authorized": false
+  },
+  "execution": {
+    "completed_raw_source_scans": 1,
+    "aborted_partial_raw_source_scan_attempts": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits_during_rerun": 0,
+    "pushes_during_rerun": 0
+  },
+  "attestation_sha256": "ccac84f3d635b8e9342465a4c0f3a7fca42fb084f2a835d2ebb77d30986bc866"
+}

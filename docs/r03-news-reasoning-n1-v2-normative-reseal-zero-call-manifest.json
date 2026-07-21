@@ -1,0 +1,38 @@
+{
+  "schema_version": "r03-n1-v2-normative-reseal-zero-call-manifest-v1",
+  "authority": "R03_N1_V2_NORMATIVE_RESEAL_CODE_AUTHORIZED",
+  "temporal_scope": "N1_V2_NORMATIVE_RESEAL_CODE_ONLY_SESSION",
+  "prior_execution_scopes": {
+    "historical_amendment": "PRE_RERUN_AMENDMENT_CODE_ONLY_SESSION",
+    "reconciliation_contract": "N1_RECONCILIATION_CODE_ONLY_SESSION",
+    "authorized_reconciliation_rerun": "ONE_COMPLETED_RAW_SCAN_IN_PRIOR_RESULT",
+    "authorized_targeted_scan": "ONE_COMPLETED_RAW_SCAN_IN_PRIOR_RESULT",
+    "current_scope_does_not_restate_prior_nonzero_counters_as_zero": true
+  },
+  "artifact_sha256": {
+    "docs/r03-news-reasoning-n1-v2-normative-reseal-lineage.json": "e7730dcc3e4b260f89ff3bbf1591fbe8cac15bc6386ac6fbd8eeb00dc860af24",
+    "docs/r03-news-reasoning-n1-v2-normative-reseal-attestation.json": "1ae3e2af3f59feb08940615f6ac22a19542077b29ad95496b625d7f9e902dbe1",
+    "docs/r03-news-reasoning-n1-v2-normative-reseal-evidence.json": "123a672929e826be28a9ac54fb47c7012705d59ba0b81351b587758e475a8e02",
+    "docs/r03-news-reasoning-n1-numerator-targeted-scan-independent-review.md": "264ae4861d2ffb55983625cbe9db110bc3ebd5487f6392bf336efb030a4ea44f",
+    "v2/research/news_reasoning/r03_numerator_reconciliation.py": "43ada011967a532585ba0ea456a539515501c43c6b9b57d8111b0e24fd8a7efc",
+    "scripts/r03_news_reasoning_v2_normative_reseal_verify.py": "30c1b697d28daed88a22b3b1ae394b49802aebd04c998e724e42312499f41f07",
+    "tests/test_r03_v2_normative_reseal_verify.py": "f674b9539e1a4794ab97712670edf53fde8fe89ec1c97fee04657c73cce6c6ab"
+  },
+  "boundary_counters": {
+    "raw_source_traversals": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "statement": "No raw-source traversal, copy, frame or fixture materialization, fit, gate, OOS access, inference, model download, provider or network call, dependency change, commit, or push occurred within this V2 normative reseal code-only temporal scope. The two previously authorized completed raw scans remain separately recorded and are not rewritten as zero."
+}

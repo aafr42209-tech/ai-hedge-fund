@@ -1,0 +1,91 @@
+{
+  "schema_version": "r03-n1-v2-normative-reseal-lineage-v1",
+  "authority": "R03_N1_V2_NORMATIVE_RESEAL_CODE_AUTHORIZED",
+  "status": "V2_NORMATIVE_RESEALED_PENDING_INDEPENDENT_REVIEW",
+  "superseded_artifacts": {
+    "historical_amendment_lineage_canonical_sha256": "eec62df18f1e5cd4d896274c54b0734fd32d34d92fd6dbefbecf2a50f404b881",
+    "historical_amendment_evidence_canonical_sha256": "5d0b57d8230e929db49e1c03dfbb97cfab7548750265759a37e97b3f4b931eda",
+    "historical_amendment_manifest_filesystem_sha256": "3205bcfd43ffbb02ddccb3a51b4747efa6ab0a82ca3a3481637a936b2b91adc2",
+    "reconciliation_lineage_canonical_sha256": "60bbbd2d2e16235689f2df5cb3871f891ac8d92b7f2260cc13bb116947833aa8",
+    "reconciliation_evidence_canonical_sha256": "f5fe43827ad228405c83416ffdb26241cad8cba701dbe8c3c0307bdee3f79514",
+    "reconciliation_manifest_filesystem_sha256": "35e62777d98e94723660dcdc86983b3d96743dd65c1fa7953216eea4b56d6d76",
+    "prior_disposition": "UNRESOLVED_NO_VALUE_RESEALED",
+    "all_prior_artifacts_preserved": true
+  },
+  "replacement_disposition": {
+    "action": "REPLACE_NOT_RECONCILE",
+    "legacy_value_status": "HISTORICAL_NON_NORMATIVE_UNREPRODUCIBLE",
+    "legacy_artifacts_preserved_byte_for_byte": true,
+    "legacy_value_forbidden_as_future_decision_input": true,
+    "lost_v1_driver_recovery": "CLOSED_UNRECOVERABLE",
+    "post_hoc_fit_to_655960_forbidden": true
+  },
+  "normative_retention": {
+    "schema_version": "r03-public-retention-v2",
+    "full_frames_total": 151820,
+    "full_frames_retained": 150394,
+    "article_appearances_total": 702489,
+    "article_appearances_retained": 695948,
+    "input_text_bytes": 1585976846,
+    "retained_text_bytes": 1515387041,
+    "full_frame_retention_pct_2dp": "99.06",
+    "article_appearance_retention_pct_2dp": "99.07",
+    "text_byte_retention_pct_2dp": "95.55",
+    "retention_sha256": "8b659ac03fb4481ebbbcdc3579e484f5630d8e490d6981c0b4a7a2c3c02c1019"
+  },
+  "provenance": {
+    "classification": "FIRST_PINNED_V2_RAW_MEASUREMENT_INDEPENDENTLY_REPRODUCED_AND_ACCOUNTED",
+    "reconciliation_result_canonical_sha256": "6046eab6643d31254c398ad1e4183931130acf0ca076cd5aa93b1a69902265eb",
+    "reconciliation_attestation_canonical_sha256": "ccac84f3d635b8e9342465a4c0f3a7fca42fb084f2a835d2ebb77d30986bc866",
+    "targeted_permit_canonical_sha256": "93bbaaf0cb90e7c5adb59c6d730101ee88e5532b380d45eaf48cc2d1fea6a4b8",
+    "targeted_result_canonical_sha256": "797a960ed9a7a4e9b1fe3e2f7cf92957a3afcf47fb87df25456ee946f3fc8045",
+    "targeted_evidence_canonical_sha256": "06a059b1d7b869e4c567d109931faec9d491c84ba2c17f98a874f8f0237d4109",
+    "targeted_ledger_multiset_sha256": "43029119e288584e6a516687e52d5cf35625806dd34f15d722c4ef2caf576f75",
+    "independent_review_filesystem_sha256": "264ae4861d2ffb55983625cbe9db110bc3ebd5487f6392bf336efb030a4ea44f",
+    "independent_review_check_count": 44,
+    "legacy_investigation": {
+      "source_result_canonical_sha256": "24423b02034a00caf614361aabde1b84d16610c102faf18dcfb937bd4b1e2c04",
+      "source_status": "COMPLETED_FAIL_CLOSED_N1_TEXT_RETENTION_MISMATCH",
+      "source_high_observation": "R03_PUBLIC_RETENTION_DENOMINATOR_CONFLATION",
+      "source_implementation_commit": "4c47ec61d85e3382c4dd4acfaa0281ca8a1950cd",
+      "tracked_generation_commit_found": false,
+      "v1_generator_driver_available": false,
+      "investigation_disposition": "PROVENANCE_TRACED_RECOVERY_IMPOSSIBLE_CLOSED"
+    }
+  },
+  "numerator_accounting": {
+    "unaffected_retained_text_bytes": 1428361110,
+    "v2_affected_retained_text_bytes": 87025931,
+    "legacy_implied_affected_retained_text_bytes": 7381768,
+    "preceding_headline_summary_plus_trigger_text_bytes": 6725808,
+    "preceding_content_text_bytes": 80300123,
+    "legacy_unexplained_preceding_content_text_bytes": 655960,
+    "v2_minus_legacy_retained_text_bytes": 79644163
+  },
+  "canonical_hash_policy": {
+    "normative_contract_anchor": "CANONICAL_SHA256",
+    "filesystem_sha256_role": "REVIEW_SESSION_ANCHOR_ONLY",
+    "targeted_result_crlf_filesystem_hash_is_nonnormative": true
+  },
+  "semantic_aliases": {
+    "targeted_result.total_news_positive_frames": "full_frames_total",
+    "alias_changes_no_value": true
+  },
+  "boundary_counters": {
+    "raw_source_traversals": 0,
+    "raw_source_copies": 0,
+    "frame_materializations": 0,
+    "fixture_materializations": 0,
+    "model_fits": 0,
+    "gate_executions": 0,
+    "oos_accesses": 0,
+    "local_inference_calls": 0,
+    "model_downloads": 0,
+    "provider_calls": 0,
+    "network_attempts": 0,
+    "dependency_changes": 0,
+    "commits": 0,
+    "pushes": 0
+  },
+  "lineage_sha256": "8f3b3f0c25b3dd8b7c12af4232f6fb22b19db62e71b752d1555b9c114457a719"
+}
