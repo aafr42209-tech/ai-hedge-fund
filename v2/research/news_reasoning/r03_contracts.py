@@ -28,6 +28,13 @@ TICKER_SESSION_BYTE_CAP = 131_072
 DELTA_STAR_E12 = 500_000_000
 SHA256_PATTERN = r"^[0-9a-f]{64}$"
 
+# Normative additive amendment:
+# docs/r03-news-reasoning-g2-gate-interpretation-amendment.md
+# sha256: 5a2cdae55cf83da37fda6fe64ba9067a0e8cce354a29ff834ff9e3450421fbbe
+R03_G2_INCREMENTAL_PRIMARY_GATE_RULE = "SEALED_UPPER_95_BOUND_OF_U_T2_MINUS_U_T0_VERSUS_DELTA_STAR_IS_SOLE_GATE_" "PASS_IS_NON_PAUSE_FAIL_IS_SEALED_PAUSE_NOT_EFFICACY_V1"
+R03_G2_ABSOLUTE_PROFITABILITY_FLAG_RULE = "SECONDARY_RECORDED_SIGN_OF_U_T2_POINT_ESTIMATE_WITH_ONE_SIDED_BOUND_VERSUS_" "ZERO_PER_REGISTERED_COST_CELL_REPORT_ONLY_NEVER_GATE_BEARING_V1"
+R03_G2_LOSES_LESS_INTERPRETATION_RULE = "INCREMENTAL_PASS_WITH_T2_ABSOLUTE_PROFITABILITY_NEGATIVE_MEANS_LOSES_LESS_" "OVER_LOSING_BASELINE_NOT_PROFITABILITY_AND_MUST_NOT_BE_CITED_AS_MAKING_MONEY_V1"
+
 
 class R03ContractError(ValueError):
     """Raised when a sealed R03 contract cannot be constructed or replayed."""
@@ -52,6 +59,18 @@ class R03GateLabel(StrEnum):
     G3_CONTINUE = "G3_CONTINUE_POWER_ADEQUATE"
     G3_STOP = "STOP_UNDERPOWERED"
     G3_INVALID = "G3_INVALID_NO_DECISION"
+
+
+class R03G2IncrementalAxis(StrEnum):
+    """Sealed-label projection; PASS is a non-pause, not efficacy evidence."""
+
+    G2_INCREMENTAL_PASS = "G2_INCREMENTAL_PASS"
+    G2_INCREMENTAL_FAIL = "G2_INCREMENTAL_FAIL"
+
+
+class R03T2AbsoluteProfitabilityFlag(StrEnum):
+    T2_ABSOLUTE_PROFITABILITY_POSITIVE = "T2_ABSOLUTE_PROFITABILITY_POSITIVE"
+    T2_ABSOLUTE_PROFITABILITY_NEGATIVE = "T2_ABSOLUTE_PROFITABILITY_NEGATIVE"
 
 
 class R03AuthorityState(StrEnum):
@@ -340,6 +359,59 @@ class R03GateResult(StrictModel):
         return self
 
 
+class R03G2GateResult(StrictModel):
+    """Two-axis G2 record under the pinned additive amendment.
+
+    ``G2_INCREMENTAL_PASS`` is only a futility/budget-governance non-pause. It is
+    not evidence that news, text, or LLM reasoning is effective or profitable.
+    The absolute-profitability flag is report-only and never gate-bearing.
+    """
+
+    gate: Literal["G2"] = "G2"
+    label: R03GateLabel
+    incremental_axis: R03G2IncrementalAxis
+    absolute_profitability_flag: R03T2AbsoluteProfitabilityFlag
+    point_estimate_e12: int
+    upper_95_e12: int
+    lower_95_e12: int
+    t2_absolute_point_estimate_e12: int
+    t2_absolute_lower_95_e12: int
+    seed_sha256: str = Field(pattern=SHA256_PATTERN)
+    input_sha256: str = Field(pattern=SHA256_PATTERN)
+    incremental_primary_gate_rule: str = R03_G2_INCREMENTAL_PRIMARY_GATE_RULE
+    absolute_profitability_flag_rule: str = R03_G2_ABSOLUTE_PROFITABILITY_FLAG_RULE
+    loses_less_interpretation_rule: str = R03_G2_LOSES_LESS_INTERPRETATION_RULE
+    result_sha256: str = Field(pattern=SHA256_PATTERN)
+
+    @model_validator(mode="after")
+    def validate_two_axis_result_and_hash(self) -> "R03G2GateResult":
+        expected_incremental = {
+            R03GateLabel.G2_CONTINUE: R03G2IncrementalAxis.G2_INCREMENTAL_PASS,
+            R03GateLabel.G2_PAUSE: R03G2IncrementalAxis.G2_INCREMENTAL_FAIL,
+        }.get(self.label)
+        if expected_incremental is None or self.incremental_axis != expected_incremental:
+            raise R03ContractError("G2 incremental axis must map from the sealed label")
+        expected_absolute = R03T2AbsoluteProfitabilityFlag.T2_ABSOLUTE_PROFITABILITY_POSITIVE if self.t2_absolute_point_estimate_e12 > 0 else R03T2AbsoluteProfitabilityFlag.T2_ABSOLUTE_PROFITABILITY_NEGATIVE
+        if self.absolute_profitability_flag != expected_absolute:
+            raise R03ContractError("G2 absolute-profitability flag must map from the T2 point estimate")
+        expected_rules = (
+            R03_G2_INCREMENTAL_PRIMARY_GATE_RULE,
+            R03_G2_ABSOLUTE_PROFITABILITY_FLAG_RULE,
+            R03_G2_LOSES_LESS_INTERPRETATION_RULE,
+        )
+        actual_rules = (
+            self.incremental_primary_gate_rule,
+            self.absolute_profitability_flag_rule,
+            self.loses_less_interpretation_rule,
+        )
+        if actual_rules != expected_rules:
+            raise R03ContractError("G2 amendment rule binding mismatch")
+        unsigned = self.model_dump(mode="json", exclude={"result_sha256"})
+        if canonical_sha256(unsigned) != self.result_sha256:
+            raise R03ContractError("G2 gate result hash mismatch")
+        return self
+
+
 class R03T3Reason(StrictModel):
     code: str = Field(min_length=1, max_length=64)
     field_refs: tuple[str, ...] = Field(min_length=1, max_length=8)
@@ -377,6 +449,7 @@ def contract_schema_bundle() -> dict[str, Any]:
         R03T2ModelIdentity,
         R03BoundCertificate,
         R03GateResult,
+        R03G2GateResult,
         R03T3Response,
         R03ZeroCounters,
     )

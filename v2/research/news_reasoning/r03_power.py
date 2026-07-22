@@ -15,12 +15,19 @@ from v2.research.overlay.r02_v2_power import wilson_interval_ppm
 from .r03_contracts import (
     DELTA_STAR_E12,
     mean_e12,
+    R03_G2_ABSOLUTE_PROFITABILITY_FLAG_RULE,
+    R03_G2_INCREMENTAL_PRIMARY_GATE_RULE,
+    R03_G2_LOSES_LESS_INTERPRETATION_RULE,
     R03ContractError,
+    R03G2GateResult,
+    R03G2IncrementalAxis,
     R03GateLabel,
-    R03GateResult,
+    R03T2AbsoluteProfitabilityFlag,
 )
 from .r03_headroom import stationary_bootstrap_means_e12
 
+G2_CONTRAST_BOOTSTRAP_LABEL = "R03_G2"
+G2_ABSOLUTE_BOOTSTRAP_LABEL = "R03_G2_T2_ABSOLUTE"
 G3_SD_MULTIPLIERS_PPM = (1_000_000, 1_500_000, 2_000_000)
 G3_FAIL_RATES_PPM = (0, 50_000)
 G3_PLANNED_N = 747
@@ -94,30 +101,78 @@ def g3_cells() -> tuple[R03G3Cell, ...]:
 
 def evaluate_g2(
     differences_e12: tuple[int, ...],
+    t2_absolute_net_utilities_e12: tuple[int, ...],
     *,
     seed_sha256: str,
     resamples: int = 10_000,
-) -> R03GateResult:
+) -> R03G2GateResult:
+    """Build the independent incremental and report-only absolute G2 axes.
+
+    The incremental axis is computed first and solely from the sealed contrast
+    label. ``G2_INCREMENTAL_PASS`` is a non-pause, not efficacy evidence. The
+    absolute-profitability flag cannot change or veto that primary axis.
+    """
+
     if not differences_e12:
         raise R03PowerError("G2 requires a nonempty paired series")
-    draws = sorted(stationary_bootstrap_means_e12(differences_e12, seed_sha256=seed_sha256, label="R03_G2", resamples=resamples))
+    draws = sorted(
+        stationary_bootstrap_means_e12(
+            differences_e12,
+            seed_sha256=seed_sha256,
+            label=G2_CONTRAST_BOOTSTRAP_LABEL,
+            resamples=resamples,
+        )
+    )
     upper = draws[max(0, math.ceil(0.95 * len(draws)) - 1)]
     label = R03GateLabel.G2_PAUSE if upper <= DELTA_STAR_E12 else R03GateLabel.G2_CONTINUE
-    input_sha = canonical_sha256({"gate": "G2", "differences_e12": differences_e12, "resamples": resamples})
+    incremental_axis = R03G2IncrementalAxis.G2_INCREMENTAL_FAIL if label == R03GateLabel.G2_PAUSE else R03G2IncrementalAxis.G2_INCREMENTAL_PASS
+
+    if not t2_absolute_net_utilities_e12:
+        raise R03PowerError("G2 requires a nonempty absolute T2 paired series")
+    if len(t2_absolute_net_utilities_e12) != len(differences_e12):
+        raise R03PowerError("G2 contrast and absolute T2 paired series must have equal length")
+    absolute_draws = sorted(
+        stationary_bootstrap_means_e12(
+            t2_absolute_net_utilities_e12,
+            seed_sha256=seed_sha256,
+            label=G2_ABSOLUTE_BOOTSTRAP_LABEL,
+            resamples=resamples,
+        )
+    )
+    absolute_point_estimate = mean_e12(list(t2_absolute_net_utilities_e12))
+    absolute_profitability_flag = R03T2AbsoluteProfitabilityFlag.T2_ABSOLUTE_PROFITABILITY_POSITIVE if absolute_point_estimate > 0 else R03T2AbsoluteProfitabilityFlag.T2_ABSOLUTE_PROFITABILITY_NEGATIVE
+    input_sha = canonical_sha256(
+        {
+            "gate": "G2",
+            "differences_e12": differences_e12,
+            "t2_absolute_net_utilities_e12": t2_absolute_net_utilities_e12,
+            "resamples": resamples,
+        }
+    )
     unsigned = {
         "gate": "G2",
         "label": label,
+        "incremental_axis": incremental_axis,
+        "absolute_profitability_flag": absolute_profitability_flag,
         "point_estimate_e12": mean_e12(list(differences_e12)),
         "upper_95_e12": upper,
         "lower_95_e12": draws[max(0, math.ceil(0.05 * len(draws)) - 1)],
+        "t2_absolute_point_estimate_e12": absolute_point_estimate,
+        "t2_absolute_lower_95_e12": absolute_draws[max(0, math.ceil(0.05 * len(absolute_draws)) - 1)],
         "seed_sha256": seed_sha256,
         "input_sha256": input_sha,
+        "incremental_primary_gate_rule": R03_G2_INCREMENTAL_PRIMARY_GATE_RULE,
+        "absolute_profitability_flag_rule": R03_G2_ABSOLUTE_PROFITABILITY_FLAG_RULE,
+        "loses_less_interpretation_rule": R03_G2_LOSES_LESS_INTERPRETATION_RULE,
     }
-    return R03GateResult(**unsigned, result_sha256=canonical_sha256(unsigned))
+    return R03G2GateResult(**unsigned, result_sha256=canonical_sha256(unsigned))
 
 
 def _domain_seed(seed_sha256: str, cell_id: str) -> int:
-    return int.from_bytes(hashlib.sha256(bytes.fromhex(seed_sha256) + cell_id.encode()).digest()[:16], "big")
+    return int.from_bytes(
+        hashlib.sha256(bytes.fromhex(seed_sha256) + cell_id.encode()).digest()[:16],
+        "big",
+    )
 
 
 def simulate_g3_cell(

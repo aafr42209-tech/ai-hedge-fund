@@ -26,7 +26,7 @@ NOW = datetime(2022, 1, 3, 15, tzinfo=timezone.utc)
 
 def test_contract_schema_bundle_passes_metaschema() -> None:
     schemas = contract_schema_bundle()
-    assert len(schemas) == 12
+    assert len(schemas) == 13
     for schema in schemas.values():
         jsonschema.Draft202012Validator.check_schema(schema)
     assert len(contract_schema_sha256()) == 64
